@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema SAP - Análisis y Monitoreo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- SheetJS (Librería para Excel) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Estilos de Celdas */
+        .cell-status-1 { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; } /* Verde */
+        .cell-status-2 { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; } /* Amarillo */
+        .cell-status-3 { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; } /* Rojo */
+        
+        .cell-analisis-1 { background-color: #dbeafe; color: #1e40af; font-weight: bold; text-align: center; } /* Captacion */
+        .cell-analisis-2 { background-color: #fef9c3; color: #854d0e; font-weight: bold; text-align: center; } /* Red */
+        .cell-analisis-3 { background-color: #fce7f3; color: #9d174d; font-weight: bold; text-align: center; } /* Ambos */
+
+        .cell-excede-lmp { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; cursor: pointer; }
+        .cell-cumple-si { background-color: #dcfce7; color: #166534; font-weight: bold; text-align: center; }
+        .cell-cumple-no { background-color: #fee2e2; color: #991b1b; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 overflow-hidden h-screen w-screen">
+
+    <!-- LOGIN -->
+    <div id="login-view" class="flex min-h-screen items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-blue-600 to-blue-400"></div>
+            <div class="text-center mb-8">
+                <div class="inline-flex p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200 mb-4"><i data-lucide="shield-check" class="w-8 h-8 text-white"></i></div>
+                <h1 class="text-2xl font-black text-slate-900">SISTEMA SAP</h1>
+                <p class="text-slate-500 text-sm mt-1">Acceso Restringido</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Usuario</label>
+                    <div class="relative"><i data-lucide="user" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i><input type="text" id="login-user" required class="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Tu usuario"></div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label>
+                    <div class="relative"><i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i><input type="password" id="login-pass" required class="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••"></div>
+                </div>
+                <div id="login-error" class="hidden bg-red-50 text-red-600 p-3 rounded-xl text-xs flex items-center gap-2 border border-red-100"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span id="login-error-msg">Error</span></div>
+                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-100 transition-all active:scale-95 flex justify-center items-center"><span id="btn-login-text">Ingresar</span><i id="btn-login-loader" data-lucide="loader-2" class="animate-spin w-5 h-5 hidden"></i></button>
+            </form>
+            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <span>Sistema SAP v3.2 Pro</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP PRINCIPAL -->
+    <div id="app-view" class="hidden flex h-screen bg-gray-50 font-sans overflow-hidden fade-in">
+        <!-- SIDEBAR -->
+        <aside class="w-16 md:w-20 bg-white border-r border-gray-200 flex flex-col justify-between flex-shrink-0 z-30 shadow-xl">
+            <div>
+                <div class="h-16 flex items-center justify-center bg-indigo-900 mb-2"><span class="font-black text-white text-xs tracking-widest border border-white p-1">SAP</span></div>
+                <nav class="flex flex-col gap-1">
+                    <button onclick="window.switchTab('dashboard')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-indigo-600 bg-indigo-50/50" id="nav-dashboard"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full"></div><i data-lucide="layout-dashboard" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Inicio</span></button>
+                    <button onclick="window.switchTab('sap')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-sap"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="bar-chart-3" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Analítica</span></button>
+                    <button onclick="window.switchTab('whiteboard')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-whiteboard"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="pen-tool" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Pizarra</span></button>
+                    <button onclick="window.switchTab('users')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-users"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="users" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Usuarios</span></button>
+                </nav>
+            </div>
+            <div class="mb-4 flex flex-col items-center gap-2"><button onclick="window.logout()" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Cerrar Sesión"><i data-lucide="log-out"></i></button></div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 relative bg-gray-100 overflow-hidden">
+            <!-- DASHBOARD HOME -->
+            <div id="view-dashboard" class="view-section h-full overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto">
+                <div class="mb-8"><h1 class="text-2xl md:text-3xl font-bold text-gray-800">Hola, <span id="welcome-user">Usuario</span></h1><p class="text-gray-500">Bienvenido al sistema de vigilancia de calidad del agua.</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-indigo-50 text-indigo-600 rounded-full mr-4"><i data-lucide="activity"></i></div><div><p class="text-xs md:text-sm text-gray-500">Sistemas Monitoreados</p><p class="text-xl md:text-2xl font-bold text-gray-800">1,245</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-emerald-50 text-emerald-600 rounded-full mr-4"><i data-lucide="check-circle"></i></div><div><p class="text-xs md:text-sm text-gray-500">Cumplimiento Global</p><p class="text-xl md:text-2xl font-bold text-gray-800">78%</p></div></div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-red-50 text-red-600 rounded-full mr-4"><i data-lucide="alert-triangle"></i></div><div><p class="text-xs md:text-sm text-gray-500">Alertas Críticas (LMP)</p><p class="text-xl md:text-2xl font-bold text-gray-800">12</p></div></div>
+                </div>
+                <div onclick="window.switchTab('sap')" class="bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-2xl p-6 md:p-8 text-white flex flex-col sm:flex-row justify-between items-center shadow-lg cursor-pointer hover:scale-[1.01] transition-transform group text-center sm:text-left"><div><h3 class="text-xl md:text-2xl font-bold mb-2 group-hover:underline">Acceder al Módulo de Analítica SAP</h3><p class="text-indigo-200 text-sm md:text-base">Gestión de monitoreos, inspecciones rurales, metales pesados y reportes.</p></div><div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm mt-6 sm:mt-0"><i data-lucide="bar-chart-3" class="w-10 h-10 md:w-12 md:h-12 text-indigo-300"></i></div></div>
+            </div>
+
+            <!-- ANALÍTICA SAP -->
+            <div id="view-sap" class="view-section hidden h-full w-full flex flex-col">
+                <div id="sap-loader" class="flex flex-col items-center justify-center h-full bg-gray-50 absolute inset-0 z-50"><div class="relative"><div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div><p class="mt-4 text-indigo-900 font-medium animate-pulse">Cargando datos SAP...</p><p id="sap-loader-hint" class="text-xs text-gray-400 mt-2"></p></div>
+                
+                <!-- Header Fijo Superior -->
+                <div class="bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-sm z-10 flex-shrink-0">
+                    <div class="text-center sm:text-left">
+                        <h2 class="text-lg md:text-xl font-bold text-gray-800 flex items-center justify-center sm:justify-start"><i data-lucide="shield" class="mr-2 text-indigo-600 w-5 h-5"></i>Análisis de Registros SAP</h2>
+                        <p id="sap-status-text" class="text-xs text-gray-500 mt-1">Iniciando...</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200 w-full sm:w-auto justify-between sm:justify-start">
+                        <div class="flex items-center px-2 flex-1">
+                            <i data-lucide="filter" class="w-4 h-4 text-gray-400 mr-2"></i>
+                            <span class="text-xs font-semibold text-gray-600 mr-2 hidden md:inline">Red:</span>
+                            <select id="sap-filter-red" class="bg-transparent text-xs md:text-sm font-medium text-gray-800 outline-none cursor-pointer w-full max-w-[150px] md:max-w-xs text-ellipsis">
+                                <option value="Todos">Todas las Redes</option>
+                            </select>
+                        </div>
+                        <div class="h-4 w-px bg-gray-300 mx-1"></div>
+                        <button onclick="window.forceRefreshData()" class="p-2 hover:bg-blue-100 text-gray-600 hover:text-blue-700 rounded-md transition-colors" title="Actualizar Datos (Ignorar Caché)"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        <button onclick="window.exportToExcel()" class="p-2 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-md transition-colors" title="Descargar Excel"><i data-lucide="download" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <!-- Contenedor Principal con Scroll Natural -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 relative bg-slate-50">
+                    <div id="sap-processing" class="hidden absolute inset-0 z-40 bg-white/80 backdrop-blur-sm flex items-center justify-center h-full"><div class="flex flex-col items-center"><i data-lucide="loader-2" class="w-10 h-10 text-indigo-600 animate-spin mb-3"></i><p class="text-indigo-800 font-bold animate-pulse text-sm">Procesando vista...</p></div></div>
+                    
+                    <div class="flex flex-col gap-6 max-w-full">
+                        
+                        <!-- Pestañas -->
+                        <div class="flex overflow-x-auto gap-2 pb-2 scrollbar-hide flex-shrink-0 w-full" id="sap-tabs-container"></div>
+                        
+                        <!-- TABLA PRINCIPAL (Ajustada para fluir) -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col w-full">
+                            <div class="overflow-x-auto w-full rounded-xl" id="sap-main-table-container">
+                                <!-- La tabla va aquí. Crecerá verticalmente sin scroll interno -->
+                            </div>
+                        </div>
+
+                        <!-- CONSOLIDADO Y GRÁFICO (Adaptables a móvil) -->
+                        <div class="flex flex-col xl:flex-row gap-6 pb-8 w-full">
+                            
+                            <!-- Consolidado -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col flex-1 min-w-0">
+                                <div class="p-4 border-b border-gray-100 bg-gray-50 rounded-t-xl"><h4 class="font-bold text-xs text-gray-700 uppercase">Consolidado por Red</h4></div>
+                                <div class="overflow-x-auto w-full rounded-b-xl" id="sap-consolidated-container">
+                                    <!-- Tabla consolidada -->
+                                </div>
+                            </div>
+
+                            <!-- Gráfico -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 w-full xl:w-80 flex flex-col items-center justify-center flex-shrink-0 min-h-[300px]" id="sap-chart-container">
+                                <!-- Gráfico SVG -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PIZARRA -->
+            <div id="view-whiteboard" class="view-section hidden h-full flex flex-col"><div class="bg-white p-3 border-b border-gray-200 flex justify-between items-center"><h2 class="font-bold text-gray-700 flex items-center gap-2"><i data-lucide="pen-tool"></i> Pizarra</h2><button onclick="window.clearCanvas()" class="text-xs text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 font-medium transition-colors">Limpiar Lienzo</button></div><div class="flex-1 bg-gray-100 p-4"><canvas id="wb-canvas" class="w-full h-full bg-white rounded-xl shadow-sm cursor-crosshair border border-gray-200"></canvas></div></div>
+            
+            <!-- USUARIOS -->
+            <div id="view-users" class="view-section hidden h-full overflow-y-auto p-4 md:p-8 max-w-6xl mx-auto flex flex-col">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"><div><h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2><p class="text-gray-500 text-sm mt-1">Usuarios autorizados en Google Sheets</p></div><a href="https://docs.google.com/spreadsheets/d/1GCHXfQf79_B-k6j2C6O-I-f9U1f9p6_G7-r9mU1p6kY/edit" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm w-full sm:w-auto justify-center transition-colors"><i data-lucide="external-link" class="mr-2 w-4 h-4"></i> Editar en Excel</a></div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col w-full"><div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="text-sm font-bold text-gray-500 uppercase" id="users-count-label">Lista de Accesos</span><button onclick="window.syncUsers(true)" class="text-indigo-600 hover:text-indigo-800 text-sm flex items-center font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"><i data-lucide="refresh-cw" class="mr-1 w-4 h-4"></i> Sincronizar</button></div><div class="overflow-x-auto w-full"><table class="min-w-full text-left"><thead class="bg-white border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold"><tr><th class="p-4 whitespace-nowrap">Usuario</th><th class="p-4 whitespace-nowrap">Contraseña</th><th class="p-4 whitespace-nowrap">Estado</th></tr></thead><tbody id="users-table-body" class="divide-y divide-gray-100"></tbody></table></div></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL LMP -->
+    <div id="modal-lmp" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform scale-100 transition-all">
+            <div class="bg-red-600 px-5 py-4 flex justify-between items-center"><h3 class="text-white font-bold flex items-center"><i data-lucide="alert-triangle" class="mr-2 w-5 h-5 text-red-100"></i> Detalle de Excesos LMP</h3><button onclick="window.closeModal()" class="text-white hover:bg-red-700 rounded-lg p-1.5 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+            <div id="modal-lmp-content" class="p-5 bg-gray-50 max-h-[60vh] overflow-y-auto space-y-3"></div>
+            <div class="p-4 bg-white border-t border-gray-100 text-right"><button onclick="window.closeModal()" class="px-5 py-2.5 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-md transition-all active:scale-95">Aceptar</button></div>
+        </div>
+    </div>
+
+    <script>
+        // ========================
+        // CONFIGURACIÓN & ESTADO
+        // ========================
+        const URLS = {
+            MAIN: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?output=csv',
+            SANITARIA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=284188568&single=true&output=csv',
+            RIESGOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1175942303&single=true&output=csv',
+            USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv'
+        };
+
+        const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
+        const MONITOR_MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const MONITOR_5P_PARAMS = ['Cloro', 'Conductividad', 'pH', 'Temperatura', 'Turbiedad'];
+        const RURAL_SAP_TYPES = ['Bombeo con tratamiento', 'Gravedad con tratamiento', 'Gravedad con tratamiento y Bombeo con tratamiento'];
+        const MONTHS_MAP = { 'ENERO': 'Enero', 'FEBRERO': 'Febrero', 'MARZO': 'Marzo', 'ABRIL': 'Abril', 'MAYO': 'Mayo', 'JUNIO': 'Junio', 'JULIO': 'Julio', 'AGOSTO': 'Agosto', 'SETIEMBRE': 'Setiembre', 'SEPTIEMBRE': 'Setiembre', 'OCTUBRE': 'Octubre', 'NOVIEMBRE': 'Noviembre', 'DICIEMBRE': 'Diciembre' };
+        
+        const LMP_SCOPES = {
+            metales: { 'Aluminio': 0.2, 'Antimonio': 0.02, 'Arsénico': 0.01, 'Bario': 0.7, 'Boro': 1.5, 'Cadmio': 0.003, 'Cianuro': 0.07, 'Cobre': 2.0, 'Cromo total': 0.05, 'Hierro': 0.3, 'Manganeso': 0.4, 'Mercurio': 0.001, 'Molibdeno': 0.07, 'Niquel': 0.02, 'Plomo': 0.01, 'Selenio': 0.01, 'Uranio': 0.015, 'Zinc': 3.0, 'Aluminio_': 0.9, 'Antimonio_': 0.02, 'Arsénico_': 0.01, 'Bario_': 1.0, 'Cianuro libre_': 0.7, 'Cianuro total_': 0.7, 'Cobre_': 2.0, 'Cromo total_': 0.05, 'Hierro_': 1.0, 'Manganeso _': 0.4, 'Mercurio_': 0.002, 'Molibdeno_': 0.07, 'Niquel_': 0.07, 'Plomo_': 0.05, 'Selenio_': 0.04, 'Uranio_': 0.02, 'Zinc_': 3.0 },
+            parasitologico: { 'Huevos Larvas Helmintos': 0, 'Formas parasitarias_': 0 },
+            bacteriologico: { 'Bacterias Coliformes Fecales (NMP)': 0, 'Bacterias Coliformes Fecales (UFC)': 0, 'Bacterias Coliformes Totales (NMP)': 0, 'Bacterias Coliformes Totales (UFC)': 0, 'BACTERIAS HETEROTRÓFICAS': 500, 'E. Coli (NMP)': 0, 'E. Coli (UFC)': 0, 'Organismos de vida libre': 0, 'Coliformes Termotolerantes _': 20, 'Coliformes Totales _': 50, 'Escherichia Coli _': 0, 'Organismos de vida libre_': 0 }
+        };
+
+        const ANALYSIS_SETS = {
+            metales: { A: ['Aluminio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cobre', 'Cromo total', 'Hierro', 'Manganeso', 'Mercurio', 'Molibdeno', 'Niquel', 'Plomo', 'Selenio', 'Uranio', 'Zinc'], B: ['Aluminio_', 'Antimonio_', 'Arsénico_', 'Bario_', ['Cianuro libre_', 'Cianuro total_'], 'Cobre_', 'Cromo total_', 'Hierro_', 'Manganeso _', 'Mercurio_', 'Molibdeno_', 'Niquel_', 'Plomo_', 'Selenio_', 'Uranio_', 'Zinc_'] },
+            fisico: { A: [['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)'], 'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Nitratos'], B: [['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Nitritos_'], ['Color (después de filtración simple)_', 'Color (después de filtración simple) aguas claras_'], 'Turbiedad_', 'Ph_', 'Conductividad_', 'Sólidos Totales disueltos_', 'Cloruros_', 'Sulfatos_', 'Dureza_', 'Fluoruros_', 'Nitratos_'] },
+            parasitologico: { A: ['Huevos Larvas Helmintos'], B: ['Formas parasitarias_'] },
+            bacteriologico: { A: [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], 'BACTERIAS HETEROTRÓFICAS', ['E. Coli (NMP)', 'E. Coli (UFC)'], 'Organismos de vida libre'], B: ['Coliformes Termotolerantes _', 'Coliformes Totales _', 'Escherichia Coli _', 'Organismos de vida libre_'] }
+        };
+
+        const SAP_TABS = ['monitor', 'inspeccion', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'riesgos'];
+
+        const APP_STATE = { currentUser: null, usersList: [], rawData: { main: [], sanitaria: [], riesgos: [] }, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapCache: {}, canvas: null, isDrawing: false };
+
+        // ========================
+        // EXPORTACIONES GLOBALES
+        // ========================
+        // Se exportan a window para evitar ReferenceError en entornos aislados
+        window.switchTab = switchTab;
+        window.handleLogin = handleLogin;
+        window.logout = logout;
+        window.changeSapSubTab = changeSapSubTab;
+        window.exportToExcel = exportToExcel;
+        window.openLMPModal = openLMPModal;
+        window.closeModal = closeModal;
+        window.clearCanvas = clearCanvas;
+        window.forceRefreshData = forceRefreshData;
+        window.syncUsers = syncUsers;
+
+        // ========================
+        // HELPERS & PARSER
+        // ========================
+        const normalizeHeader = (h) => h ? h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ') : '';
+        const findHeaderIndex = (headers, target) => { const normTarget = normalizeHeader(target); return headers.findIndex(h => normalizeHeader(h) === normTarget); };
+        const isCellEmpty = (c) => c === null || c === undefined || String(c).trim() === '';
+
+        // Función para liberar el hilo principal y no congelar la UI
+        const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+
+        // Parser CSV Asíncrono (Chunking)
+        const asyncParseCSV = async (str, chunkSize = 1000) => {
+            if (!str) return [];
+            const arr = []; let row = []; let col = ""; let inQuote = false;
+            let lineCount = 0;
+            
+            for (let i = 0; i < str.length; i++) {
+                const c = str[i]; const next = str[i+1];
+                if (c === '"') { 
+                    if (inQuote && next === '"') { col += '"'; i++; } 
+                    else { inQuote = !inQuote; } 
+                }
+                else if (c === ',' && !inQuote) { 
+                    row.push(col.trim()); col = ""; 
+                }
+                else if ((c === '\r' || c === '\n') && !inQuote) { 
+                    if (col.length > 0 || row.length > 0) { row.push(col.trim()); arr.push(row); } 
+                    row = []; col = ""; lineCount++;
+                    if (c === '\r' && next === '\n') i++; 
+                    
+                    // Pausa cada N líneas para no congelar el navegador
+                    if (lineCount % chunkSize === 0) {
+                        await yieldToMain();
+                    }
+                }
+                else { col += c; }
+            }
+            if (col.length > 0 || row.length > 0) { row.push(col.trim()); arr.push(row); }
+            return arr;
+        };
+
+        // ========================
+        // INICIO & PRECARGA
+        // ========================
+        function init() {
+            lucide.createIcons();
+            
+            // Iniciar sincronización y precarga en segundo plano sin congelar
+            syncUsers();
+            preloadSAPData(); 
+            
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('sap-filter-red').addEventListener('change', (e) => { 
+                APP_STATE.sapFilterRed = e.target.value; 
+                processSAPData(); 
+            });
+            initWhiteboard();
+        }
+
+        async function syncUsers(showLoading = false) {
+            const btn = document.getElementById('btn-sync-users');
+            if(showLoading && btn) btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Cargando...';
+            try {
+                const res = await fetch(`${URLS.USUARIOS}&t=${new Date().getTime()}`);
+                const text = await res.text();
+                const rows = await asyncParseCSV(text);
+                APP_STATE.usersList = rows.slice(1).map(r => ({ usuario: r[0]?.trim(), password: r[1]?.trim() })).filter(u => u.usuario && u.password);
+                if(showLoading) { renderUserTable(); lucide.createIcons(); }
+            } catch (e) { 
+                console.error("Error cargando usuarios", e); 
+            } finally { 
+                if(showLoading && btn) btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; 
+            }
+        }
+
+        async function preloadSAPData() {
+            const fetchWithRetry = async (url, retries = 2) => {
+                const urlWithTime = `${url}&t=${new Date().getTime()}`;
+                try { 
+                    const response = await fetch(urlWithTime, { method: 'GET', mode: 'cors', cache: 'no-cache' }); 
+                    if (!response.ok) throw new Error(); 
+                    return await response.text(); 
+                } catch (e) { 
+                    if (retries > 0) { 
+                        await new Promise(r => setTimeout(r, 1000)); 
+                        return fetchWithRetry(url, retries - 1); 
+                    } 
+                    throw e; 
+                }
+            };
+
+            try {
+                // Descargar datos
+                const [mText, sText, rText] = await Promise.all([
+                    fetchWithRetry(URLS.MAIN), 
+                    fetchWithRetry(URLS.SANITARIA), 
+                    fetchWithRetry(URLS.RIESGOS)
+                ]);
+                
+                // Parseo asíncrono
+                APP_STATE.rawData.main = await asyncParseCSV(mText); 
+                APP_STATE.rawData.sanitaria = await asyncParseCSV(sText); 
+                APP_STATE.rawData.riesgos = await asyncParseCSV(rText);
+                
+                if(APP_STATE.rawData.main.length > 1) {
+                    const headers = APP_STATE.rawData.main[0]; 
+                    const idx = findHeaderIndex(headers, 'Red de Salud'); 
+                    const redes = new Set();
+                    APP_STATE.rawData.main.slice(1).forEach(row => { if(row[idx]) redes.add(row[idx]); });
+                    const select = document.getElementById('sap-filter-red');
+                    select.innerHTML = '<option value="Todos">Todas las Redes</option>';
+                    Array.from(redes).sort().forEach(red => { 
+                        const opt = document.createElement('option'); opt.value = red; opt.textContent = red; 
+                        select.appendChild(opt); 
+                    });
+                }
+
+                // Pre-procesar información para que no haya demoras luego
+                for (const tab of SAP_TABS) {
+                    APP_STATE.sapCache[`${tab}_Todos`] = runSapLogic(tab, APP_STATE.rawData, 'Todos');
+                    await yieldToMain(); 
+                }
+
+                APP_STATE.sapDataLoaded = true;
+
+                // Actualizar interfaz si corresponde
+                const loader = document.getElementById('sap-loader');
+                if (loader && !loader.classList.contains('hidden')) {
+                    loader.classList.add('hidden');
+                    document.getElementById('sap-status-text').textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
+                    renderSapTabs();
+                    processSAPData();
+                }
+
+            } catch (error) { 
+                console.error("Error Preloading SAP Data", error); 
+            }
+        }
+
+        async function forceRefreshData() {
+            APP_STATE.sapCache = {};
+            APP_STATE.sapDataLoaded = false;
+            document.getElementById('sap-loader').classList.remove('hidden');
+            await preloadSAPData();
+            if(APP_STATE.sapActiveTab) processSAPData();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login-user').value; const p = document.getElementById('login-pass').value;
+            const errEl = document.getElementById('login-error');
+            const btnText = document.getElementById('btn-login-text');
+            const btnLoader = document.getElementById('btn-login-loader');
+
+            btnText.classList.add('hidden');
+            btnLoader.classList.remove('hidden');
+
+            setTimeout(() => { 
+                const found = APP_STATE.usersList.find(user => user.usuario === u && user.password === p);
+                if (found) { 
+                    APP_STATE.currentUser = found; 
+                    document.getElementById('welcome-user').textContent = found.usuario; 
+                    document.getElementById('login-view').classList.add('hidden'); 
+                    document.getElementById('app-view').classList.remove('hidden'); 
+                    renderUserTable(); 
+                } else { 
+                    errEl.classList.remove('hidden'); 
+                    document.getElementById('login-error-msg').textContent = "Credenciales incorrectas."; 
+                }
+                btnText.classList.remove('hidden');
+                btnLoader.classList.add('hidden');
+            }, 500);
+        }
+
+        function logout() { 
+            APP_STATE.currentUser = null; 
+            document.getElementById('app-view').classList.add('hidden'); 
+            document.getElementById('login-view').classList.remove('hidden'); 
+            document.getElementById('login-user').value = ''; 
+            document.getElementById('login-pass').value = ''; 
+            document.getElementById('login-error').classList.add('hidden'); 
+            switchTab('dashboard'); 
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                const indicator = el.querySelector('.active-indicator');
+                if(el.id === `nav-${tabId}`) { 
+                    el.className = "sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-indigo-600 bg-indigo-50/50"; 
+                    if(indicator) indicator.classList.remove('hidden'); 
+                } else { 
+                    el.className = "sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50"; 
+                    if(indicator) indicator.classList.add('hidden'); 
+                }
+            });
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            
+            const viewEl = document.getElementById(`view-${tabId}`);
+            if(viewEl) viewEl.classList.remove('hidden');
+
+            if(tabId === 'sap') {
+                if(!APP_STATE.sapDataLoaded) {
+                    document.getElementById('sap-loader').classList.remove('hidden');
+                } else {
+                    document.getElementById('sap-loader').classList.add('hidden');
+                    document.getElementById('sap-status-text').textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
+                    renderSapTabs();
+                    processSAPData();
+                }
+            }
+        }
+
+        function renderSapTabs() {
+            const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'inspeccion', label: 'Insp. Rural'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'sanitaria', label: 'Insp. Sanitaria'}, {id: 'riesgos', label: 'Riesgos'}];
+            document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="changeSapSubTab('${t.id}')" class="whitespace-nowrap px-4 py-2 md:px-5 md:py-2.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md transform scale-105' : 'bg-white text-gray-600 hover:bg-indigo-50 border border-gray-200'}">${t.label}</button>`).join('');
+        }
+
+        function changeSapSubTab(tabId) { 
+            if(APP_STATE.sapActiveTab === tabId) return; 
+            APP_STATE.sapActiveTab = tabId; 
+            renderSapTabs(); 
+            processSAPData(); 
+        }
+
+        function processSAPData() {
+            const cacheKey = `${APP_STATE.sapActiveTab}_${APP_STATE.sapFilterRed}`;
+            
+            // Renderizado inmediato si está en caché
+            if(APP_STATE.sapCache[cacheKey]) {
+                const result = APP_STATE.sapCache[cacheKey];
+                renderMainTable(result); 
+                renderConsolidatedAndChart(result);
+                return;
+            }
+
+            document.getElementById('sap-processing').classList.remove('hidden');
+            setTimeout(() => {
+                const result = runSapLogic(APP_STATE.sapActiveTab, APP_STATE.rawData, APP_STATE.sapFilterRed);
+                APP_STATE.sapCache[cacheKey] = result;
+                renderMainTable(result); 
+                renderConsolidatedAndChart(result);
+                document.getElementById('sap-processing').classList.add('hidden');
+            }, 10);
+        }
+
+        function runSapLogic(subTab, dataObj, redFilter) {
+            let sourceData = dataObj.main; let headers = sourceData[0]; let dataRows = sourceData.slice(1);
+            if (redFilter !== 'Todos') { const idxRed = findHeaderIndex(headers, 'Red de Salud'); if (idxRed !== -1) dataRows = dataRows.filter(r => r[idxRed] === redFilter); }
+            let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
+
+            if (['metales', 'bacteriologico', 'parasitologico', 'fisico'].includes(subTab)) {
+                finalHeaders = [...CORE_HEADERS, 'Total Muestras', 'Excede LMP', 'Cumple', 'Detalles'];
+                const map = {}; 
+                const specificLMP = LMP_SCOPES[subTab];
+                const currentSet = ANALYSIS_SETS[subTab];
+                const idxMes = findHeaderIndex(headers, 'Mes');
+
+                dataRows.forEach(row => {
+                    const id = row[idxId]; if(!id) return;
+                    if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''), totalSamples: 0, cleanSamples: 0, exceedances: [] };
+                    
+                    const hasData = checkComplianceSet(headers, currentSet?.A, row) || checkComplianceSet(headers, currentSet?.B, row);
+                    
+                    if(hasData) {
+                        map[id].totalSamples++;
+                        const issues = specificLMP ? checkParamLMPExceeded(headers, row, specificLMP) : [];
+                        
+                        if(issues.length > 0) {
+                            let mesName = "Sin Mes";
+                            if(idxMes !== -1 && row[idxMes]) {
+                                const mRaw = row[idxMes].toUpperCase();
+                                if(MONTHS_MAP[mRaw]) mesName = MONTHS_MAP[mRaw];
+                                else mesName = row[idxMes];
+                            }
+                            const issuesWithMonth = issues.map(i => ({...i, month: mesName}));
+                            map[id].exceedances.push(...issuesWithMonth);
+                        } else {
+                            map[id].cleanSamples++;
+                        }
+                    }
+                });
+
+                finalData = Object.values(map).map(sap => {
+                    let cumple = 0;
+                    if (sap.totalSamples > 0) {
+                        const rate = (sap.cleanSamples / sap.totalSamples);
+                        if (rate > 0.7) cumple = 1;
+                    }
+                    const excFlag = sap.exceedances.length > 0 ? 1 : 0;
+                    return [...sap.meta, sap.totalSamples, excFlag, cumple, JSON.stringify(sap.exceedances)];
+                });
+                pivotType = 'analysis';
+
+            } else if (subTab === 'monitor') {
+                finalHeaders = [...CORE_HEADERS, ...MONITOR_MONTHS]; const idxMes = findHeaderIndex(headers, 'Mes'); const map = {};
+                dataRows.forEach(row => {
+                    const id = row[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''), months: Array(12).fill(0) };
+                    const mName = MONTHS_MAP[row[idxMes]?.toUpperCase()]; const mIdx = MONITOR_MONTHS.indexOf(mName);
+                    if(mIdx !== -1) { const s = classifyMonitoringStatus(headers, row); if(s > map[id].months[mIdx]) map[id].months[mIdx] = s; }
+                });
+                finalData = Object.values(map).map(x => [...x.meta, ...x.months]);
+            } else if (subTab === 'riesgos') {
+                let localRows = dataObj.riesgos.slice(1);
+                let localHeaders = dataObj.riesgos[0] || [];
+                const idxRedRisk = findHeaderIndex(localHeaders, 'Red de Salud');
+                if (redFilter !== 'Todos' && idxRedRisk !== -1) localRows = localRows.filter(r => r[idxRedRisk] === redFilter);
+                
+                finalHeaders = [...CORE_HEADERS, ...MONITOR_MONTHS];
+                const map = {}; 
+                const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
+                
+                localRows.forEach(row => {
+                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')];
+                    if(!id) return;
+                    if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(localHeaders, h)] || ''), vals: Array(12).fill(0) };
+                    
+                    MONITOR_MONTHS.forEach((m, i) => {
+                        const idxInf = findHeaderIndex(localHeaders, `Informe ${m}`);
+                        const idxCar = findHeaderIndex(localHeaders, `Cargo ${m}`);
+                        if (idxInf !== -1 && idxCar !== -1) {
+                            if (normalizeHeader(row[idxInf]) === 'aprobado' && normalizeHeader(row[idxCar]) === 'aprobado') {
+                                map[id].vals[i]++; 
+                            }
+                        }
+                    });
+                });
+                finalData = Object.values(map).map(x => [...x.meta, ...x.vals]);
+                pivotType = 'boolean';
+                
+            } else {
+                let localRows = dataRows, localHeaders = headers;
+                if (subTab === 'sanitaria') { localHeaders = dataObj.sanitaria[0] || []; localRows = dataObj.sanitaria.slice(1); const idxRedSan = findHeaderIndex(localHeaders, 'Red de Salud'); if (redFilter !== 'Todos' && idxRedSan !== -1) localRows = localRows.filter(r => r[idxRedSan] === redFilter); } 
+                const map = {}; const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
+                localRows.forEach(row => {
+                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')]; if(!id) return;
+                    if(!map[id]) { map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(localHeaders, h)] || ''), vals: [] }; if(subTab==='inspeccion') map[id].insp=0; if(subTab==='sanitaria') map[id].count=0; }
+                    if (subTab === 'inspeccion') { if(classifyInspeccionStatus(localHeaders, row) === 1) map[id].insp++; }
+                    else if (subTab === 'sanitaria') { if(!isCellEmpty(row[findHeaderIndex(localHeaders, 'Fecha de inspección')])) map[id].count++; }
+                });
+                finalHeaders = [...CORE_HEADERS, '1ra Visita', '2da Visita']; finalData = Object.values(map).map(x => { const val = subTab === 'inspeccion' ? x.insp : x.count; return [...x.meta, val >= 1 ? 1 : 0, val >= 2 ? 1 : 0]; }); pivotType = 'boolean';
+            }
+            return { headers: finalHeaders, data: finalData, type: pivotType };
+        }
+
+        // CLASSIFIERS
+        function checkComplianceSet(h, s, r) { if (!s) return false; return s.every(p => { if (Array.isArray(p)) return p.some(sub => { const idx = findHeaderIndex(h, sub); return idx !== -1 && !isCellEmpty(r[idx]); }); const idx = findHeaderIndex(h, p); return idx !== -1 && !isCellEmpty(r[idx]); }); }
+        function classifyMonitoringStatus(h, r) { let c = 0; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) c++; }); const cl = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]); if (c === 5) return 1; if (cl && c === 1) return 2; return c > 0 ? 3 : 0; }
+        function classifyInspeccionStatus(h, r) { const a = findHeaderIndex(h, 'Ambito'), t = findHeaderIndex(h, 'Tipo SAP'); const ir = (a === -1) || (r[a] === 'RURAL'); const iv = (t === -1) || RURAL_SAP_TYPES.includes(r[t]); if (!ir || !iv) return 0; const hd = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]) || !isCellEmpty(r[findHeaderIndex(h, 'pH')]); return hd ? 1 : 0; }
+        function checkParamLMPExceeded(h, r, limitSet) { const l = []; for (const k in limitSet) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) { const v = parseFloat(r[idx]); const limit = limitSet[k]; if (!isNaN(v) && v > limit) l.push({ metal: k, value: v, lmp: limit }); } } return l.length > 0 ? l : 0; }
+
+        // RENDERS
+        function renderMainTable(result) {
+            const container = document.getElementById('sap-main-table-container');
+            const displayHeaders = result.headers.filter(h => h !== 'Detalles');
+            
+            let html = `<table class="min-w-full text-left border-collapse"><thead class="bg-gray-50 sticky top-0 shadow-sm z-10 border-b border-gray-200"><tr>`;
+            displayHeaders.forEach(h => html += `<th class="px-3 py-3 md:px-4 md:py-4 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">${h}</th>`);
+            html += `</tr></thead><tbody class="bg-white divide-y divide-gray-100">`;
+
+            result.data.forEach((row, i) => {
+                html += `<tr class="hover:bg-indigo-50/40 transition-colors">`;
+                row.filter((_, idx) => result.headers[idx] !== 'Detalles').forEach((cell, idx) => {
+                    const header = displayHeaders[idx];
+                    let cls = "px-3 py-3 md:px-4 md:py-3 text-xs border-r border-gray-50 whitespace-nowrap ";
+                    let content = cell;
+                    const v = parseInt(cell);
+
+                    if (header === 'Excede LMP') {
+                        if (v === 1) {
+                            cls += "cell-excede-lmp";
+                            const details = row[result.headers.indexOf('Detalles')];
+                            content = `<button onclick='window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-md text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
+                        } else { cls += "text-center"; content = "-"; }
+                    } else if (header === 'Cumple') {
+                        if (v === 1) { cls += "cell-cumple-si"; content = "<div class='inline-flex items-center gap-1'><div class='w-1.5 h-1.5 rounded-full bg-green-500'></div>CUMPLE</div>"; } 
+                        else { cls += "cell-cumple-no"; content = "<div class='inline-flex items-center gap-1'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</div>"; }
+                    } else if (result.type === 'status' && MONITOR_MONTHS.includes(header)) {
+                        cls += v === 1 ? "cell-status-1" : (v === 2 ? "cell-status-2" : (v === 3 ? "cell-status-3" : "cell-base"));
+                    } else if (result.type === 'boolean' && (header.includes('Visita') || MONITOR_MONTHS.includes(header))) {
+                        cls += v >= 1 ? "cell-status-1" : "cell-status-3"; 
+                        if(v > 1) content = `<span class="bg-green-700 text-white px-1.5 py-0.5 rounded-full text-[10px] ml-1">${v}</span>`;
+                    } else if (result.type === 'analysis' && header.includes('Muestra')) {
+                        cls += v === 1 ? "cell-analisis-1" : (v === 2 ? "cell-analisis-2" : (v === 3 ? "cell-analisis-3" : "cell-base"));
+                    } else {
+                        cls += "text-gray-700";
+                    }
+                    html += `<td class="${cls}">${content}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function renderConsolidatedAndChart(result) {
+            const valStartIdx = CORE_HEADERS.length;
+            const idxRed = CORE_HEADERS.indexOf('Red de Salud');
+            const summary = {};
+            const totalSapsPerRed = {}; 
+            
+            const isAnalysisTab = result.type === 'analysis';
+            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            const grandTotals = Array(colCount).fill(0);
+            let grandTotalSaps = 0;
+
+            result.data.forEach(row => {
+                const red = row[idxRed] || 'Sin Red';
+                if(!summary[red]) summary[red] = Array(colCount).fill(0);
+                if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
+                totalSapsPerRed[red]++; grandTotalSaps++;
+
+                if (isAnalysisTab) {
+                    const samples = parseInt(row[valStartIdx]);
+                    const excFlag = parseInt(row[valStartIdx + 1]);
+                    const cumple = parseInt(row[valStartIdx + 2]);
+                    const details = JSON.parse(row[valStartIdx + 3] || '[]');
+
+                    summary[red][0] += samples; grandTotals[0] += samples;
+                    summary[red][1] += details.length; grandTotals[1] += details.length;
+                    if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
+                } else {
+                    for(let i = valStartIdx; i < row.length; i++) {
+                        if(result.headers[i] === 'Detalles') continue;
+                        const val = parseInt(row[i]);
+                        const sumIdx = i - valStartIdx;
+                        
+                        if(APP_STATE.sapActiveTab === 'riesgos') {
+                            summary[red][sumIdx] += val; 
+                            grandTotals[sumIdx] += val;
+                        } else {
+                            let add = false;
+                            if(APP_STATE.sapActiveTab === 'monitor') { if(val===1) add=true; }
+                            else { if(val>=1) add=true; }
+                            if(add) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                        }
+                    }
+                }
+            });
+
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
+            let htmlCon = `<table class="min-w-full divide-y divide-gray-200"><thead class="bg-white sticky top-0 shadow-sm border-b border-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">RED</th><th class="px-4 py-3 text-center text-xs font-bold text-blue-600 uppercase bg-blue-50/50">CANT. SAP</th>`;
+            sumHeaders.forEach(h => htmlCon += `<th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">${h.substring(0,15)}</th>`);
+            htmlCon += `</tr></thead><tbody class="divide-y divide-gray-100">`;
+
+            Object.entries(summary).forEach(([red, vals]) => {
+                htmlCon += `<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-xs text-left font-bold text-gray-700 whitespace-nowrap">${red}</td><td class="px-4 py-3 text-xs text-center font-bold text-blue-700 bg-blue-50">${totalSapsPerRed[red]}</td>`;
+                vals.forEach((v, i) => {
+                    let style = "text-gray-600";
+                    if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/30"; if(i===2) style="text-green-600 font-bold"; }
+                    htmlCon += `<td class="px-4 py-3 text-xs text-center ${style}">${v}</td>`
+                });
+                htmlCon += `</tr>`;
+            });
+            htmlCon += `<tr class="bg-indigo-50 font-bold border-t-2 border-indigo-200"><td class="px-4 py-4 text-xs text-left text-indigo-900 uppercase">TOTAL GENERAL</td><td class="px-4 py-4 text-xs text-center text-blue-800 bg-blue-100/50">${grandTotalSaps}</td>`;
+            grandTotals.forEach(v => htmlCon += `<td class="px-4 py-4 text-xs text-center text-indigo-900">${v}</td>`);
+            htmlCon += `</tr></tbody></table>`;
+            document.getElementById('sap-consolidated-container').innerHTML = htmlCon;
+
+            // Chart
+            const counts = [0,0,0,0]; let labels=[], colors=[];
+            if (isAnalysisTab) {
+                const totalSaps = grandTotalSaps; 
+                const cumplidores = grandTotals[2];
+                
+                counts[0] = cumplidores;
+                counts[1] = totalSaps - cumplidores;
+                labels = ['SAPs Cumplen', 'No Cumplen / Sin Info'];
+                colors = ['#10b981', '#ef4444']; 
+            } else if (APP_STATE.sapActiveTab === 'riesgos') {
+                let approvedSaps = 0;
+                result.data.forEach(row => {
+                    let hasApproved = false;
+                    for(let i=valStartIdx; i<row.length; i++) { if(parseInt(row[i]) > 0) hasApproved=true; }
+                    if(hasApproved) approvedSaps++;
+                });
+                counts[0] = grandTotalSaps - approvedSaps;
+                counts[1] = approvedSaps;
+                labels = ['No Aprobado', 'Aprobado (Al menos 1)']; colors=['#fca5a5','#10b981']; 
+            } else {
+                result.data.forEach(row => { if(result.type === 'status' || result.type === 'boolean') { for(let i=valStartIdx; i<row.length; i++) { const v = parseInt(row[i])||0; if(v>=0 && v<=3) counts[v]++; } } else { const v = parseInt(row[valStartIdx])||0; if(v>=0 && v<=3) counts[v]++; } });
+                if(APP_STATE.sapActiveTab === 'monitor') { labels=['Sin Monitoreo','5P Completo','Solo Cloro','Incompleto']; colors=['#e5e7eb','#10b981','#f59e0b','#ef4444']; }
+                else if(['inspeccion','sanitaria'].includes(APP_STATE.sapActiveTab)) { labels=['No Cumple','Cumple']; colors=['#fca5a5','#10b981']; counts[2]=0; counts[3]=0; }
+                else { labels=['Sin Datos','Captación','Red','Ambos']; colors=['#f3f4f6','#3b82f6','#eab308','#ec4899']; }
+            }
+            renderDoughnutChart(counts.slice(0, labels.length), labels, colors);
+        }
+
+        function renderDoughnutChart(data, labels, colors) {
+            const total = data.reduce((a,b) => a+b, 0);
+            if(total === 0) { document.getElementById('sap-chart-container').innerHTML = '<div class="flex flex-col items-center justify-center text-gray-400 h-full"><i data-lucide="bar-chart-2" class="w-8 h-8 mb-2"></i><span class="text-sm">Sin datos para graficar</span></div>'; lucide.createIcons(); return; }
+            let svg = `<h4 class="text-sm md:text-base font-bold text-gray-800 mb-6 text-center w-full border-b border-gray-100 pb-2">Estadística: ${APP_STATE.sapActiveTab.toUpperCase()}</h4><div class="relative w-40 h-40 md:w-48 md:h-48 flex-shrink-0"><svg viewBox="0 0 100 100" class="transform -rotate-90 w-full h-full drop-shadow-md">`;
+            let cumAngle = 0;
+            data.forEach((val, i) => {
+                if(val === 0) return;
+                const pct = val / total; const angle = pct * 360; const large = pct > 0.5 ? 1 : 0;
+                const x1 = 50 + 40 * Math.cos(Math.PI * cumAngle / 180); const y1 = 50 + 40 * Math.sin(Math.PI * cumAngle / 180);
+                const x2 = 50 + 40 * Math.cos(Math.PI * (cumAngle + angle) / 180); const y2 = 50 + 40 * Math.sin(Math.PI * (cumAngle + angle) / 180);
+                const d = total === val ? "M 50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" : `M 50 50 L ${x1} ${y1} A 40 40 0 ${large} 1 ${x2} ${y2} Z`;
+                svg += `<path d="${d}" fill="${colors[i]}" stroke="white" stroke-width="1.5" class="transition-all duration-300 hover:opacity-80 cursor-pointer"></path>`; cumAngle += angle;
+            });
+            svg += `<circle cx="50" cy="50" r="26" fill="white"></circle></svg><div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none"><span class="text-2xl font-black text-gray-800">${total}</span><span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</span></div></div><div class="mt-6 w-full space-y-2.5 px-2">`;
+            labels.forEach((l, i) => { 
+                if(!l) return; 
+                svg += `<div class="flex items-center justify-between text-xs md:text-sm bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2.5 shadow-sm" style="background-color:${colors[i]}"></span><span class="text-gray-700 font-medium">${l}</span></div><span class="font-bold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-200">${data[i]}</span></div>`; 
+            });
+            svg += `</div>`;
+            document.getElementById('sap-chart-container').innerHTML = svg;
+        }
+
+        function exportToExcel() {
+            const cacheKey = `${APP_STATE.sapActiveTab}_${APP_STATE.sapFilterRed}`;
+            if(!APP_STATE.sapCache[cacheKey]) return;
+            const result = APP_STATE.sapCache[cacheKey];
+            const wb = XLSX.utils.book_new();
+
+            // SHEET 1: DETALLADO
+            const isAnalysisTab = result.type === 'analysis';
+            let detHeaders = [], detData = [];
+            if (isAnalysisTab) {
+                detHeaders = result.headers.map(h => h === 'Detalles' ? 'Parámetros LMP Exceden' : h);
+                detData = result.data.map(row => row.map((cell, i) => {
+                    if (result.headers[i] === 'Detalles') {
+                        try { const d = JSON.parse(cell); return Array.isArray(d) ? d.map(x => `${x.metal}=${x.value} (${x.month})`).join(', ') : ''; } catch (e) { return ''; }
+                    } 
+                    if (result.headers[i] === 'Cumple') { return cell === 1 ? 'SI' : 'NO'; }
+                    return cell;
+                }));
+            } else {
+                detHeaders = result.headers.filter(h => h !== 'Detalles');
+                detData = result.data.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles'));
+            }
+            const wsDetalle = XLSX.utils.aoa_to_sheet([detHeaders, ...detData]);
+            XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle");
+
+            // SHEET 2: CONSOLIDADO
+            const valStartIdx = CORE_HEADERS.length;
+            const idxRed = CORE_HEADERS.indexOf('Red de Salud');
+            const summary = {};
+            const totalSapsPerRed = {}; 
+            
+            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            const grandTotals = Array(colCount).fill(0);
+            let grandTotalSaps = 0;
+
+            result.data.forEach(row => {
+                const red = row[idxRed] || 'Sin Red';
+                if(!summary[red]) summary[red] = Array(colCount).fill(0);
+                if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
+                
+                totalSapsPerRed[red]++;
+                grandTotalSaps++;
+
+                if (isAnalysisTab) {
+                    const samples = parseInt(row[valStartIdx]);
+                    const excFlag = parseInt(row[valStartIdx + 1]);
+                    const cumple = parseInt(row[valStartIdx + 2]);
+                    const details = JSON.parse(row[valStartIdx + 3] || '[]');
+
+                    summary[red][0] += samples; grandTotals[0] += samples;
+                    summary[red][1] += details.length; grandTotals[1] += details.length;
+                    if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
+                } else {
+                    for(let i = valStartIdx; i < row.length; i++) {
+                        if(result.headers[i] === 'Detalles') continue;
+                        const val = parseInt(row[i]);
+                        const sumIdx = i - valStartIdx;
+                        
+                        if(APP_STATE.sapActiveTab === 'riesgos') {
+                            summary[red][sumIdx] += val; 
+                            grandTotals[sumIdx] += val;
+                        } else {
+                            let add = false;
+                            if(APP_STATE.sapActiveTab === 'monitor') { if(val===1) add=true; }
+                            else { if(val>=1) add=true; }
+                            if(add) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                        }
+                    }
+                }
+            });
+
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
+            const consHeaders = ['Red de Salud', 'Cantidad SAP', ...sumHeaders];
+            const consData = Object.entries(summary).map(([key, vals]) => [key, totalSapsPerRed[key], ...vals]);
+            consData.push(['TOTAL GENERAL', grandTotalSaps, ...grandTotals]);
+
+            const wsConsolidado = XLSX.utils.aoa_to_sheet([consHeaders, ...consData]);
+            XLSX.utils.book_append_sheet(wb, wsConsolidado, "Consolidado");
+
+            XLSX.writeFile(wb, `Reporte_SAP_${APP_STATE.sapActiveTab}.xlsx`);
+        }
+
+        function openLMPModal(jsonString) {
+            const data = JSON.parse(jsonString);
+            const content = document.getElementById('modal-lmp-content');
+            content.innerHTML = data.map(d => `
+                <div class="bg-white p-4 rounded-xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300 transition-colors">
+                    <div>
+                        <span class="font-black text-gray-800 text-sm block mb-1">${d.metal}</span>
+                        <span class="inline-flex items-center text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md"><i data-lucide="calendar" class="w-3 h-3 mr-1"></i> ${d.month}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-red-600 font-black text-lg block leading-none mb-1">${d.value}</span>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">LMP: ${d.lmp}</span>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+            document.getElementById('modal-lmp').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal-lmp').classList.add('hidden'); }
+
+        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Lista de Accesos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-gray-50"><td class="p-4 font-medium text-gray-800 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="p-4 text-gray-400 text-sm">••••••••</td><td class="p-4"><span class="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full border border-green-100">ACTIVO</span></td></tr>`).join(''); }
+        function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
+        function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
+
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+    </script>
+</body>
+</html>
