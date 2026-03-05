@@ -15,12 +15,18 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }
@@ -28,132 +34,275 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Estilos de Celdas */
-        .cell-status-1 { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; } /* Verde */
-        .cell-status-2 { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; } /* Amarillo */
-        .cell-status-3 { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; } /* Rojo */
-        
-        .cell-analisis-1 { background-color: #dbeafe; color: #1e40af; font-weight: bold; text-align: center; } /* Captacion */
-        .cell-analisis-2 { background-color: #fef9c3; color: #854d0e; font-weight: bold; text-align: center; } /* Red */
-        .cell-analisis-3 { background-color: #fce7f3; color: #9d174d; font-weight: bold; text-align: center; } /* Ambos */
+        .sticky-col-shadow { box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.05); }
 
+        /* Estilos de tabla personalizados SAP */
+        .cell-status-1 { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; } 
+        .cell-status-2 { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; } 
+        .cell-status-3 { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; } 
+        .cell-base { background-color: #f9fafb; color: #9ca3af; text-align: center; }
         .cell-excede-lmp { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; cursor: pointer; }
         .cell-cumple-si { background-color: #dcfce7; color: #166534; font-weight: bold; text-align: center; }
         .cell-cumple-no { background-color: #fee2e2; color: #991b1b; font-weight: bold; text-align: center; }
+
+        /* Estilos de tabla personalizados FED */
+        .cell-fed-verde { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; }
+        .cell-fed-naranja { background-color: #ffedd5; color: #b45309; font-weight: bold; text-align: center; }
+        .cell-fed-rojo { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; }
+        .cell-fed-gris { background-color: #f1f5f9; color: #64748b; font-weight: bold; text-align: center; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 overflow-hidden h-screen w-screen">
+<body class="text-slate-800 overflow-hidden h-screen w-screen flex">
 
     <!-- LOGIN -->
-    <div id="login-view" class="flex min-h-screen items-center justify-center p-4">
+    <div id="login-view" class="flex min-h-screen items-center justify-center p-4 w-full z-50 bg-slate-50 absolute inset-0">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-blue-600 to-blue-400"></div>
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-blue-600 to-indigo-500"></div>
             <div class="text-center mb-8">
-                <div class="inline-flex p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-200 mb-4"><i data-lucide="shield-check" class="w-8 h-8 text-white"></i></div>
-                <h1 class="text-2xl font-black text-slate-900">SISTEMA SAP</h1>
-                <p class="text-slate-500 text-sm mt-1">Acceso Restringido</p>
+                <div class="inline-flex p-4 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 mb-4"><i data-lucide="shield-check" class="w-8 h-8 text-white"></i></div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">SISTEMA SAP</h1>
+                <p class="text-slate-500 text-sm mt-1">Plataforma Analítica</p>
             </div>
-            <form id="login-form" class="space-y-4">
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Usuario</label>
-                    <div class="relative"><i data-lucide="user" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i><input type="text" id="login-user" required class="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Tu usuario"></div>
+            <form id="login-form" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1 tracking-wider">Usuario</label>
+                    <div class="relative"><i data-lucide="user" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400"></i><input type="text" id="login-user" required class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm font-medium text-slate-700" placeholder="Ingresa tu usuario"></div>
                 </div>
-                <div class="space-y-1">
-                    <label class="text-xs font-bold text-slate-400 uppercase ml-1">Contraseña</label>
-                    <div class="relative"><i data-lucide="lock" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i><input type="password" id="login-pass" required class="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••"></div>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-400 uppercase ml-1 tracking-wider">Contraseña</label>
+                    <div class="relative"><i data-lucide="lock" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400"></i><input type="password" id="login-pass" required class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-sm font-medium text-slate-700" placeholder="••••••••"></div>
                 </div>
-                <div id="login-error" class="hidden bg-red-50 text-red-600 p-3 rounded-xl text-xs flex items-center gap-2 border border-red-100"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span id="login-error-msg">Error</span></div>
-                <button type="submit" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-100 transition-all active:scale-95 flex justify-center items-center"><span id="btn-login-text">Ingresar</span><i id="btn-login-loader" data-lucide="loader-2" class="animate-spin w-5 h-5 hidden"></i></button>
+                <div id="login-error" class="hidden bg-red-50 text-red-600 p-3.5 rounded-xl text-xs flex items-center gap-2 border border-red-100 font-medium"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span id="login-error-msg">Error</span></div>
+                <button type="submit" id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 flex justify-center items-center mt-2"><span id="btn-login-text">Iniciar Sesión</span><i id="btn-login-loader" data-lucide="loader-2" class="animate-spin w-5 h-5 hidden"></i></button>
             </form>
             <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span>Sistema SAP v3.2 Pro</span>
+                <span>Sistema SAP v5.5 Pro</span>
             </div>
         </div>
     </div>
 
     <!-- APP PRINCIPAL -->
-    <div id="app-view" class="hidden flex h-screen bg-gray-50 font-sans overflow-hidden fade-in">
+    <div id="app-view" class="hidden flex h-screen w-full bg-slate-50 font-sans overflow-hidden fade-in">
         <!-- SIDEBAR -->
-        <aside class="w-16 md:w-20 bg-white border-r border-gray-200 flex flex-col justify-between flex-shrink-0 z-30 shadow-xl">
+        <aside class="w-20 bg-slate-900 border-r border-slate-800 flex flex-col justify-between flex-shrink-0 z-30 shadow-2xl">
             <div>
-                <div class="h-16 flex items-center justify-center bg-indigo-900 mb-2"><span class="font-black text-white text-xs tracking-widest border border-white p-1">SAP</span></div>
-                <nav class="flex flex-col gap-1">
-                    <button onclick="window.switchTab('dashboard')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-indigo-600 bg-indigo-50/50" id="nav-dashboard"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full"></div><i data-lucide="layout-dashboard" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Inicio</span></button>
-                    <button onclick="window.switchTab('sap')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-sap"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="bar-chart-3" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Analítica</span></button>
-                    <button onclick="window.switchTab('whiteboard')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-whiteboard"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="pen-tool" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Pizarra</span></button>
-                    <button onclick="window.switchTab('users')" class="sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50" id="nav-users"><div class="active-indicator absolute left-0 top-0 bottom-0 w-1 bg-indigo-600 rounded-r-full hidden"></div><i data-lucide="users" class="mb-1 transition-transform group-hover:scale-110"></i><span class="text-[10px] font-bold uppercase tracking-wider hidden md:block text-center leading-tight">Usuarios</span></button>
+                <div class="h-20 flex items-center justify-center bg-indigo-600 shadow-md">
+                    <span class="font-black text-white text-sm tracking-widest bg-white/20 px-2 py-1 rounded">SAP</span>
+                </div>
+                <nav class="flex flex-col mt-4 gap-2 px-2 overflow-y-auto scrollbar-hide">
+                    <button onclick="window.switchTab('dashboard')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white bg-white/10 shadow-inner" id="nav-dashboard">
+                        <i data-lucide="layout-dashboard" class="mb-1.5 transition-transform group-hover:scale-110 text-indigo-300"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Inicio</span>
+                    </button>
+                    <button onclick="window.switchTab('sap')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5" id="nav-sap">
+                        <i data-lucide="bar-chart-3" class="mb-1.5 transition-transform group-hover:scale-110"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Analítica</span>
+                    </button>
+                    <button onclick="window.switchTab('fed')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5" id="nav-fed">
+                        <i data-lucide="target" class="mb-1.5 transition-transform group-hover:scale-110 text-amber-400"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight text-amber-400">FED</span>
+                    </button>
+                    <button onclick="window.switchTab('whiteboard')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5" id="nav-whiteboard">
+                        <i data-lucide="pen-tool" class="mb-1.5 transition-transform group-hover:scale-110"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Pizarra</span>
+                    </button>
+                    <button onclick="window.switchTab('users')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5" id="nav-users">
+                        <i data-lucide="users" class="mb-1.5 transition-transform group-hover:scale-110"></i>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Usuarios</span>
+                    </button>
                 </nav>
             </div>
-            <div class="mb-4 flex flex-col items-center gap-2"><button onclick="window.logout()" class="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Cerrar Sesión"><i data-lucide="log-out"></i></button></div>
+            <div class="mb-6 px-2">
+                <button onclick="window.logout()" class="w-full flex flex-col items-center justify-center py-4 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors group" title="Cerrar Sesión">
+                    <i data-lucide="log-out" class="transition-transform group-hover:-translate-x-1"></i>
+                </button>
+            </div>
         </aside>
 
         <!-- MAIN CONTENT -->
-        <main class="flex-1 relative bg-gray-100 overflow-hidden">
+        <main class="flex-1 relative bg-slate-50 overflow-hidden flex flex-col">
+            
             <!-- DASHBOARD HOME -->
-            <div id="view-dashboard" class="view-section h-full overflow-y-auto p-4 md:p-8 max-w-7xl mx-auto">
-                <div class="mb-8"><h1 class="text-2xl md:text-3xl font-bold text-gray-800">Hola, <span id="welcome-user">Usuario</span></h1><p class="text-gray-500">Bienvenido al sistema de vigilancia de calidad del agua.</p></div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-indigo-50 text-indigo-600 rounded-full mr-4"><i data-lucide="activity"></i></div><div><p class="text-xs md:text-sm text-gray-500">Sistemas Monitoreados</p><p class="text-xl md:text-2xl font-bold text-gray-800">1,245</p></div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-emerald-50 text-emerald-600 rounded-full mr-4"><i data-lucide="check-circle"></i></div><div><p class="text-xs md:text-sm text-gray-500">Cumplimiento Global</p><p class="text-xl md:text-2xl font-bold text-gray-800">78%</p></div></div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex items-center"><div class="p-4 bg-red-50 text-red-600 rounded-full mr-4"><i data-lucide="alert-triangle"></i></div><div><p class="text-xs md:text-sm text-gray-500">Alertas Críticas (LMP)</p><p class="text-xl md:text-2xl font-bold text-gray-800">12</p></div></div>
+            <div id="view-dashboard" class="view-section h-full overflow-y-auto custom-scroll p-6 lg:p-10 max-w-7xl mx-auto w-full">
+                <div class="mb-10">
+                    <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Hola, <span id="welcome-user" class="text-indigo-600">Usuario</span> 👋</h1>
+                    <p class="text-slate-500 mt-2 text-base">Aquí tienes el resumen operativo del sistema de vigilancia.</p>
                 </div>
-                <div onclick="window.switchTab('sap')" class="bg-gradient-to-r from-indigo-900 to-indigo-700 rounded-2xl p-6 md:p-8 text-white flex flex-col sm:flex-row justify-between items-center shadow-lg cursor-pointer hover:scale-[1.01] transition-transform group text-center sm:text-left"><div><h3 class="text-xl md:text-2xl font-bold mb-2 group-hover:underline">Acceder al Módulo de Analítica SAP</h3><p class="text-indigo-200 text-sm md:text-base">Gestión de monitoreos, inspecciones rurales, metales pesados y reportes.</p></div><div class="bg-white/10 p-4 rounded-xl backdrop-blur-sm mt-6 sm:mt-0"><i data-lucide="bar-chart-3" class="w-10 h-10 md:w-12 md:h-12 text-indigo-300"></i></div></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
+                        <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl mr-5"><i data-lucide="activity" class="w-6 h-6"></i></div>
+                        <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monitoreados</p><p class="text-3xl font-black text-slate-800">1,245</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
+                        <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl mr-5"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
+                        <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cumplimiento</p><p class="text-3xl font-black text-slate-800">78%</p></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
+                        <div class="p-4 bg-red-50 text-red-600 rounded-xl mr-5"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
+                        <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alertas LMP</p><p class="text-3xl font-black text-slate-800">12</p></div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div onclick="window.switchTab('sap')" class="relative overflow-hidden bg-slate-900 rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left">
+                        <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-blue-500/30"></div>
+                        <div class="relative z-10 w-full">
+                            <h3 class="text-2xl font-black mb-3 flex items-center gap-3">
+                                Analítica SAP <i data-lucide="arrow-right" class="w-6 h-6 text-indigo-400 group-hover:translate-x-2 transition-transform"></i>
+                            </h3>
+                            <p class="text-slate-300 text-sm max-w-sm">Base de datos de monitoreos, inspecciones, metales pesados y riesgos.</p>
+                        </div>
+                        <div class="relative z-10 bg-white/10 p-5 rounded-2xl backdrop-blur-md mt-6 sm:mt-0 border border-white/10 flex-shrink-0">
+                            <i data-lucide="database" class="w-10 h-10 text-indigo-300"></i>
+                        </div>
+                    </div>
+
+                    <div onclick="window.switchTab('fed')" class="relative overflow-hidden bg-amber-600 rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left">
+                        <div class="absolute inset-0 bg-gradient-to-r from-orange-500/30 to-amber-400/30"></div>
+                        <div class="relative z-10 w-full">
+                            <h3 class="text-2xl font-black mb-3 flex items-center gap-3">
+                                Compromisos FED <i data-lucide="arrow-right" class="w-6 h-6 text-amber-200 group-hover:translate-x-2 transition-transform"></i>
+                            </h3>
+                            <p class="text-amber-100 text-sm max-w-sm">Seguimiento de indicadores y metas interanuales (2025-2026).</p>
+                        </div>
+                        <div class="relative z-10 bg-white/10 p-5 rounded-2xl backdrop-blur-md mt-6 sm:mt-0 border border-white/10 flex-shrink-0">
+                            <i data-lucide="target" class="w-10 h-10 text-amber-200"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- ANALÍTICA SAP -->
             <div id="view-sap" class="view-section hidden h-full w-full flex flex-col">
-                <div id="sap-loader" class="flex flex-col items-center justify-center h-full bg-gray-50 absolute inset-0 z-50"><div class="relative"><div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div><p class="mt-4 text-indigo-900 font-medium animate-pulse">Cargando datos SAP...</p><p id="sap-loader-hint" class="text-xs text-gray-400 mt-2"></p></div>
+                <div id="sap-loader" class="flex flex-col items-center justify-center h-full bg-slate-50 absolute inset-0 z-50"><div class="relative"><div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div><p class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">SINCRONIZANDO BASE DE DATOS...</p></div>
                 
-                <!-- Header Fijo Superior -->
-                <div class="bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-sm z-10 flex-shrink-0">
+                <div class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
                     <div class="text-center sm:text-left">
-                        <h2 class="text-lg md:text-xl font-bold text-gray-800 flex items-center justify-center sm:justify-start"><i data-lucide="shield" class="mr-2 text-indigo-600 w-5 h-5"></i>Análisis de Registros SAP</h2>
-                        <p id="sap-status-text" class="text-xs text-gray-500 mt-1">Iniciando...</p>
+                        <h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start">
+                            <i data-lucide="file-spreadsheet" class="mr-2 text-indigo-600 w-6 h-6"></i> Data SAP
+                        </h2>
+                        <p id="sap-status-text" class="text-xs font-medium text-slate-500 mt-1">...</p>
                     </div>
-                    <div class="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200 w-full sm:w-auto justify-between sm:justify-start">
-                        <div class="flex items-center px-2 flex-1">
-                            <i data-lucide="filter" class="w-4 h-4 text-gray-400 mr-2"></i>
-                            <span class="text-xs font-semibold text-gray-600 mr-2 hidden md:inline">Red:</span>
-                            <select id="sap-filter-red" class="bg-transparent text-xs md:text-sm font-medium text-gray-800 outline-none cursor-pointer w-full max-w-[150px] md:max-w-xs text-ellipsis">
+                    <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner w-full sm:w-auto">
+                        <div class="flex items-center px-3 flex-1">
+                            <i data-lucide="filter" class="w-4 h-4 text-slate-400 mr-2"></i>
+                            <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Filtro Red:</span>
+                            <select id="sap-filter-red" class="bg-transparent text-sm font-bold text-indigo-700 outline-none cursor-pointer w-full max-w-[150px] md:max-w-[200px] truncate">
                                 <option value="Todos">Todas las Redes</option>
                             </select>
                         </div>
-                        <div class="h-4 w-px bg-gray-300 mx-1"></div>
-                        <button onclick="window.forceRefreshData()" class="p-2 hover:bg-blue-100 text-gray-600 hover:text-blue-700 rounded-md transition-colors" title="Actualizar Datos (Ignorar Caché)"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                        <button onclick="window.exportToExcel()" class="p-2 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-md transition-colors" title="Descargar Excel"><i data-lucide="download" class="w-4 h-4"></i></button>
+                        <div class="h-6 w-px bg-slate-300 mx-1"></div>
+                        <button onclick="window.forceRefreshData()" class="p-2 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-lg transition-colors shadow-sm bg-transparent hover:shadow" title="Refrescar Datos"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        <button onclick="window.exportToExcel()" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1" title="Descargar Excel Filtrado">
+                            <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Contenedor Principal con Scroll Natural -->
-                <div class="flex-1 overflow-y-auto p-4 md:p-6 relative bg-slate-50">
-                    <div id="sap-processing" class="hidden absolute inset-0 z-40 bg-white/80 backdrop-blur-sm flex items-center justify-center h-full"><div class="flex flex-col items-center"><i data-lucide="loader-2" class="w-10 h-10 text-indigo-600 animate-spin mb-3"></i><p class="text-indigo-800 font-bold animate-pulse text-sm">Procesando vista...</p></div></div>
-                    
+                <div class="flex-1 overflow-y-auto custom-scroll p-4 md:p-6 relative bg-slate-100 w-full">
+                    <div id="sap-processing" class="hidden absolute inset-0 z-40 bg-slate-100/90 backdrop-blur-sm flex items-center justify-center h-full"><div class="flex flex-col items-center bg-white p-6 rounded-2xl shadow-xl"><i data-lucide="loader" class="w-8 h-8 text-indigo-600 animate-spin mb-3"></i><p class="text-indigo-900 font-bold text-sm tracking-wider">PROCESANDO MATRIZ...</p></div></div>
                     <div class="flex flex-col gap-6 max-w-full">
+                        <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="sap-tabs-container"></div>
                         
-                        <!-- Pestañas -->
-                        <div class="flex overflow-x-auto gap-2 pb-2 scrollbar-hide flex-shrink-0 w-full" id="sap-tabs-container"></div>
-                        
-                        <!-- TABLA PRINCIPAL (Ajustada para fluir) -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col w-full">
-                            <div class="overflow-x-auto w-full rounded-xl" id="sap-main-table-container">
-                                <!-- La tabla va aquí. Crecerá verticalmente sin scroll interno -->
+                        <!-- TABLA PRINCIPAL SAP -->
+                        <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
+                            <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
+                                <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Registro Detallado</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en celdas para filtrar</span>
+                                    <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
+                                </div>
                             </div>
+                            
+                            <!-- Contenedor Filtros Activos SAP -->
+                            <div id="sap-active-filters" class="hidden"></div>
+                            
+                            <div class="overflow-auto custom-scroll w-full h-full bg-white relative" id="sap-main-table-container"></div>
                         </div>
 
-                        <!-- CONSOLIDADO Y GRÁFICO (Adaptables a móvil) -->
-                        <div class="flex flex-col xl:flex-row gap-6 pb-8 w-full">
-                            
-                            <!-- Consolidado -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col flex-1 min-w-0">
-                                <div class="p-4 border-b border-gray-100 bg-gray-50 rounded-t-xl"><h4 class="font-bold text-xs text-gray-700 uppercase">Consolidado por Red</h4></div>
-                                <div class="overflow-x-auto w-full rounded-b-xl" id="sap-consolidated-container">
-                                    <!-- Tabla consolidada -->
+                        <div class="flex flex-col xl:flex-row gap-6 w-full pb-10">
+                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col flex-1 overflow-hidden min-w-0">
+                                <div class="bg-slate-50 px-5 py-4 border-b border-slate-200"><h4 class="font-black text-sm text-slate-800 uppercase flex items-center"><i data-lucide="table-2" class="w-4 h-4 mr-2 text-indigo-500"></i> Resumen Consolidado</h4></div>
+                                <div class="overflow-x-auto custom-scroll w-full" id="sap-consolidated-container"></div>
+                            </div>
+                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 w-full xl:w-96 flex flex-col items-center justify-center flex-shrink-0 p-6 relative overflow-hidden">
+                                <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+                                <div id="sap-chart-container" class="w-full flex flex-col items-center"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULO FED -->
+            <div id="view-fed" class="view-section hidden h-full w-full flex flex-col">
+                <div class="bg-white border-b border-amber-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
+                    <div class="text-center sm:text-left">
+                        <h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start">
+                            <i data-lucide="target" class="mr-2 text-amber-500 w-6 h-6"></i> Compromisos FED
+                        </h2>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner w-full sm:w-auto">
+                        <div class="flex items-center px-3 border-r border-slate-200">
+                            <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Ámbito:</span>
+                            <select id="fed-filter-ambito" class="bg-transparent text-sm font-bold text-amber-700 outline-none cursor-pointer">
+                                <option value="Vigilancia">Vigilancia</option>
+                                <option value="MEF">MEF</option>
+                                <option value="FED">FED</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center px-3 flex-1">
+                            <i data-lucide="filter" class="w-4 h-4 text-slate-400 mr-2"></i>
+                            <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Red:</span>
+                            <select id="fed-filter-red" class="bg-transparent text-sm font-bold text-amber-700 outline-none cursor-pointer w-full max-w-[150px] md:max-w-[200px] truncate">
+                                <option value="Todos">Todas las Redes</option>
+                            </select>
+                        </div>
+                        <button onclick="window.exportFEDToExcel()" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1" title="Descargar Excel Filtrado">
+                            <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scroll p-4 md:p-6 relative bg-slate-100 w-full">
+                    <div id="fed-processing" class="hidden absolute inset-0 z-40 bg-slate-100/90 backdrop-blur-sm flex items-center justify-center h-full">
+                        <div class="flex flex-col items-center bg-white p-6 rounded-2xl shadow-xl">
+                            <i data-lucide="loader" class="w-8 h-8 text-amber-500 animate-spin mb-3"></i>
+                            <p class="text-amber-900 font-bold text-sm tracking-wider">CALCULANDO INDICADORES...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-6 max-w-full">
+                        <!-- Pestañas FED -->
+                        <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="fed-tabs-container"></div>
+                        
+                        <!-- TABLA PRINCIPAL FED -->
+                        <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
+                            <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
+                                <span class="text-xs font-bold uppercase tracking-widest text-amber-300">Monitoreo por Centro Poblado</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en celdas para filtrar</span>
+                                    <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
 
-                            <!-- Gráfico -->
-                            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 w-full xl:w-80 flex flex-col items-center justify-center flex-shrink-0 min-h-[300px]" id="sap-chart-container">
-                                <!-- Gráfico SVG -->
+                            <!-- Contenedor Filtros Activos FED -->
+                            <div id="fed-active-filters" class="hidden"></div>
+
+                            <div class="overflow-auto custom-scroll w-full h-full bg-white relative" id="fed-main-table-container"></div>
+                        </div>
+
+                        <div class="flex flex-col xl:flex-row gap-6 w-full pb-10">
+                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col flex-1 overflow-hidden min-w-0">
+                                <div class="bg-slate-50 px-5 py-4 border-b border-slate-200">
+                                    <h4 class="font-black text-sm text-slate-800 uppercase flex items-center"><i data-lucide="table-2" class="w-4 h-4 mr-2 text-amber-500"></i> Resumen por Red de Salud</h4>
+                                </div>
+                                <div class="overflow-x-auto custom-scroll w-full" id="fed-consolidated-container"></div>
+                            </div>
+
+                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 w-full xl:w-96 flex flex-col items-center justify-center flex-shrink-0 p-6 relative overflow-hidden">
+                                <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                                <div id="fed-chart-container" class="w-full flex flex-col items-center"></div>
                             </div>
                         </div>
                     </div>
@@ -161,22 +310,26 @@
             </div>
 
             <!-- PIZARRA -->
-            <div id="view-whiteboard" class="view-section hidden h-full flex flex-col"><div class="bg-white p-3 border-b border-gray-200 flex justify-between items-center"><h2 class="font-bold text-gray-700 flex items-center gap-2"><i data-lucide="pen-tool"></i> Pizarra</h2><button onclick="window.clearCanvas()" class="text-xs text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 font-medium transition-colors">Limpiar Lienzo</button></div><div class="flex-1 bg-gray-100 p-4"><canvas id="wb-canvas" class="w-full h-full bg-white rounded-xl shadow-sm cursor-crosshair border border-gray-200"></canvas></div></div>
+            <div id="view-whiteboard" class="view-section hidden h-full flex flex-col"><div class="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm"><h2 class="font-black text-xl text-slate-800 flex items-center gap-2"><i data-lucide="pen-tool" class="text-indigo-600"></i> Pizarra de Notas</h2><button onclick="window.clearCanvas()" class="text-sm text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl border border-red-200 font-bold transition-colors">Limpiar Lienzo</button></div><div class="flex-1 bg-slate-100 p-6 relative"><canvas id="wb-canvas" class="w-full h-full bg-white rounded-2xl shadow-inner cursor-crosshair border-2 border-dashed border-slate-300"></canvas></div></div>
             
             <!-- USUARIOS -->
-            <div id="view-users" class="view-section hidden h-full overflow-y-auto p-4 md:p-8 max-w-6xl mx-auto flex flex-col">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"><div><h2 class="text-2xl font-bold text-gray-800">Gestión de Usuarios</h2><p class="text-gray-500 text-sm mt-1">Usuarios autorizados en Google Sheets</p></div><a href="https://docs.google.com/spreadsheets/d/1GCHXfQf79_B-k6j2C6O-I-f9U1f9p6_G7-r9mU1p6kY/edit" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center shadow-sm w-full sm:w-auto justify-center transition-colors"><i data-lucide="external-link" class="mr-2 w-4 h-4"></i> Editar en Excel</a></div>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col w-full"><div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl"><span class="text-sm font-bold text-gray-500 uppercase" id="users-count-label">Lista de Accesos</span><button onclick="window.syncUsers(true)" class="text-indigo-600 hover:text-indigo-800 text-sm flex items-center font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"><i data-lucide="refresh-cw" class="mr-1 w-4 h-4"></i> Sincronizar</button></div><div class="overflow-x-auto w-full"><table class="min-w-full text-left"><thead class="bg-white border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold"><tr><th class="p-4 whitespace-nowrap">Usuario</th><th class="p-4 whitespace-nowrap">Contraseña</th><th class="p-4 whitespace-nowrap">Estado</th></tr></thead><tbody id="users-table-body" class="divide-y divide-gray-100"></tbody></table></div></div>
-            </div>
+            <div id="view-users" class="view-section hidden h-full overflow-y-auto custom-scroll p-6 md:p-10 max-w-6xl mx-auto flex flex-col w-full"><div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10"><div><h2 class="text-3xl font-black text-slate-800">Directorio de Usuarios</h2><p class="text-slate-500 text-sm mt-1">Cuentas autorizadas sincronizadas desde Sheets</p></div><a href="https://docs.google.com/spreadsheets/d/1GCHXfQf79_B-k6j2C6O-I-f9U1f9p6_G7-r9mU1p6kY/edit" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl flex items-center shadow-lg transition-colors text-sm font-bold"><i data-lucide="external-link" class="mr-2 w-4 h-4"></i> Editar Base de Datos</a></div><div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col w-full overflow-hidden"><div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50"><span class="text-xs font-black text-slate-500 uppercase tracking-widest" id="users-count-label">Accesos Activos</span><button onclick="window.syncUsers(true)" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider flex items-center px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors border border-transparent hover:border-indigo-100"><i data-lucide="refresh-cw" class="mr-1.5 w-3.5 h-3.5"></i> Sincronizar</button></div><div class="overflow-x-auto w-full"><table class="min-w-full text-left"><thead class="bg-white border-b border-slate-200 text-xs uppercase text-slate-400 font-bold tracking-wider"><tr><th class="px-6 py-4 whitespace-nowrap">Usuario (ID)</th><th class="px-6 py-4 whitespace-nowrap">Credencial</th><th class="px-6 py-4 whitespace-nowrap">Estado</th></tr></thead><tbody id="users-table-body" class="divide-y divide-slate-100"></tbody></table></div></div></div>
         </main>
     </div>
 
     <!-- MODAL LMP -->
-    <div id="modal-lmp" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 hidden">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform scale-100 transition-all">
-            <div class="bg-red-600 px-5 py-4 flex justify-between items-center"><h3 class="text-white font-bold flex items-center"><i data-lucide="alert-triangle" class="mr-2 w-5 h-5 text-red-100"></i> Detalle de Excesos LMP</h3><button onclick="window.closeModal()" class="text-white hover:bg-red-700 rounded-lg p-1.5 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-            <div id="modal-lmp-content" class="p-5 bg-gray-50 max-h-[60vh] overflow-y-auto space-y-3"></div>
-            <div class="p-4 bg-white border-t border-gray-100 text-right"><button onclick="window.closeModal()" class="px-5 py-2.5 bg-gray-800 text-white rounded-xl text-sm font-bold hover:bg-gray-900 shadow-md transition-all active:scale-95">Aceptar</button></div>
+    <div id="modal-lmp" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all border border-slate-200">
+            <div class="bg-red-50 border-b border-red-100 px-6 py-5 flex justify-between items-center">
+                <h3 class="text-red-800 font-black text-lg flex items-center">
+                    <div class="bg-red-100 p-1.5 rounded-lg mr-3"><i data-lucide="alert-octagon" class="w-5 h-5 text-red-600"></i></div> Reporte de Excesos
+                </h3>
+                <button onclick="window.closeModal()" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl p-2 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="modal-lmp-content" class="p-6 bg-white max-h-[60vh] overflow-y-auto custom-scroll space-y-4"></div>
+            <div class="p-5 bg-slate-50 border-t border-slate-200 text-right">
+                <button onclick="window.closeModal()" class="px-6 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 shadow-md transition-all active:scale-95">Cerrar Detalle</button>
+            </div>
         </div>
     </div>
 
@@ -186,9 +339,12 @@
         // ========================
         const URLS = {
             MAIN: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?output=csv',
+            MAIN2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1862181922&single=true&output=csv',
             SANITARIA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=284188568&single=true&output=csv',
             RIESGOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1175942303&single=true&output=csv',
-            USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv'
+            USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv',
+            MEF_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=943272105&single=true&output=csv',
+            FED_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=2002511486&single=true&output=csv'
         };
 
         const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -210,24 +366,42 @@
             bacteriologico: { A: [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], 'BACTERIAS HETEROTRÓFICAS', ['E. Coli (NMP)', 'E. Coli (UFC)'], 'Organismos de vida libre'], B: ['Coliformes Termotolerantes _', 'Coliformes Totales _', 'Escherichia Coli _', 'Organismos de vida libre_'] }
         };
 
+        // PARAMS CARACTERIZACION IND 2
+        const CARACT_CAPTACION_SINGLE = ['Aluminio_', 'Antimonio_', 'Arsénico_', 'Bario_', 'Boro_', 'Cadmio_', 'Cianuro total_', 'Cloruros_', 'Cobre_', 'Coliformes Termotolerantes _', 'Coliformes Totales _', 'Conductividad_', 'Cromo total_', 'Dureza_', 'Escherichia Coli _', 'Fluoruros_', 'Formas parasitarias_', 'Hierro_', 'Manganeso _', 'Mercurio_', 'Molibdeno_', 'Niquel_', 'Nitratos_', 'Nitritos_', 'Organismos de vida libre_', 'pH_', 'Plomo_', 'Selenio_', 'Sólidos Totales disueltos_', 'Sulfatos_', 'Turbiedad_', 'Uranio_', 'Zinc_'];
+        const CARACT_CAPTACION_OR = [['Color (después de filtración simple)_', 'Color (después de filtración simple) aguas claras_']];
+        const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS HETEROTRÓFICAS', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cloruros', 'Cobre', 'Color', 'Conductividad', 'Cromo total', 'Dureza total', 'Hierro', 'Huevos Larvas Helmintos', 'Manganeso', 'Mercurio', 'Molibdeno', 'Niquel', 'Nitratos', 'Organismos de vida libre', 'pH', 'Plomo', 'Selenio', 'Sodio', 'Sólidos Totales disueltos', 'Sulfatos', 'Turbiedad', 'Uranio', 'Zinc'];
+        const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
+
         const SAP_TABS = ['monitor', 'inspeccion', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'riesgos'];
 
-        const APP_STATE = { currentUser: null, usersList: [], rawData: { main: [], sanitaria: [], riesgos: [] }, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapCache: {}, canvas: null, isDrawing: false };
+        const APP_STATE = { 
+            currentUser: null, usersList: [], 
+            rawData: { main: [], main2: [], sanitaria: [], riesgos: [] }, 
+            sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapCache: {}, 
+            fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null },
+            mefUbigeos: new Set(), fedUbigeos: new Set(),
+            currentTableFilters: {}, 
+            canvas: null, isDrawing: false 
+        };
 
         // ========================
         // EXPORTACIONES GLOBALES
         // ========================
-        // Se exportan a window para evitar ReferenceError en entornos aislados
         window.switchTab = switchTab;
         window.handleLogin = handleLogin;
         window.logout = logout;
         window.changeSapSubTab = changeSapSubTab;
+        window.changeFedSubTab = changeFedSubTab;
         window.exportToExcel = exportToExcel;
+        window.exportFEDToExcel = exportFEDToExcel;
         window.openLMPModal = openLMPModal;
         window.closeModal = closeModal;
         window.clearCanvas = clearCanvas;
         window.forceRefreshData = forceRefreshData;
         window.syncUsers = syncUsers;
+        window.setTableFilter = setTableFilter;
+        window.removeTableFilter = removeTableFilter;
+        window.clearAllTableFilters = clearAllTableFilters;
 
         // ========================
         // HELPERS & PARSER
@@ -235,56 +409,84 @@
         const normalizeHeader = (h) => h ? h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ') : '';
         const findHeaderIndex = (headers, target) => { const normTarget = normalizeHeader(target); return headers.findIndex(h => normalizeHeader(h) === normTarget); };
         const isCellEmpty = (c) => c === null || c === undefined || String(c).trim() === '';
-
-        // Función para liberar el hilo principal y no congelar la UI
         const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
 
-        // Parser CSV Asíncrono (Chunking)
         const asyncParseCSV = async (str, chunkSize = 1000) => {
             if (!str) return [];
             const arr = []; let row = []; let col = ""; let inQuote = false;
             let lineCount = 0;
-            
             for (let i = 0; i < str.length; i++) {
                 const c = str[i]; const next = str[i+1];
                 if (c === '"') { 
-                    if (inQuote && next === '"') { col += '"'; i++; } 
-                    else { inQuote = !inQuote; } 
-                }
-                else if (c === ',' && !inQuote) { 
+                    if (inQuote && next === '"') { col += '"'; i++; } else { inQuote = !inQuote; } 
+                } else if (c === ',' && !inQuote) { 
                     row.push(col.trim()); col = ""; 
-                }
-                else if ((c === '\r' || c === '\n') && !inQuote) { 
+                } else if ((c === '\r' || c === '\n') && !inQuote) { 
                     if (col.length > 0 || row.length > 0) { row.push(col.trim()); arr.push(row); } 
                     row = []; col = ""; lineCount++;
                     if (c === '\r' && next === '\n') i++; 
-                    
-                    // Pausa cada N líneas para no congelar el navegador
-                    if (lineCount % chunkSize === 0) {
-                        await yieldToMain();
-                    }
-                }
-                else { col += c; }
+                    if (lineCount % chunkSize === 0) await yieldToMain();
+                } else { col += c; }
             }
             if (col.length > 0 || row.length > 0) { row.push(col.trim()); arr.push(row); }
             return arr;
         };
 
         // ========================
+        // SISTEMA DE FILTROS RÁPIDOS
+        // ========================
+        function setTableFilter(colIndex, value) {
+            APP_STATE.currentTableFilters[colIndex] = value;
+            reRenderCurrentTable();
+        }
+
+        function removeTableFilter(colIndex) {
+            delete APP_STATE.currentTableFilters[colIndex];
+            reRenderCurrentTable();
+        }
+
+        function clearAllTableFilters() {
+            APP_STATE.currentTableFilters = {};
+            reRenderCurrentTable();
+        }
+
+        function reRenderCurrentTable() {
+            if (APP_STATE.activeTab === 'sap') {
+                const cacheKey = `${APP_STATE.sapActiveTab}_${APP_STATE.sapFilterRed}`;
+                if(APP_STATE.sapCache[cacheKey]) renderMainTable(APP_STATE.sapCache[cacheKey]);
+            } else if (APP_STATE.activeTab === 'fed') {
+                if(APP_STATE.fedCache[APP_STATE.fedActiveTab]) {
+                    const filteredResult = filterFedData(APP_STATE.fedCache[APP_STATE.fedActiveTab], APP_STATE.fedFilterRed, APP_STATE.fedFilterAmbito);
+                    renderFedTable(filteredResult);
+                }
+            }
+        }
+
+        // ========================
         // INICIO & PRECARGA
         // ========================
         function init() {
             lucide.createIcons();
-            
-            // Iniciar sincronización y precarga en segundo plano sin congelar
             syncUsers();
             preloadSAPData(); 
-            
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             document.getElementById('sap-filter-red').addEventListener('change', (e) => { 
                 APP_STATE.sapFilterRed = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
                 processSAPData(); 
             });
+            
+            document.getElementById('fed-filter-red').addEventListener('change', (e) => { 
+                APP_STATE.fedFilterRed = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processFEDData(); 
+            });
+            document.getElementById('fed-filter-ambito').addEventListener('change', (e) => { 
+                APP_STATE.fedFilterAmbito = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processFEDData(); 
+            });
+            
             initWhiteboard();
         }
 
@@ -297,11 +499,8 @@
                 const rows = await asyncParseCSV(text);
                 APP_STATE.usersList = rows.slice(1).map(r => ({ usuario: r[0]?.trim(), password: r[1]?.trim() })).filter(u => u.usuario && u.password);
                 if(showLoading) { renderUserTable(); lucide.createIcons(); }
-            } catch (e) { 
-                console.error("Error cargando usuarios", e); 
-            } finally { 
-                if(showLoading && btn) btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; 
-            }
+            } catch (e) { console.error("Error", e); } 
+            finally { if(showLoading && btn) btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; }
         }
 
         async function preloadSAPData() {
@@ -312,217 +511,227 @@
                     if (!response.ok) throw new Error(); 
                     return await response.text(); 
                 } catch (e) { 
-                    if (retries > 0) { 
-                        await new Promise(r => setTimeout(r, 1000)); 
-                        return fetchWithRetry(url, retries - 1); 
-                    } 
-                    throw e; 
+                    if (retries > 0) { await new Promise(r => setTimeout(r, 1000)); return fetchWithRetry(url, retries - 1); } throw e; 
                 }
             };
 
             try {
-                // Descargar datos
-                const [mText, sText, rText] = await Promise.all([
-                    fetchWithRetry(URLS.MAIN), 
-                    fetchWithRetry(URLS.SANITARIA), 
-                    fetchWithRetry(URLS.RIESGOS)
+                const [mText, m2Text, sText, rText, mefText, fedText] = await Promise.all([
+                    fetchWithRetry(URLS.MAIN), fetchWithRetry(URLS.MAIN2), fetchWithRetry(URLS.SANITARIA), fetchWithRetry(URLS.RIESGOS), fetchWithRetry(URLS.MEF_UB), fetchWithRetry(URLS.FED_UB)
                 ]);
                 
-                // Parseo asíncrono
                 APP_STATE.rawData.main = await asyncParseCSV(mText); 
+                APP_STATE.rawData.main2 = await asyncParseCSV(m2Text); 
                 APP_STATE.rawData.sanitaria = await asyncParseCSV(sText); 
                 APP_STATE.rawData.riesgos = await asyncParseCSV(rText);
                 
-                if(APP_STATE.rawData.main.length > 1) {
-                    const headers = APP_STATE.rawData.main[0]; 
-                    const idx = findHeaderIndex(headers, 'Red de Salud'); 
-                    const redes = new Set();
-                    APP_STATE.rawData.main.slice(1).forEach(row => { if(row[idx]) redes.add(row[idx]); });
-                    const select = document.getElementById('sap-filter-red');
-                    select.innerHTML = '<option value="Todos">Todas las Redes</option>';
-                    Array.from(redes).sort().forEach(red => { 
-                        const opt = document.createElement('option'); opt.value = red; opt.textContent = red; 
-                        select.appendChild(opt); 
-                    });
-                }
+                const mefData = await asyncParseCSV(mefText);
+                const fedData = await asyncParseCSV(fedText);
 
-                // Pre-procesar información para que no haya demoras luego
+                APP_STATE.mefUbigeos = new Set();
+                if(mefData.length > 1) {
+                    let uIdx = findHeaderIndex(mefData[0], 'Ubigeo'); if(uIdx === -1) uIdx = 0;
+                    mefData.slice(1).forEach(r => { if(r[uIdx]) APP_STATE.mefUbigeos.add(r[uIdx].trim()); });
+                }
+                APP_STATE.fedUbigeos = new Set();
+                if(fedData.length > 1) {
+                    let uIdx = findHeaderIndex(fedData[0], 'Ubigeo'); if(uIdx === -1) uIdx = 0;
+                    fedData.slice(1).forEach(r => { if(r[uIdx]) APP_STATE.fedUbigeos.add(r[uIdx].trim()); });
+                }
+                
+                const redes = new Set();
+                if(APP_STATE.rawData.main.length > 1) {
+                    const idx = findHeaderIndex(APP_STATE.rawData.main[0], 'Red de Salud'); 
+                    APP_STATE.rawData.main.slice(1).forEach(row => { if(row[idx]) redes.add(row[idx]); });
+                }
+                if(APP_STATE.rawData.main2.length > 1) {
+                    const idx = findHeaderIndex(APP_STATE.rawData.main2[0], 'Red de Salud'); 
+                    APP_STATE.rawData.main2.slice(1).forEach(row => { if(row[idx]) redes.add(row[idx]); });
+                }
+                
+                const sapSelect = document.getElementById('sap-filter-red');
+                const fedSelect = document.getElementById('fed-filter-red');
+                sapSelect.innerHTML = '<option value="Todos">Todas las Redes</option>';
+                fedSelect.innerHTML = '<option value="Todos">Todas las Redes</option>';
+                
+                Array.from(redes).sort().forEach(red => { 
+                    const opt1 = document.createElement('option'); opt1.value = red; opt1.textContent = red; sapSelect.appendChild(opt1); 
+                    const opt2 = document.createElement('option'); opt2.value = red; opt2.textContent = red; fedSelect.appendChild(opt2); 
+                });
+
                 for (const tab of SAP_TABS) {
                     APP_STATE.sapCache[`${tab}_Todos`] = runSapLogic(tab, APP_STATE.rawData, 'Todos');
                     await yieldToMain(); 
                 }
+                APP_STATE.fedCache.ind1 = runFedLogic(APP_STATE.rawData, 'ind1');
+                APP_STATE.fedCache.ind2 = runFedLogic(APP_STATE.rawData, 'ind2');
 
                 APP_STATE.sapDataLoaded = true;
 
-                // Actualizar interfaz si corresponde
                 const loader = document.getElementById('sap-loader');
                 if (loader && !loader.classList.contains('hidden')) {
                     loader.classList.add('hidden');
                     document.getElementById('sap-status-text').textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
-                    renderSapTabs();
-                    processSAPData();
+                    if(APP_STATE.activeTab === 'sap') { renderSapTabs(); processSAPData(); }
+                    else if(APP_STATE.activeTab === 'fed') { renderFedTabs(); processFEDData(); }
                 }
-
-            } catch (error) { 
-                console.error("Error Preloading SAP Data", error); 
-            }
+            } catch (error) { console.error("Error Preloading", error); }
         }
 
         async function forceRefreshData() {
-            APP_STATE.sapCache = {};
-            APP_STATE.sapDataLoaded = false;
+            APP_STATE.sapCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null}; APP_STATE.sapDataLoaded = false;
+            APP_STATE.currentTableFilters = {};
             document.getElementById('sap-loader').classList.remove('hidden');
             await preloadSAPData();
-            if(APP_STATE.sapActiveTab) processSAPData();
+            if(APP_STATE.activeTab === 'sap') processSAPData();
+            if(APP_STATE.activeTab === 'fed') processFEDData();
         }
 
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('login-user').value; const p = document.getElementById('login-pass').value;
             const errEl = document.getElementById('login-error');
-            const btnText = document.getElementById('btn-login-text');
-            const btnLoader = document.getElementById('btn-login-loader');
-
-            btnText.classList.add('hidden');
-            btnLoader.classList.remove('hidden');
+            document.getElementById('btn-login-text').classList.add('hidden');
+            document.getElementById('btn-login-loader').classList.remove('hidden');
 
             setTimeout(() => { 
                 const found = APP_STATE.usersList.find(user => user.usuario === u && user.password === p);
                 if (found) { 
-                    APP_STATE.currentUser = found; 
-                    document.getElementById('welcome-user').textContent = found.usuario; 
-                    document.getElementById('login-view').classList.add('hidden'); 
-                    document.getElementById('app-view').classList.remove('hidden'); 
+                    APP_STATE.currentUser = found; document.getElementById('welcome-user').textContent = found.usuario; 
+                    document.getElementById('login-view').classList.add('hidden'); document.getElementById('app-view').classList.remove('hidden'); 
                     renderUserTable(); 
                 } else { 
-                    errEl.classList.remove('hidden'); 
-                    document.getElementById('login-error-msg').textContent = "Credenciales incorrectas."; 
+                    errEl.classList.remove('hidden'); document.getElementById('login-error-msg').textContent = "Credenciales incorrectas."; 
                 }
-                btnText.classList.remove('hidden');
-                btnLoader.classList.add('hidden');
+                document.getElementById('btn-login-text').classList.remove('hidden');
+                document.getElementById('btn-login-loader').classList.add('hidden');
             }, 500);
         }
 
-        function logout() { 
-            APP_STATE.currentUser = null; 
-            document.getElementById('app-view').classList.add('hidden'); 
-            document.getElementById('login-view').classList.remove('hidden'); 
-            document.getElementById('login-user').value = ''; 
-            document.getElementById('login-pass').value = ''; 
-            document.getElementById('login-error').classList.add('hidden'); 
-            switchTab('dashboard'); 
-        }
+        function logout() { APP_STATE.currentUser = null; document.getElementById('app-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; document.getElementById('login-error').classList.add('hidden'); switchTab('dashboard'); }
 
         function switchTab(tabId) {
+            APP_STATE.activeTab = tabId;
+            APP_STATE.currentTableFilters = {}; 
+
             document.querySelectorAll('.sidebar-item').forEach(el => {
                 const indicator = el.querySelector('.active-indicator');
                 if(el.id === `nav-${tabId}`) { 
-                    el.className = "sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-indigo-600 bg-indigo-50/50"; 
+                    el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white bg-white/10 shadow-inner"; 
                     if(indicator) indicator.classList.remove('hidden'); 
+                    const icon = el.querySelector('i');
+                    if(icon) { icon.classList.remove('text-slate-400'); if(tabId==='fed') icon.classList.add('text-amber-400'); else icon.classList.add('text-indigo-300'); }
                 } else { 
-                    el.className = "sidebar-item w-full flex flex-col items-center justify-center p-3 transition-all duration-200 group relative text-gray-400 hover:text-indigo-500 hover:bg-gray-50"; 
+                    el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"; 
                     if(indicator) indicator.classList.add('hidden'); 
+                    const icon = el.querySelector('i');
+                    if(icon) { icon.classList.add('text-slate-400'); icon.classList.remove('text-indigo-300', 'text-amber-400'); }
                 }
             });
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-            
             const viewEl = document.getElementById(`view-${tabId}`);
             if(viewEl) viewEl.classList.remove('hidden');
 
-            if(tabId === 'sap') {
-                if(!APP_STATE.sapDataLoaded) {
-                    document.getElementById('sap-loader').classList.remove('hidden');
-                } else {
-                    document.getElementById('sap-loader').classList.add('hidden');
-                    document.getElementById('sap-status-text').textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
-                    renderSapTabs();
-                    processSAPData();
+            if(['sap', 'fed'].includes(tabId)) {
+                if(!APP_STATE.sapDataLoaded) document.getElementById('sap-loader').classList.remove('hidden');
+                else {
+                    if(tabId === 'sap') { renderSapTabs(); processSAPData(); }
+                    if(tabId === 'fed') { renderFedTabs(); processFEDData(); }
                 }
             }
         }
 
+        // ========================
+        // LOGICA SAP ORIGINAL
+        // ========================
         function renderSapTabs() {
             const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'inspeccion', label: 'Insp. Rural'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'sanitaria', label: 'Insp. Sanitaria'}, {id: 'riesgos', label: 'Riesgos'}];
-            document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="changeSapSubTab('${t.id}')" class="whitespace-nowrap px-4 py-2 md:px-5 md:py-2.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md transform scale-105' : 'bg-white text-gray-600 hover:bg-indigo-50 border border-gray-200'}">${t.label}</button>`).join('');
+            document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join('');
         }
 
         function changeSapSubTab(tabId) { 
             if(APP_STATE.sapActiveTab === tabId) return; 
             APP_STATE.sapActiveTab = tabId; 
+            APP_STATE.currentTableFilters = {}; 
             renderSapTabs(); 
             processSAPData(); 
         }
 
         function processSAPData() {
             const cacheKey = `${APP_STATE.sapActiveTab}_${APP_STATE.sapFilterRed}`;
-            
-            // Renderizado inmediato si está en caché
-            if(APP_STATE.sapCache[cacheKey]) {
-                const result = APP_STATE.sapCache[cacheKey];
-                renderMainTable(result); 
-                renderConsolidatedAndChart(result);
-                return;
+            if(APP_STATE.sapCache[cacheKey]) { 
+                renderMainTable(APP_STATE.sapCache[cacheKey]); 
+                renderConsolidatedAndChart(APP_STATE.sapCache[cacheKey]); 
+                return; 
             }
-
             document.getElementById('sap-processing').classList.remove('hidden');
             setTimeout(() => {
                 const result = runSapLogic(APP_STATE.sapActiveTab, APP_STATE.rawData, APP_STATE.sapFilterRed);
                 APP_STATE.sapCache[cacheKey] = result;
-                renderMainTable(result); 
-                renderConsolidatedAndChart(result);
+                renderMainTable(result); renderConsolidatedAndChart(result);
                 document.getElementById('sap-processing').classList.add('hidden');
             }, 10);
         }
 
+        function checkComplianceSet(h, s, r) { if (!s) return false; return s.every(p => { if (Array.isArray(p)) return p.some(sub => { const idx = findHeaderIndex(h, sub); return idx !== -1 && !isCellEmpty(r[idx]); }); const idx = findHeaderIndex(h, p); return idx !== -1 && !isCellEmpty(r[idx]); }); }
+        function classifyMonitoringStatus(h, r) { let c = 0; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) c++; }); const cl = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]); if (c === 5) return 1; if (cl && c === 1) return 2; return c > 0 ? 3 : 0; }
+        function classifyInspeccionStatus(h, r) { const a = findHeaderIndex(h, 'Ambito'), t = findHeaderIndex(h, 'Tipo SAP'); const ir = (a === -1) || (r[a] === 'RURAL'); const iv = (t === -1) || RURAL_SAP_TYPES.includes(r[t]); if (!ir || !iv) return 0; const hd = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]) || !isCellEmpty(r[findHeaderIndex(h, 'pH')]); return hd ? 1 : 0; }
+        function classifyAnalysisByLocation(h, r, sa, sb) { const ha = checkComplianceSet(h, sa, r), hb = checkComplianceSet(h, sb, r); if (!ha && !hb) return 0; const u = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || ''; if (u.includes('Fuente de Captación') && u.includes('Red de distribución')) return 3; if (u.includes('Red de distribución')) return 2; if (u.includes('Fuente de Captación')) return 1; return 0; }
+        function checkParamLMPExceeded(h, r, limitSet) { const l = []; for (const k in limitSet) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) { const v = parseFloat(r[idx]); const limit = limitSet[k]; if (!isNaN(v) && v > limit) l.push({ metal: k, value: v, lmp: limit }); } } return l.length > 0 ? l : 0; }
+
         function runSapLogic(subTab, dataObj, redFilter) {
             let sourceData = dataObj.main; let headers = sourceData[0]; let dataRows = sourceData.slice(1);
-            if (redFilter !== 'Todos') { const idxRed = findHeaderIndex(headers, 'Red de Salud'); if (idxRed !== -1) dataRows = dataRows.filter(r => r[idxRed] === redFilter); }
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
             if (['metales', 'bacteriologico', 'parasitologico', 'fisico'].includes(subTab)) {
-                finalHeaders = [...CORE_HEADERS, 'Total Muestras', 'Excede LMP', 'Cumple', 'Detalles'];
-                const map = {}; 
-                const specificLMP = LMP_SCOPES[subTab];
-                const currentSet = ANALYSIS_SETS[subTab];
+                finalHeaders = [...CORE_HEADERS, '1ra Muestra', '2da Muestra', 'Excede LMP', 'Cumple', 'Detalles'];
+                const map = {}; const specificLMP = LMP_SCOPES[subTab]; const currentSet = ANALYSIS_SETS[subTab];
                 const idxMes = findHeaderIndex(headers, 'Mes');
 
                 dataRows.forEach(row => {
+                    const rowRed = row[findHeaderIndex(headers, 'Red de Salud')];
+                    if (redFilter !== 'Todos' && rowRed !== redFilter) return;
+
                     const id = row[idxId]; if(!id) return;
-                    if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''), totalSamples: 0, cleanSamples: 0, exceedances: [] };
+                    if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''), totalSamples: 0, cleanSamples: 0, exceedances: [], ubicaciones: [] };
                     
                     const hasData = checkComplianceSet(headers, currentSet?.A, row) || checkComplianceSet(headers, currentSet?.B, row);
-                    
                     if(hasData) {
                         map[id].totalSamples++;
-                        const issues = specificLMP ? checkParamLMPExceeded(headers, row, specificLMP) : [];
+                        map[id].ubicaciones.push(classifyAnalysisByLocation(headers, row, currentSet?.A, currentSet?.B));
                         
+                        const issues = specificLMP ? checkParamLMPExceeded(headers, row, specificLMP) : [];
                         if(issues.length > 0) {
                             let mesName = "Sin Mes";
                             if(idxMes !== -1 && row[idxMes]) {
                                 const mRaw = row[idxMes].toUpperCase();
-                                if(MONTHS_MAP[mRaw]) mesName = MONTHS_MAP[mRaw];
-                                else mesName = row[idxMes];
+                                mesName = MONTHS_MAP[mRaw] || row[idxMes];
                             }
-                            const issuesWithMonth = issues.map(i => ({...i, month: mesName}));
-                            map[id].exceedances.push(...issuesWithMonth);
-                        } else {
-                            map[id].cleanSamples++;
-                        }
+                            map[id].exceedances.push(...issues.map(i => ({...i, month: mesName})));
+                        } else { map[id].cleanSamples++; }
                     }
                 });
 
-                finalData = Object.values(map).map(sap => {
-                    let cumple = 0;
-                    if (sap.totalSamples > 0) {
-                        const rate = (sap.cleanSamples / sap.totalSamples);
-                        if (rate > 0.7) cumple = 1;
+                const allSaps = new Map();
+                dataRows.forEach(row => {
+                    const rowRed = row[findHeaderIndex(headers, 'Red de Salud')];
+                    if (redFilter === 'Todos' || rowRed === redFilter) {
+                        const id = row[idxId];
+                        if(id && !allSaps.has(id)) allSaps.set(id, CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''));
                     }
+                });
+
+                finalData = Array.from(allSaps.keys()).map(id => {
+                    const sap = map[id];
+                    if (!sap || sap.totalSamples === 0) return [...allSaps.get(id), 0, 0, 0, -1, '[]'];
+                    let cumple = (sap.cleanSamples / sap.totalSamples) > 0.7 ? 1 : 0;
                     const excFlag = sap.exceedances.length > 0 ? 1 : 0;
-                    return [...sap.meta, sap.totalSamples, excFlag, cumple, JSON.stringify(sap.exceedances)];
+                    return [...sap.meta, sap.ubicaciones[0] || 0, sap.ubicaciones[1] || 0, excFlag, cumple, JSON.stringify(sap.exceedances)];
                 });
                 pivotType = 'analysis';
 
             } else if (subTab === 'monitor') {
+                if (redFilter !== 'Todos') dataRows = dataRows.filter(r => r[findHeaderIndex(headers, 'Red de Salud')] === redFilter);
                 finalHeaders = [...CORE_HEADERS, ...MONITOR_MONTHS]; const idxMes = findHeaderIndex(headers, 'Mes'); const map = {};
                 dataRows.forEach(row => {
                     const id = row[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(headers, h)] || ''), months: Array(12).fill(0) };
@@ -531,36 +740,23 @@
                 });
                 finalData = Object.values(map).map(x => [...x.meta, ...x.months]);
             } else if (subTab === 'riesgos') {
-                let localRows = dataObj.riesgos.slice(1);
-                let localHeaders = dataObj.riesgos[0] || [];
-                const idxRedRisk = findHeaderIndex(localHeaders, 'Red de Salud');
-                if (redFilter !== 'Todos' && idxRedRisk !== -1) localRows = localRows.filter(r => r[idxRedRisk] === redFilter);
-                
-                finalHeaders = [...CORE_HEADERS, ...MONITOR_MONTHS];
-                const map = {}; 
-                const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
-                
+                let localRows = dataObj.riesgos.slice(1); let localHeaders = dataObj.riesgos[0] || [];
+                if (redFilter !== 'Todos') localRows = localRows.filter(r => r[findHeaderIndex(localHeaders, 'Red de Salud')] === redFilter);
+                finalHeaders = [...CORE_HEADERS, ...MONITOR_MONTHS]; const map = {}; const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
                 localRows.forEach(row => {
-                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')];
-                    if(!id) return;
+                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')]; if(!id) return;
                     if(!map[id]) map[id] = { meta: CORE_HEADERS.map(h => row[findHeaderIndex(localHeaders, h)] || ''), vals: Array(12).fill(0) };
-                    
                     MONITOR_MONTHS.forEach((m, i) => {
-                        const idxInf = findHeaderIndex(localHeaders, `Informe ${m}`);
-                        const idxCar = findHeaderIndex(localHeaders, `Cargo ${m}`);
-                        if (idxInf !== -1 && idxCar !== -1) {
-                            if (normalizeHeader(row[idxInf]) === 'aprobado' && normalizeHeader(row[idxCar]) === 'aprobado') {
-                                map[id].vals[i]++; 
-                            }
-                        }
+                        const idxInf = findHeaderIndex(localHeaders, `Informe ${m}`); const idxCar = findHeaderIndex(localHeaders, `Cargo ${m}`);
+                        if (idxInf !== -1 && idxCar !== -1 && normalizeHeader(row[idxInf]) === 'aprobado' && normalizeHeader(row[idxCar]) === 'aprobado') map[id].vals[i]++; 
                     });
                 });
                 finalData = Object.values(map).map(x => [...x.meta, ...x.vals]);
                 pivotType = 'boolean';
-                
             } else {
                 let localRows = dataRows, localHeaders = headers;
-                if (subTab === 'sanitaria') { localHeaders = dataObj.sanitaria[0] || []; localRows = dataObj.sanitaria.slice(1); const idxRedSan = findHeaderIndex(localHeaders, 'Red de Salud'); if (redFilter !== 'Todos' && idxRedSan !== -1) localRows = localRows.filter(r => r[idxRedSan] === redFilter); } 
+                if (subTab === 'sanitaria') { localHeaders = dataObj.sanitaria[0] || []; localRows = dataObj.sanitaria.slice(1); }
+                if (redFilter !== 'Todos') localRows = localRows.filter(r => r[findHeaderIndex(localHeaders, 'Red de Salud')] === redFilter);
                 const map = {}; const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
                 localRows.forEach(row => {
                     const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')]; if(!id) return;
@@ -573,55 +769,87 @@
             return { headers: finalHeaders, data: finalData, type: pivotType };
         }
 
-        // CLASSIFIERS
-        function checkComplianceSet(h, s, r) { if (!s) return false; return s.every(p => { if (Array.isArray(p)) return p.some(sub => { const idx = findHeaderIndex(h, sub); return idx !== -1 && !isCellEmpty(r[idx]); }); const idx = findHeaderIndex(h, p); return idx !== -1 && !isCellEmpty(r[idx]); }); }
-        function classifyMonitoringStatus(h, r) { let c = 0; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) c++; }); const cl = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]); if (c === 5) return 1; if (cl && c === 1) return 2; return c > 0 ? 3 : 0; }
-        function classifyInspeccionStatus(h, r) { const a = findHeaderIndex(h, 'Ambito'), t = findHeaderIndex(h, 'Tipo SAP'); const ir = (a === -1) || (r[a] === 'RURAL'); const iv = (t === -1) || RURAL_SAP_TYPES.includes(r[t]); if (!ir || !iv) return 0; const hd = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]) || !isCellEmpty(r[findHeaderIndex(h, 'pH')]); return hd ? 1 : 0; }
-        function checkParamLMPExceeded(h, r, limitSet) { const l = []; for (const k in limitSet) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) { const v = parseFloat(r[idx]); const limit = limitSet[k]; if (!isNaN(v) && v > limit) l.push({ metal: k, value: v, lmp: limit }); } } return l.length > 0 ? l : 0; }
-
-        // RENDERS
         function renderMainTable(result) {
             const container = document.getElementById('sap-main-table-container');
             const displayHeaders = result.headers.filter(h => h !== 'Detalles');
             
-            let html = `<table class="min-w-full text-left border-collapse"><thead class="bg-gray-50 sticky top-0 shadow-sm z-10 border-b border-gray-200"><tr>`;
-            displayHeaders.forEach(h => html += `<th class="px-3 py-3 md:px-4 md:py-4 text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap">${h}</th>`);
-            html += `</tr></thead><tbody class="bg-white divide-y divide-gray-100">`;
+            let filteredData = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                filteredData = filteredData.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([idx, val]) => String(row[idx]) === String(val));
+                });
+            }
 
-            result.data.forEach((row, i) => {
-                html += `<tr class="hover:bg-indigo-50/40 transition-colors">`;
+            const filterBar = document.getElementById('sap-active-filters');
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                let filterHtml = `<div class="bg-indigo-50/80 px-4 py-2.5 border-b border-indigo-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full">
+                    <span class="text-[10px] font-black text-indigo-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
+                Object.entries(APP_STATE.currentTableFilters).forEach(([idx, val]) => {
+                    let displayVal = val;
+                    if(result.headers[idx] === 'Cumple') displayVal = val === '1' ? 'CUMPLE' : (val === '0' ? 'NO CUMPLE' : 'SIN DATOS');
+                    else if(result.headers[idx].includes('Muestra')) displayVal = val === '1' ? 'CAPTACIÓN' : (val === '2' ? 'PILETA' : (val === '3' ? 'AMBOS' : '-'));
+                    filterHtml += `<span class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${idx})" title="Quitar filtro">${result.headers[idx]}: ${displayVal} <i data-lucide="x" class="w-3 h-3"></i></span>`;
+                });
+                filterHtml += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`;
+                filterBar.innerHTML = filterHtml;
+                filterBar.classList.remove('hidden');
+            } else {
+                filterBar.innerHTML = '';
+                filterBar.classList.add('hidden');
+            }
+
+            let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
+            displayHeaders.forEach((h, idx) => { let stickyClass = idx === 0 ? "sticky left-0 z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow" : ""; html += `<th class="px-4 py-3 text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-widest ${stickyClass}">${h}</th>`; });
+            html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+
+            filteredData.forEach((row, i) => {
+                const rowBg = i % 2 === 0 ? "bg-white" : "bg-slate-50";
+                html += `<tr class="${rowBg} hover:bg-indigo-50/60 transition-colors group">`;
                 row.filter((_, idx) => result.headers[idx] !== 'Detalles').forEach((cell, idx) => {
                     const header = displayHeaders[idx];
-                    let cls = "px-3 py-3 md:px-4 md:py-3 text-xs border-r border-gray-50 whitespace-nowrap ";
+                    let stickyClass = idx === 0 ? `sticky left-0 z-10 border-r border-slate-200 ${rowBg} group-hover:bg-indigo-50/60 sticky-col-shadow` : "";
+                    
+                    const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-indigo-100/50 transition-colors" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    
                     let content = cell;
                     const v = parseInt(cell);
 
                     if (header === 'Excede LMP') {
                         if (v === 1) {
-                            cls += "cell-excede-lmp";
                             const details = row[result.headers.indexOf('Detalles')];
-                            content = `<button onclick='window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-md text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
-                        } else { cls += "text-center"; content = "-"; }
+                            content = `<button onclick='event.stopPropagation(); window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
+                            tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center"`; 
+                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center cursor-pointer hover:bg-indigo-100/50" onclick="window.setTableFilter(${idx}, '0')"`; }
                     } else if (header === 'Cumple') {
-                        if (v === 1) { cls += "cell-cumple-si"; content = "<div class='inline-flex items-center gap-1'><div class='w-1.5 h-1.5 rounded-full bg-green-500'></div>CUMPLE</div>"; } 
-                        else { cls += "cell-cumple-no"; content = "<div class='inline-flex items-center gap-1'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</div>"; }
+                        if (v === 1) { content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; } 
+                        else if (v === 0) { content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; }
+                        else { content = "<span class='text-slate-300'>-</span>"; }
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (result.type === 'status' && MONITOR_MONTHS.includes(header)) {
-                        cls += v === 1 ? "cell-status-1" : (v === 2 ? "cell-status-2" : (v === 3 ? "cell-status-3" : "cell-base"));
+                        if (v === 1) content = `<div class="mx-auto w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i data-lucide="check" class="w-4 h-4"></i></div>`;
+                        else if (v === 2) content = `<div class="mx-auto w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold text-[10px]">C</div>`;
+                        else if (v === 3) content = `<div class="mx-auto w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="x" class="w-4 h-4"></i></div>`;
+                        else content = `<span class="text-slate-300">-</span>`; 
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (result.type === 'boolean' && (header.includes('Visita') || MONITOR_MONTHS.includes(header))) {
-                        cls += v >= 1 ? "cell-status-1" : "cell-status-3"; 
-                        if(v > 1) content = `<span class="bg-green-700 text-white px-1.5 py-0.5 rounded-full text-[10px] ml-1">${v}</span>`;
+                        if (v >= 1) content = `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-100 text-[10px]"><i data-lucide="check-circle-2" class="w-3 h-3"></i> ${v}</span>`;
+                        else content = `<span class="text-slate-300">-</span>`; 
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (result.type === 'analysis' && header.includes('Muestra')) {
-                        cls += v === 1 ? "cell-analisis-1" : (v === 2 ? "cell-analisis-2" : (v === 3 ? "cell-analisis-3" : "cell-base"));
+                        if (v === 1) content = `<span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-blue-200">Captación</span>`;
+                        else if (v === 2) content = `<span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-amber-200">Pileta</span>`;
+                        else if (v === 3) content = `<span class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-purple-200">Pileta y Captación</span>`;
+                        else { content = `<span class="text-slate-300">-</span>`; }
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else {
-                        cls += "text-gray-700";
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-slate-600 max-w-[150px] truncate ');
                     }
-                    html += `<td class="${cls}">${content}</td>`;
+                    html += `<td ${tdAttributes}>${content}</td>`;
                 });
                 html += `</tr>`;
             });
-            html += `</tbody></table>`;
-            container.innerHTML = html;
-            lucide.createIcons();
+            html += `</tbody></table>`; container.innerHTML = html; lucide.createIcons();
         }
 
         function renderConsolidatedAndChart(result) {
@@ -670,30 +898,28 @@
             });
 
             let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
-            let htmlCon = `<table class="min-w-full divide-y divide-gray-200"><thead class="bg-white sticky top-0 shadow-sm border-b border-gray-200"><tr><th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">RED</th><th class="px-4 py-3 text-center text-xs font-bold text-blue-600 uppercase bg-blue-50/50">CANT. SAP</th>`;
-            sumHeaders.forEach(h => htmlCon += `<th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">${h.substring(0,15)}</th>`);
-            htmlCon += `</tr></thead><tbody class="divide-y divide-gray-100">`;
+            let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-xs font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th>`;
+            sumHeaders.forEach(h => htmlCon += `<th class="px-5 py-4 text-center text-xs font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`);
+            htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
 
             Object.entries(summary).forEach(([red, vals]) => {
-                htmlCon += `<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-xs text-left font-bold text-gray-700 whitespace-nowrap">${red}</td><td class="px-4 py-3 text-xs text-center font-bold text-blue-700 bg-blue-50">${totalSapsPerRed[red]}</td>`;
+                htmlCon += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${totalSapsPerRed[red]}</td>`;
                 vals.forEach((v, i) => {
-                    let style = "text-gray-600";
-                    if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/30"; if(i===2) style="text-green-600 font-bold"; }
-                    htmlCon += `<td class="px-4 py-3 text-xs text-center ${style}">${v}</td>`
+                    let style = "text-slate-600 font-medium";
+                    if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) style="text-emerald-600 font-bold"; }
+                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center ${style}">${v}</td>`
                 });
                 htmlCon += `</tr>`;
             });
-            htmlCon += `<tr class="bg-indigo-50 font-bold border-t-2 border-indigo-200"><td class="px-4 py-4 text-xs text-left text-indigo-900 uppercase">TOTAL GENERAL</td><td class="px-4 py-4 text-xs text-center text-blue-800 bg-blue-100/50">${grandTotalSaps}</td>`;
-            grandTotals.forEach(v => htmlCon += `<td class="px-4 py-4 text-xs text-center text-indigo-900">${v}</td>`);
+            htmlCon += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${grandTotalSaps}</td>`;
+            grandTotals.forEach(v => htmlCon += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`);
             htmlCon += `</tr></tbody></table>`;
             document.getElementById('sap-consolidated-container').innerHTML = htmlCon;
 
-            // Chart
             const counts = [0,0,0,0]; let labels=[], colors=[];
             if (isAnalysisTab) {
                 const totalSaps = grandTotalSaps; 
                 const cumplidores = grandTotals[2];
-                
                 counts[0] = cumplidores;
                 counts[1] = totalSaps - cumplidores;
                 labels = ['SAPs Cumplen', 'No Cumplen / Sin Info'];
@@ -710,17 +936,429 @@
                 labels = ['No Aprobado', 'Aprobado (Al menos 1)']; colors=['#fca5a5','#10b981']; 
             } else {
                 result.data.forEach(row => { if(result.type === 'status' || result.type === 'boolean') { for(let i=valStartIdx; i<row.length; i++) { const v = parseInt(row[i])||0; if(v>=0 && v<=3) counts[v]++; } } else { const v = parseInt(row[valStartIdx])||0; if(v>=0 && v<=3) counts[v]++; } });
-                if(APP_STATE.sapActiveTab === 'monitor') { labels=['Sin Monitoreo','5P Completo','Solo Cloro','Incompleto']; colors=['#e5e7eb','#10b981','#f59e0b','#ef4444']; }
+                if(APP_STATE.sapActiveTab === 'monitor') { labels=['Sin Monitoreo','5P Completo','Solo Cloro','Incompleto']; colors=['#e2e8f0','#10b981','#f59e0b','#ef4444']; }
                 else if(['inspeccion','sanitaria'].includes(APP_STATE.sapActiveTab)) { labels=['No Cumple','Cumple']; colors=['#fca5a5','#10b981']; counts[2]=0; counts[3]=0; }
-                else { labels=['Sin Datos','Captación','Red','Ambos']; colors=['#f3f4f6','#3b82f6','#eab308','#ec4899']; }
+                else { labels=['Sin Datos','Captación','Red','Ambos']; colors=['#f1f5f9','#3b82f6','#eab308','#ec4899']; }
             }
-            renderDoughnutChart(counts.slice(0, labels.length), labels, colors);
+            renderDoughnutChart(counts.slice(0, labels.length), labels, colors, APP_STATE.sapActiveTab.toUpperCase(), 'sap-chart-container');
         }
 
-        function renderDoughnutChart(data, labels, colors) {
+        // ========================
+        // LOGICA FED (NUEVO CON IND 1 e IND 2)
+        // ========================
+        function renderFedTabs() {
+            const tabs = [
+                {id: 'ind1', label: 'Ind. 1 (Agua con Cloro y Turbiedad)'}, 
+                {id: 'ind2', label: 'Ind. 2 (Vigilancia del Agua)'}
+            ];
+            document.getElementById('fed-tabs-container').innerHTML = tabs.map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
+        }
+
+        function changeFedSubTab(tabId) { 
+            if(APP_STATE.fedActiveTab === tabId) return; 
+            APP_STATE.fedActiveTab = tabId; 
+            APP_STATE.currentTableFilters = {}; 
+            renderFedTabs(); 
+            processFEDData(); 
+        }
+
+        function filterFedData(cacheObj, red, ambito) {
+            let filteredData = cacheObj.data;
+            if (red !== 'Todos') filteredData = filteredData.filter(row => row[4] === red);
+            
+            const mefIdx = cacheObj.headers.indexOf('MEF');
+            const fedIdx = cacheObj.headers.indexOf('FED');
+            if (ambito === 'MEF') filteredData = filteredData.filter(row => row[mefIdx] === 1);
+            if (ambito === 'FED') filteredData = filteredData.filter(row => row[fedIdx] === 1);
+            
+            return { headers: cacheObj.headers, data: filteredData };
+        }
+
+        function processFEDData() {
+            if(!APP_STATE.fedCache[APP_STATE.fedActiveTab]) {
+                APP_STATE.fedCache[APP_STATE.fedActiveTab] = runFedLogic(APP_STATE.rawData, APP_STATE.fedActiveTab);
+            }
+            
+            document.getElementById('fed-processing').classList.remove('hidden');
+            setTimeout(() => {
+                const filteredResult = filterFedData(APP_STATE.fedCache[APP_STATE.fedActiveTab], APP_STATE.fedFilterRed, APP_STATE.fedFilterAmbito);
+                renderFedTable(filteredResult);
+                renderFedConsolidatedAndChart(filteredResult);
+                document.getElementById('fed-processing').classList.add('hidden');
+            }, 10);
+        }
+
+        function runFedLogic(dataObj, indicator) {
+            const map = {};
+            const headers1 = dataObj.main[0]; const rows1 = dataObj.main.slice(1);
+            const headers2 = dataObj.main2[0] || []; const rows2 = dataObj.main2.slice(1);
+            
+            const initCCPP = (row, headers) => {
+                const ubi = row[findHeaderIndex(headers, 'Ubigeo')];
+                const nom = row[findHeaderIndex(headers, 'Nombre CCPP')];
+                if (!ubi || !nom) return null;
+                const id = ubi + '_' + nom;
+                if (!map[id]) {
+                    map[id] = {
+                        ubigeo: ubi || '', ccpp: nom || '',
+                        provincia: row[findHeaderIndex(headers, 'Provincia')] || '', distrito: row[findHeaderIndex(headers, 'Distrito')] || '',
+                        red: row[findHeaderIndex(headers, 'Red de Salud')] || '',
+                        
+                        // For Ind 1 & Ind 2 (Monitoreo)
+                        dic: { tot:0, p5:0, clo:0, tur:0 }, ene: { tot:0, p5:0, clo:0, tur:0 }, feb: { tot:0, p5:0, clo:0, tur:0 },
+                        
+                        // Specific for Ind 2
+                        caract: { cap: false, pil: false },
+                        insp: 0,
+                        riesgos: { dic: false, ene: false, feb: false }
+                    };
+                }
+                return id;
+            };
+
+            const getStats = (row, headers) => {
+                const cIdx = findHeaderIndex(headers, 'Cloro'); const tIdx = findHeaderIndex(headers, 'Turbiedad');
+                return { is5p: classifyMonitoringStatus(headers, row) === 1, cloro: cIdx !== -1 ? parseFloat(row[cIdx]) : NaN, turb: tIdx !== -1 ? parseFloat(row[tIdx]) : NaN };
+            };
+
+            const evalCaract = (row, headers, isCaptacion) => {
+                const singles = isCaptacion ? CARACT_CAPTACION_SINGLE : CARACT_PILETA_SINGLE;
+                const ors = isCaptacion ? CARACT_CAPTACION_OR : CARACT_PILETA_OR;
+                for(let p of singles) { if(isCellEmpty(row[findHeaderIndex(headers, p)])) return false; }
+                for(let pair of ors) { if(isCellEmpty(row[findHeaderIndex(headers, pair[0])]) && isCellEmpty(row[findHeaderIndex(headers, pair[1])])) return false; }
+                return true;
+            };
+
+            // Process MAIN (2025)
+            const idxMes1 = findHeaderIndex(headers1, 'Mes');
+            const idxUbi1 = findHeaderIndex(headers1, 'Ubicación Lugar de Muestreo');
+            rows1.forEach(row => {
+                const id = initCCPP(row, headers1); if(!id) return;
+                const mes = idxMes1 !== -1 ? normalizeHeader(row[idxMes1]) : '';
+                
+                // IND 1 & 2: Monitoreo
+                if(mes === 'diciembre') {
+                    const stats = getStats(row, headers1);
+                    map[id].dic.tot++;
+                    if (stats.is5p) map[id].dic.p5++;
+                    if (!isNaN(stats.cloro) && stats.cloro >= 0.5 && stats.cloro <= 5) map[id].dic.clo++;
+                    if (!isNaN(stats.turb) && stats.turb <= 5) map[id].dic.tur++;
+                }
+
+                // IND 2: Caracterizacion
+                if (indicator === 'ind2' && idxUbi1 !== -1) {
+                    const ubicacion = row[idxUbi1] || '';
+                    if (ubicacion.includes('Fuente de Captación')) { if(evalCaract(row, headers1, true)) map[id].caract.cap = true; }
+                    if (ubicacion.includes('Red de distribución')) { if(evalCaract(row, headers1, false)) map[id].caract.pil = true; }
+                }
+            });
+
+            // Process MAIN 2 (2026)
+            const idxMes2 = findHeaderIndex(headers2, 'Mes');
+            const idxUbi2 = findHeaderIndex(headers2, 'Ubicación Lugar de Muestreo');
+            rows2.forEach(row => {
+                const id = initCCPP(row, headers2); if(!id) return;
+                const mes = idxMes2 !== -1 ? normalizeHeader(row[idxMes2]) : '';
+                
+                // IND 1 & 2: Monitoreo
+                if (mes === 'enero' || mes === 'febrero') {
+                    const stats = getStats(row, headers2);
+                    if (mes === 'enero') {
+                        map[id].ene.tot++;
+                        if (stats.is5p) map[id].ene.p5++;
+                        if (!isNaN(stats.cloro) && stats.cloro >= 0.5 && stats.cloro <= 5) map[id].ene.clo++;
+                        if (!isNaN(stats.turb) && stats.turb <= 5) map[id].ene.tur++;
+                    } else if (mes === 'febrero') {
+                        map[id].feb.tot++;
+                        if (stats.is5p) map[id].feb.p5++;
+                        if (!isNaN(stats.cloro) && stats.cloro >= 0.5 && stats.cloro <= 2) map[id].feb.clo++; 
+                        if (!isNaN(stats.turb) && stats.turb <= 5) map[id].feb.tur++;
+                    }
+                }
+
+                // IND 2: Caracterizacion
+                if (indicator === 'ind2' && idxUbi2 !== -1) {
+                    const ubicacion = row[idxUbi2] || '';
+                    if (ubicacion.includes('Fuente de Captación')) { if(evalCaract(row, headers2, true)) map[id].caract.cap = true; }
+                    if (ubicacion.includes('Red de distribución')) { if(evalCaract(row, headers2, false)) map[id].caract.pil = true; }
+                }
+            });
+
+            // Process SANITARIA (For Ind 2)
+            if (indicator === 'ind2') {
+                const sHeaders = dataObj.sanitaria[0] || [];
+                const sRows = dataObj.sanitaria.slice(1);
+                sRows.forEach(row => {
+                    const id = initCCPP(row, sHeaders); if(!id) return;
+                    if(!isCellEmpty(row[findHeaderIndex(sHeaders, 'Fecha de inspección')])) map[id].insp++;
+                });
+            }
+
+            // Process RIESGOS (For Ind 2)
+            if (indicator === 'ind2') {
+                const rHeaders = dataObj.riesgos[0] || [];
+                const rRows = dataObj.riesgos.slice(1);
+                rRows.forEach(row => {
+                    const id = initCCPP(row, rHeaders); if(!id) return;
+                    ['Diciembre', 'Enero', 'Febrero'].forEach(m => {
+                        const inf = row[findHeaderIndex(rHeaders, `Informe ${m}`)];
+                        const car = row[findHeaderIndex(rHeaders, `Cargo ${m}`)];
+                        if(normalizeHeader(inf) === 'aprobado' && normalizeHeader(car) === 'aprobado') {
+                            map[id].riesgos[m.toLowerCase()] = true;
+                        }
+                    });
+                });
+            }
+
+            // Generate Output Arrays
+            if (indicator === 'ind1') {
+                const finalData = Object.values(map).map(sap => {
+                    const calcEv5p = (m) => (m.tot === 0 ? 0 : ((m.p5 / m.tot) >= 0.7 || m.p5 > 3 ? 1 : 0));
+                    const ev5_dic = calcEv5p(sap.dic); const ev_dic = (ev5_dic === 1 && sap.dic.clo > 0 && sap.dic.tur > 0) ? 1 : 0;
+                    const ev5_ene = calcEv5p(sap.ene); const ev_ene = (ev5_ene === 1 && sap.ene.clo > 0 && sap.ene.tur > 0) ? 1 : 0;
+                    const ev5_feb = calcEv5p(sap.feb); const ev_feb = (ev5_feb === 1 && sap.feb.clo > 0 && sap.feb.tur > 0) ? 1 : 0;
+
+                    let sumEv = ev_dic + ev_ene + ev_feb;
+                    let sumTot = sap.dic.tot + sap.ene.tot + sap.feb.tot;
+                    let seg = sumTot === 0 ? 'Gris' : (sumEv >= 2 ? 'Verde' : (sumEv === 1 ? 'Naranja' : 'Rojo'));
+
+                    const isMef = APP_STATE.mefUbigeos.has(sap.ubigeo) ? 1 : 0;
+                    const isFed = APP_STATE.fedUbigeos.has(sap.ubigeo) ? 1 : 0;
+
+                    return [
+                        sap.ubigeo, sap.ccpp, sap.provincia, sap.distrito, sap.red,
+                        sap.dic.tot, sap.dic.p5, ev5_dic, sap.dic.clo, sap.dic.tur, ev_dic,
+                        sap.ene.tot, sap.ene.p5, ev5_ene, sap.ene.clo, sap.ene.tur, ev_ene,
+                        sap.feb.tot, sap.feb.p5, ev5_feb, sap.feb.clo, sap.feb.tur, ev_feb,
+                        seg, isMef, isFed
+                    ];
+                });
+                return {
+                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (0.5<=Cl<=5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (0.5<=Cl<=5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (0.5<=Cl<=2)', 'Feb (Turb<=5)', 'Ev_Feb', 'Seguimiento', 'MEF', 'FED'],
+                    data: finalData
+                };
+            } 
+            else if (indicator === 'ind2') {
+                const finalData = Object.values(map).map(sap => {
+                    // 1. Insp Sanitaria
+                    const ev_insp = sap.insp > 0 ? 1 : 0;
+                    
+                    // 2. Caracterizacion
+                    const ev_caract = (sap.caract.cap && sap.caract.pil) ? 1 : 0;
+                    
+                    // 3. Monitoreo 5P
+                    const calcMes5p = (m) => m.p5 > 3 ? 1 : 0;
+                    const sum5p = calcMes5p(sap.dic) + calcMes5p(sap.ene) + calcMes5p(sap.feb);
+                    const ev_monit = sum5p >= 2 ? 1 : 0;
+
+                    // 4. Reportes Riesgos
+                    const sumRiesgos = (sap.riesgos.dic?1:0) + (sap.riesgos.ene?1:0) + (sap.riesgos.feb?1:0);
+                    const ev_riesgos = sumRiesgos >= 2 ? 1 : 0;
+
+                    // Final Indicator
+                    const ind_final = (ev_insp === 1 && ev_caract === 1 && ev_monit === 1 && ev_riesgos === 1) ? 1 : 0;
+
+                    const isMef = APP_STATE.mefUbigeos.has(sap.ubigeo) ? 1 : 0;
+                    const isFed = APP_STATE.fedUbigeos.has(sap.ubigeo) ? 1 : 0;
+
+                    return [
+                        sap.ubigeo, sap.ccpp, sap.provincia, sap.distrito, sap.red,
+                        ev_insp, ev_caract, ev_monit, ev_riesgos, ind_final, isMef, isFed
+                    ];
+                });
+                return {
+                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Inspección', 'Cumple Caracterizacion', 'Cumple Monit. 5P', 'Cumple Rep. Riesgo', 'Cumplimiento Ind. 2', 'MEF', 'FED'],
+                    data: finalData
+                };
+            }
+        }
+
+        function renderFedTable(result) {
+            const container = document.getElementById('fed-main-table-container');
+
+            let filteredData = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                filteredData = filteredData.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([idx, val]) => String(row[idx]) === String(val));
+                });
+            }
+
+            const filterBar = document.getElementById('fed-active-filters');
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                let filterHtml = `<div class="bg-amber-50/80 px-4 py-2.5 border-b border-amber-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full">
+                    <span class="text-[10px] font-black text-amber-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
+                Object.entries(APP_STATE.currentTableFilters).forEach(([idx, val]) => {
+                    let displayVal = val;
+                    if(result.headers[idx] === 'Seguimiento') {
+                        if(val === 'Verde') displayVal = 'CUMPLE (>=2)';
+                        else if(val === 'Naranja') displayVal = 'CUMPLE (1)';
+                        else if(val === 'Rojo') displayVal = 'NO CUMPLE';
+                        else displayVal = 'SIN MONITOREO';
+                    } else if(result.headers[idx] === 'MEF' || result.headers[idx] === 'FED') {
+                        displayVal = val === '1' ? 'SÍ' : '-';
+                    } else if(result.headers[idx].includes('Cumple') || result.headers[idx].includes('Cumplimiento')) {
+                        displayVal = val === '1' ? 'CUMPLE' : 'NO CUMPLE';
+                    }
+                    filterHtml += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${idx})" title="Quitar filtro">${result.headers[idx]}: ${displayVal} <i data-lucide="x" class="w-3 h-3"></i></span>`;
+                });
+                filterHtml += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`;
+                filterBar.innerHTML = filterHtml;
+                filterBar.classList.remove('hidden');
+            } else {
+                filterBar.innerHTML = '';
+                filterBar.classList.add('hidden');
+            }
+
+            let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
+            result.headers.forEach((h, idx) => {
+                let stickyClass = (idx === 0 || idx === 1) ? "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow" : "";
+                let leftStyle = idx === 0 ? "left-0" : (idx === 1 ? "left-[100px]" : ""); 
+                html += `<th class="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest ${stickyClass} ${leftStyle}">${h}</th>`;
+            });
+            html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+
+            filteredData.forEach((row, i) => {
+                const rowBg = i % 2 === 0 ? "bg-white" : "bg-slate-50";
+                html += `<tr class="${rowBg} hover:bg-amber-50/60 transition-colors group">`;
+                row.forEach((cell, idx) => {
+                    let stickyClass = (idx === 0 || idx === 1) ? `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-amber-50/60 sticky-col-shadow` : "";
+                    let leftStyle = idx === 0 ? "left-0" : (idx === 1 ? "left-[100px] max-w-[200px] truncate" : ""); 
+                    
+                    const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} ${leftStyle} cursor-pointer hover:bg-amber-100/50 transition-colors" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let content = cell;
+
+                    if (result.headers[idx] === 'Seguimiento') {
+                        if(cell === 'Verde') content = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>CUMPLE (>=2)</span>";
+                        else if(cell === 'Naranja') content = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE (1)</span>";
+                        else if(cell === 'Rojo') content = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>";
+                        else content = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>";
+                    } else if (result.headers[idx] === 'MEF' || result.headers[idx] === 'FED') {
+                        content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`;
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
+                    } else if (result.headers[idx] === 'Cumplimiento Ind. 2') {
+                        if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
+                        else content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
+                    } else if (result.headers[idx].includes('Cumple ')) {
+                        content = cell === 1 ? `<div class="mx-auto w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i data-lucide="check" class="w-3 h-3"></i></div>` : `<div class="mx-auto w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="x" class="w-3 h-3"></i></div>`;
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
+                    } else if (result.headers[idx].includes('Ev_') || result.headers[idx].includes('EV_5p')) {
+                        content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200">1</span>` : `<span class="text-slate-300">0</span>`;
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
+                    } else if (typeof cell === 'number') {
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center text-slate-600 font-mono ');
+                    } else { 
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-slate-600 '); 
+                    }
+                    
+                    html += `<td ${tdAttributes}>${content}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function renderFedConsolidatedAndChart(result) {
+            const summary = {}; 
+            let grandTotalCcpp=0, grandCumplenInd=0;
+            // Ind 1 variables
+            let grandDic=0, grandEne=0, grandFeb=0;
+            // Ind 2 variables
+            let grandInsp=0, grandCaract=0, grandMonit=0, grandRiesgos=0;
+            
+            const isInd1 = APP_STATE.fedActiveTab === 'ind1';
+
+            result.data.forEach(row => {
+                const red = row[4];
+                if(!summary[red]) {
+                    summary[red] = { 
+                        ccpp:0, 
+                        dic:0, ene:0, feb:0, cumplen:0, 
+                        insp:0, caract:0, monit:0, riesgos:0 
+                    };
+                }
+                summary[red].ccpp++; grandTotalCcpp++;
+
+                if (isInd1) {
+                    const evDic = row[10]; const evEne = row[16]; const evFeb = row[22];
+                    const sumEv = evDic + evEne + evFeb;
+                    if(evDic===1) { summary[red].dic++; grandDic++; }
+                    if(evEne===1) { summary[red].ene++; grandEne++; }
+                    if(evFeb===1) { summary[red].feb++; grandFeb++; }
+                    if(sumEv>=2) { summary[red].cumplen++; grandCumplenInd++; }
+                } else {
+                    const eInsp = row[5]; const eCaract = row[6]; const eMonit = row[7]; const eRiesgos = row[8]; const eFinal = row[9];
+                    if(eInsp===1) { summary[red].insp++; grandInsp++; }
+                    if(eCaract===1) { summary[red].caract++; grandCaract++; }
+                    if(eMonit===1) { summary[red].monit++; grandMonit++; }
+                    if(eRiesgos===1) { summary[red].riesgos++; grandRiesgos++; }
+                    if(eFinal===1) { summary[red].cumplen++; grandCumplenInd++; }
+                }
+            });
+
+            let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr>
+                <th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th>
+                <th class="px-5 py-4 text-center text-xs font-black text-slate-600 uppercase">Total CCPP</th>`;
+            
+            if (isInd1) {
+                htmlCon += `<th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Diciembre</th>
+                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Enero</th>
+                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Febrero</th>
+                <th class="px-5 py-4 text-center text-xs font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=2 Meses</th>`;
+            } else {
+                htmlCon += `<th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Inspección</th>
+                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Caracterización</th>
+                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Monitoreo 5P</th>
+                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Riesgos</th>
+                <th class="px-5 py-4 text-center text-xs font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`;
+            }
+            htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+
+            Object.entries(summary).forEach(([red, vals]) => {
+                htmlCon += `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700">${red}</td>
+                    <td class="px-5 py-3.5 text-xs text-center font-bold text-slate-600">${vals.ccpp}</td>`;
+                if(isInd1) {
+                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.dic}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.ene}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.feb}</td>`;
+                } else {
+                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.insp}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.caract}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.monit}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.riesgos}</td>`;
+                }
+                htmlCon += `<td class="px-5 py-3.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${vals.cumplen}</td></tr>`;
+            });
+
+            htmlCon += `<tr class="bg-slate-800 border-t border-slate-700">
+                <td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td>
+                <td class="px-5 py-4 text-xs text-center text-white font-bold">${grandTotalCcpp}</td>`;
+            if(isInd1) {
+                htmlCon += `<td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandDic}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandEne}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandFeb}</td>`;
+            } else {
+                htmlCon += `<td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandInsp}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandCaract}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandMonit}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandRiesgos}</td>`;
+            }
+            htmlCon += `<td class="px-5 py-4 text-xs text-center text-emerald-400 font-black">${grandCumplenInd}</td></tr></tbody></table>`;
+            document.getElementById('fed-consolidated-container').innerHTML = htmlCon;
+
+            let counts = [0,0,0,0]; 
+            let labels = [];
+            if(isInd1) {
+                result.data.forEach(row => { const s = row[23]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
+                labels = ['Cumple Meta (>=2)', 'Cumple Parcial (1)', 'No Cumple (0)', 'Sin Monitoreo'];
+            } else {
+                result.data.forEach(row => { const f = row[9]; if(f===1) counts[0]++; else counts[2]++; });
+                labels = ['SAPs Cumplen Ind 2', '', 'No Cumplen', ''];
+            }
+            renderDoughnutChart(counts, labels, ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'], `FED - ${APP_STATE.fedActiveTab.toUpperCase()}`, 'fed-chart-container');
+        }
+
+        // ========================
+        // OTRAS FUNCIONES COMPARTIDAS
+        // ========================
+        function renderDoughnutChart(data, labels, colors, title, containerId) {
             const total = data.reduce((a,b) => a+b, 0);
-            if(total === 0) { document.getElementById('sap-chart-container').innerHTML = '<div class="flex flex-col items-center justify-center text-gray-400 h-full"><i data-lucide="bar-chart-2" class="w-8 h-8 mb-2"></i><span class="text-sm">Sin datos para graficar</span></div>'; lucide.createIcons(); return; }
-            let svg = `<h4 class="text-sm md:text-base font-bold text-gray-800 mb-6 text-center w-full border-b border-gray-100 pb-2">Estadística: ${APP_STATE.sapActiveTab.toUpperCase()}</h4><div class="relative w-40 h-40 md:w-48 md:h-48 flex-shrink-0"><svg viewBox="0 0 100 100" class="transform -rotate-90 w-full h-full drop-shadow-md">`;
+            if(total === 0) { document.getElementById(containerId).innerHTML = '<div class="flex flex-col items-center justify-center text-slate-400 h-full"><i data-lucide="bar-chart-2" class="w-8 h-8 mb-2 opacity-50"></i><span class="text-sm font-medium tracking-wide">Sin datos para graficar</span></div>'; lucide.createIcons(); return; }
+            let svg = `<h4 class="text-xs md:text-sm font-black text-slate-500 uppercase tracking-widest mb-6 text-center w-full border-b border-white/20 pb-4">Estadística: ${title}</h4><div class="relative w-40 h-40 md:w-44 md:h-44 flex-shrink-0"><svg viewBox="0 0 100 100" class="transform -rotate-90 w-full h-full drop-shadow-xl">`;
             let cumAngle = 0;
             data.forEach((val, i) => {
                 if(val === 0) return;
@@ -728,15 +1366,15 @@
                 const x1 = 50 + 40 * Math.cos(Math.PI * cumAngle / 180); const y1 = 50 + 40 * Math.sin(Math.PI * cumAngle / 180);
                 const x2 = 50 + 40 * Math.cos(Math.PI * (cumAngle + angle) / 180); const y2 = 50 + 40 * Math.sin(Math.PI * (cumAngle + angle) / 180);
                 const d = total === val ? "M 50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" : `M 50 50 L ${x1} ${y1} A 40 40 0 ${large} 1 ${x2} ${y2} Z`;
-                svg += `<path d="${d}" fill="${colors[i]}" stroke="white" stroke-width="1.5" class="transition-all duration-300 hover:opacity-80 cursor-pointer"></path>`; cumAngle += angle;
+                svg += `<path d="${d}" fill="${colors[i]}" stroke="#ffffff" stroke-width="2" class="transition-all duration-300 hover:opacity-80 cursor-pointer"></path>`; cumAngle += angle;
             });
-            svg += `<circle cx="50" cy="50" r="26" fill="white"></circle></svg><div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none"><span class="text-2xl font-black text-gray-800">${total}</span><span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Total</span></div></div><div class="mt-6 w-full space-y-2.5 px-2">`;
+            svg += `<circle cx="50" cy="50" r="28" fill="#ffffff"></circle></svg><div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none"><span class="text-2xl font-black text-slate-800">${total}</span><span class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total</span></div></div><div class="mt-8 w-full space-y-2.5">`;
             labels.forEach((l, i) => { 
                 if(!l) return; 
-                svg += `<div class="flex items-center justify-between text-xs md:text-sm bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2.5 shadow-sm" style="background-color:${colors[i]}"></span><span class="text-gray-700 font-medium">${l}</span></div><span class="font-bold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-200">${data[i]}</span></div>`; 
+                svg += `<div class="flex items-center justify-between text-xs md:text-sm bg-white/50 px-3 py-2 rounded-xl border border-slate-100 shadow-sm"><div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2.5 shadow-inner border border-black/5" style="background-color:${colors[i]}"></span><span class="text-slate-600 font-bold">${l}</span></div><span class="font-black text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-200">${data[i]}</span></div>`; 
             });
             svg += `</div>`;
-            document.getElementById('sap-chart-container').innerHTML = svg;
+            document.getElementById(containerId).innerHTML = svg;
         }
 
         function exportToExcel() {
@@ -745,94 +1383,75 @@
             const result = APP_STATE.sapCache[cacheKey];
             const wb = XLSX.utils.book_new();
 
-            // SHEET 1: DETALLADO
+            // Aplicar filtro si existe
+            let dataToExport = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                dataToExport = dataToExport.filter(row => Object.entries(APP_STATE.currentTableFilters).every(([idx, val]) => String(row[idx]) === String(val)));
+            }
+
             const isAnalysisTab = result.type === 'analysis';
             let detHeaders = [], detData = [];
             if (isAnalysisTab) {
                 detHeaders = result.headers.map(h => h === 'Detalles' ? 'Parámetros LMP Exceden' : h);
-                detData = result.data.map(row => row.map((cell, i) => {
-                    if (result.headers[i] === 'Detalles') {
+                detData = dataToExport.map(row => row.map((cell, i) => {
+                    const header = result.headers[i];
+                    if (header === 'Detalles') {
                         try { const d = JSON.parse(cell); return Array.isArray(d) ? d.map(x => `${x.metal}=${x.value} (${x.month})`).join(', ') : ''; } catch (e) { return ''; }
                     } 
-                    if (result.headers[i] === 'Cumple') { return cell === 1 ? 'SI' : 'NO'; }
+                    if (header === 'Cumple') { return cell === 1 ? 'SI' : (cell === 0 ? 'NO' : '-'); }
+                    if (header.includes('Muestra')) {
+                        if (cell === 1) return 'Captación';
+                        if (cell === 2) return 'Pileta';
+                        if (cell === 3) return 'Pileta y Captación';
+                        return '-';
+                    }
                     return cell;
                 }));
             } else {
                 detHeaders = result.headers.filter(h => h !== 'Detalles');
-                detData = result.data.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles'));
+                detData = dataToExport.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles'));
             }
             const wsDetalle = XLSX.utils.aoa_to_sheet([detHeaders, ...detData]);
             XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle");
 
-            // SHEET 2: CONSOLIDADO
-            const valStartIdx = CORE_HEADERS.length;
-            const idxRed = CORE_HEADERS.indexOf('Red de Salud');
-            const summary = {};
-            const totalSapsPerRed = {}; 
+            XLSX.writeFile(wb, `Reporte_SAP_${APP_STATE.sapActiveTab}.xlsx`);
+        }
+
+        function exportFEDToExcel() {
+            if(!APP_STATE.fedCache[APP_STATE.fedActiveTab]) return;
+            const result = filterFedData(APP_STATE.fedCache[APP_STATE.fedActiveTab], APP_STATE.fedFilterRed, APP_STATE.fedFilterAmbito);
             
-            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
-            const grandTotals = Array(colCount).fill(0);
-            let grandTotalSaps = 0;
+            let dataToExport = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                dataToExport = dataToExport.filter(row => Object.entries(APP_STATE.currentTableFilters).every(([idx, val]) => String(row[idx]) === String(val)));
+            }
 
-            result.data.forEach(row => {
-                const red = row[idxRed] || 'Sin Red';
-                if(!summary[red]) summary[red] = Array(colCount).fill(0);
-                if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
-                
-                totalSapsPerRed[red]++;
-                grandTotalSaps++;
-
-                if (isAnalysisTab) {
-                    const samples = parseInt(row[valStartIdx]);
-                    const excFlag = parseInt(row[valStartIdx + 1]);
-                    const cumple = parseInt(row[valStartIdx + 2]);
-                    const details = JSON.parse(row[valStartIdx + 3] || '[]');
-
-                    summary[red][0] += samples; grandTotals[0] += samples;
-                    summary[red][1] += details.length; grandTotals[1] += details.length;
-                    if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
-                } else {
-                    for(let i = valStartIdx; i < row.length; i++) {
-                        if(result.headers[i] === 'Detalles') continue;
-                        const val = parseInt(row[i]);
-                        const sumIdx = i - valStartIdx;
-                        
-                        if(APP_STATE.sapActiveTab === 'riesgos') {
-                            summary[red][sumIdx] += val; 
-                            grandTotals[sumIdx] += val;
-                        } else {
-                            let add = false;
-                            if(APP_STATE.sapActiveTab === 'monitor') { if(val===1) add=true; }
-                            else { if(val>=1) add=true; }
-                            if(add) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
-                        }
-                    }
-                }
+            const excelData = dataToExport.map(row => {
+                const newRow = [...row];
+                const mefIdx = result.headers.indexOf('MEF');
+                const fedIdx = result.headers.indexOf('FED');
+                if (mefIdx !== -1) newRow[mefIdx] = newRow[mefIdx] === 1 ? 'SI' : '';
+                if (fedIdx !== -1) newRow[fedIdx] = newRow[fedIdx] === 1 ? 'SI' : '';
+                return newRow;
             });
 
-            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
-            const consHeaders = ['Red de Salud', 'Cantidad SAP', ...sumHeaders];
-            const consData = Object.entries(summary).map(([key, vals]) => [key, totalSapsPerRed[key], ...vals]);
-            consData.push(['TOTAL GENERAL', grandTotalSaps, ...grandTotals]);
-
-            const wsConsolidado = XLSX.utils.aoa_to_sheet([consHeaders, ...consData]);
-            XLSX.utils.book_append_sheet(wb, wsConsolidado, "Consolidado");
-
-            XLSX.writeFile(wb, `Reporte_SAP_${APP_STATE.sapActiveTab}.xlsx`);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([result.headers, ...excelData]), "Detalle_FED");
+            XLSX.writeFile(wb, `Reporte_FED_${APP_STATE.fedActiveTab}.xlsx`);
         }
 
         function openLMPModal(jsonString) {
             const data = JSON.parse(jsonString);
             const content = document.getElementById('modal-lmp-content');
             content.innerHTML = data.map(d => `
-                <div class="bg-white p-4 rounded-xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300 transition-colors">
+                <div class="bg-white p-5 rounded-2xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300 transition-colors">
                     <div>
-                        <span class="font-black text-gray-800 text-sm block mb-1">${d.metal}</span>
-                        <span class="inline-flex items-center text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md"><i data-lucide="calendar" class="w-3 h-3 mr-1"></i> ${d.month}</span>
+                        <span class="font-black text-slate-800 text-sm block mb-1.5">${d.metal}</span>
+                        <span class="inline-flex items-center text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md tracking-wider"><i data-lucide="calendar" class="w-3 h-3 mr-1.5"></i> ${d.month}</span>
                     </div>
                     <div class="text-right">
-                        <span class="text-red-600 font-black text-lg block leading-none mb-1">${d.value}</span>
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">LMP: ${d.lmp}</span>
+                        <span class="text-red-600 font-black text-xl block leading-none mb-1.5">${d.value}</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">LMP: ${d.lmp}</span>
                     </div>
                 </div>
             `).join('');
@@ -841,7 +1460,7 @@
         }
         function closeModal() { document.getElementById('modal-lmp').classList.add('hidden'); }
 
-        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Lista de Accesos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-gray-50"><td class="p-4 font-medium text-gray-800 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="p-4 text-gray-400 text-sm">••••••••</td><td class="p-4"><span class="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full border border-green-100">ACTIVO</span></td></tr>`).join(''); }
+        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
         function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
         function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
 
