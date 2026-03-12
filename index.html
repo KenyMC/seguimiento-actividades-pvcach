@@ -208,7 +208,7 @@
                         </div>
                         <div class="h-6 w-px bg-slate-300 mx-1 shrink-0"></div>
                         <button onclick="window.forceRefreshData()" class="p-2 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-lg transition-colors shadow-sm bg-transparent hover:shadow shrink-0" title="Refrescar Datos"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                        <button onclick="window.exportToExcel(true)" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
+                        <button onclick="window.exportToExcel(true)" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
                             <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
                         </button>
                     </div>
@@ -405,7 +405,7 @@
             <div id="view-whiteboard" class="view-section hidden h-full flex flex-col"><div class="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm"><h2 class="font-black text-xl text-slate-800 flex items-center gap-2"><i data-lucide="pen-tool" class="text-indigo-600"></i> Pizarra de Notas</h2><button onclick="window.clearCanvas()" class="text-sm text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl border border-red-200 font-bold transition-colors">Limpiar Lienzo</button></div><div class="flex-1 bg-slate-100 p-6 relative"><canvas id="wb-canvas" class="w-full h-full bg-white rounded-2xl shadow-inner cursor-crosshair border-2 border-dashed border-slate-300"></canvas></div></div>
             
             <!-- USUARIOS -->
-            <div id="view-users" class="view-section hidden h-full overflow-y-auto custom-scroll p-6 md:p-10 max-w-6xl mx-auto flex flex-col w-full"><div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10"><div><h2 class="text-3xl font-black text-slate-800">Directorio de Usuarios</h2><p class="text-slate-500 text-sm mt-1">Cuentas autorizadas sincronizadas desde Sheets</p></div><a href="https://docs.google.com/spreadsheets/d/1GCHXfQf79_B-k6j2C6O-I-f9U1f9p6_G7-r9mU1p6kY/edit" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl flex items-center shadow-lg transition-colors text-sm font-bold"><i data-lucide="external-link" class="mr-2 w-4 h-4"></i> Editar Base de Datos</a></div><div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col w-full overflow-hidden"><div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50"><span class="text-xs font-black text-slate-500 uppercase tracking-widest" id="users-count-label">Accesos Activos</span><button onclick="window.syncUsers(true)" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider flex items-center px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors border border-transparent hover:border-indigo-100"><i data-lucide="refresh-cw" class="mr-1.5 w-3.5 h-3.5"></i> Sincronizar</button></div><div class="overflow-x-auto w-full"><table class="min-w-full text-left"><thead class="bg-white border-b border-slate-200 text-xs uppercase text-slate-400 font-bold tracking-wider"><tr><th class="px-6 py-4 whitespace-nowrap">Usuario (ID)</th><th class="px-6 py-4 whitespace-nowrap">Credencial</th><th class="px-6 py-4 whitespace-nowrap">Estado</th></tr></thead><tbody id="users-table-body" class="divide-y divide-slate-100"></tbody></table></div></div></div>
+            <div id="view-users" class="view-section hidden h-full overflow-y-auto custom-scroll p-6 md:p-10 max-w-6xl mx-auto flex flex-col w-full"><div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-10"><div><h2 class="text-3xl font-black text-slate-800">Directorio de Usuarios</h2><p class="text-slate-500 text-sm mt-1">Cuentas autorizadas sincronizadas desde Sheets</p></div><a href="https://docs.google.com/spreadsheets/d/1GCHXfQf79_B-k6j2C6O-I-f9U1f9p6_G7-r9mU1p6kY/edit" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl flex items-center shadow-lg transition-colors text-sm font-bold"><i data-lucide="external-link" class="mr-2 w-4 h-4"></i> Editar Base de Datos</a></div><div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col w-full overflow-hidden"><div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50"><span class="text-xs font-black text-slate-500 uppercase tracking-widest" id="users-count-label">Accesos Activos</span><button onclick="window.syncUsers(true)" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-wider flex items-center px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors border border-transparent hover:border-indigo-100"><i data-lucide="refresh-cw" class="mr-1.5 w-3.5 h-3.5"></i> Sincronizar</button></div><div class="overflow-x-auto w-full"><table class="min-w-full text-left"><thead class="bg-white border-b border-slate-200 text-xs uppercase text-slate-400 font-bold tracking-wider"><tr><th class="px-6 py-4 whitespace-nowrap">Usuario (ID)</th><th class="px-6 py-4 whitespace-nowrap">Credencial</th><th class="px-6 py-4 whitespace-nowrap">Red Asignada</th><th class="px-6 py-4 whitespace-nowrap">Estado</th></tr></thead><tbody id="users-table-body" class="divide-y divide-slate-100"></tbody></table></div></div></div>
         </main>
     </div>
 
@@ -508,7 +508,7 @@
             sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia', sapCache: {}, 
             resActiveTab: 'res_metales', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {}, 
             fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null },
-            mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(),
+            mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), uniqueRedes: new Set(),
             currentTableFilters: {}, 
             globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [],
             canvas: null, isDrawing: false 
@@ -590,36 +590,42 @@
             syncUsers();
             preloadSAPData(); 
             
-            const loginForm = document.getElementById('login-form');
-            if(loginForm) loginForm.addEventListener('submit', handleLogin);
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
             
-            const addSafeListener = (id, evt, handler) => {
-                const el = document.getElementById(id);
-                if(el) el.addEventListener(evt, handler);
-            };
-
             // SAP FILTERS
-            addSafeListener('sap-filter-red', 'change', (e) => { 
-                APP_STATE.sapFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processSAPData(); 
+            document.getElementById('sap-filter-red').addEventListener('change', (e) => { 
+                APP_STATE.sapFilterRed = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processSAPData(); 
             });
-            addSafeListener('sap-filter-ambito', 'change', (e) => { 
-                APP_STATE.sapFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processSAPData(); 
+            document.getElementById('sap-filter-ambito').addEventListener('change', (e) => { 
+                APP_STATE.sapFilterAmbito = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processSAPData(); 
             });
 
             // RES FILTERS
-            addSafeListener('res-filter-red', 'change', (e) => { 
-                APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processResData(); 
+            document.getElementById('res-filter-red').addEventListener('change', (e) => { 
+                APP_STATE.resFilterRed = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processResData(); 
             });
-            addSafeListener('res-filter-ambito', 'change', (e) => { 
-                APP_STATE.resFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processResData(); 
+            document.getElementById('res-filter-ambito').addEventListener('change', (e) => { 
+                APP_STATE.resFilterAmbito = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processResData(); 
             });
             
             // FED FILTERS
-            addSafeListener('fed-filter-red', 'change', (e) => { 
-                APP_STATE.fedFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processFEDData(); 
+            document.getElementById('fed-filter-red').addEventListener('change', (e) => { 
+                APP_STATE.fedFilterRed = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processFEDData(); 
             });
-            addSafeListener('fed-filter-ambito', 'change', (e) => { 
-                APP_STATE.fedFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processFEDData(); 
+            document.getElementById('fed-filter-ambito').addEventListener('change', (e) => { 
+                APP_STATE.fedFilterAmbito = e.target.value; 
+                APP_STATE.currentTableFilters = {}; 
+                processFEDData(); 
             });
             
             initWhiteboard();
@@ -632,11 +638,55 @@
                 const res = await fetch(`${URLS.USUARIOS}&t=${new Date().getTime()}`);
                 const text = await res.text();
                 const rows = await asyncParseCSV(text);
-                APP_STATE.usersList = rows.slice(1).map(r => ({ usuario: r[0]?.trim(), password: r[1]?.trim() })).filter(u => u.usuario && u.password);
+                APP_STATE.usersList = rows.slice(1).map(r => ({ 
+                    usuario: r[0]?.trim(), 
+                    password: r[1]?.trim(),
+                    red: r[2]?.trim() || 'TODAS' 
+                })).filter(u => u.usuario && u.password);
                 if(showLoading) { renderUserTable(); lucide.createIcons(); }
             } catch (e) { console.error("Error", e); } 
             finally { if(showLoading && btn) btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; }
         }
+
+        window.applyUserRoleUI = function() {
+            const userRed = APP_STATE.currentUser?.red || 'TODAS';
+            const isRestricted = userRed !== 'TODAS';
+
+            let html = '';
+            if (isRestricted) {
+                html = `<option value="${userRed}">${userRed}</option>`;
+            } else {
+                html = '<option value="Todos">Todas las Redes</option>';
+                if (APP_STATE.uniqueRedes) {
+                    Array.from(APP_STATE.uniqueRedes).sort().forEach(red => { 
+                        html += `<option value="${red}">${red}</option>`;
+                    });
+                }
+            }
+
+            const sapSelect = document.getElementById('sap-filter-red');
+            const resSelect = document.getElementById('res-filter-red');
+            const fedSelect = document.getElementById('fed-filter-red');
+
+            [sapSelect, resSelect, fedSelect].forEach(sel => {
+                if(sel) {
+                    sel.innerHTML = html;
+                    sel.disabled = isRestricted;
+                    if(isRestricted) sel.classList.add('opacity-50', 'cursor-not-allowed');
+                    else sel.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+            
+            if (isRestricted) {
+                APP_STATE.sapFilterRed = userRed;
+                APP_STATE.resFilterRed = userRed;
+                APP_STATE.fedFilterRed = userRed;
+            } else {
+                APP_STATE.sapFilterRed = 'Todos';
+                APP_STATE.resFilterRed = 'Todos';
+                APP_STATE.fedFilterRed = 'Todos';
+            }
+        };
 
         async function preloadSAPData() {
             const fetchWithRetry = async (url, retries = 2) => {
@@ -716,29 +766,19 @@
                     APP_STATE.rawData.main2.slice(1).forEach(row => { if(row[idx]) redes.add(row[idx]); });
                 }
                 
-                const sapSelect = document.getElementById('sap-filter-red');
-                const resSelect = document.getElementById('res-filter-red');
-                const fedSelect = document.getElementById('fed-filter-red');
-                if(sapSelect) sapSelect.innerHTML = '<option value="Todos">Todas las Redes</option>';
-                if(resSelect) resSelect.innerHTML = '<option value="Todos">Todas las Redes</option>';
-                if(fedSelect) fedSelect.innerHTML = '<option value="Todos">Todas las Redes</option>';
-                
-                Array.from(redes).sort().forEach(red => { 
-                    const opt1 = document.createElement('option'); opt1.value = red; opt1.textContent = red; if(sapSelect) sapSelect.appendChild(opt1); 
-                    const opt2 = document.createElement('option'); opt2.value = red; opt2.textContent = red; if(resSelect) resSelect.appendChild(opt2); 
-                    const opt3 = document.createElement('option'); opt3.value = red; opt3.textContent = red; if(fedSelect) fedSelect.appendChild(opt3); 
-                });
+                APP_STATE.uniqueRedes = redes;
+                window.applyUserRoleUI();
 
                 APP_STATE.sapDataLoaded = true;
                 updateGlobalDateDropdowns();
 
                 for (const tab of SAP_TABS) {
-                    APP_STATE.sapCache[`${tab}_Todos_Vigilancia_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`] = runSapLogic(tab, APP_STATE.rawData, 'Todos', 'Vigilancia');
+                    APP_STATE.sapCache[`${tab}_${APP_STATE.sapFilterRed}_Vigilancia_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`] = runSapLogic(tab, APP_STATE.rawData, APP_STATE.sapFilterRed, 'Vigilancia');
                     await yieldToMain(); 
                 }
                 const RES_TABS = ['res_metales', 'res_fisico', 'res_bacteriologico', 'res_parasitologico'];
                 for (const tab of RES_TABS) {
-                    APP_STATE.resCache[`${tab}_Todos_Vigilancia_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`] = runSapLogic(tab, APP_STATE.rawData, 'Todos', 'Vigilancia');
+                    APP_STATE.resCache[`${tab}_${APP_STATE.resFilterRed}_Vigilancia_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`] = runSapLogic(tab, APP_STATE.rawData, APP_STATE.resFilterRed, 'Vigilancia');
                     await yieldToMain(); 
                 }
                 APP_STATE.fedCache.ind1 = runFedLogic(APP_STATE.rawData, 'ind1');
@@ -747,8 +787,7 @@
                 const loader = document.getElementById('sap-loader');
                 if (loader && !loader.classList.contains('hidden')) {
                     loader.classList.add('hidden');
-                    const textEl = document.getElementById('sap-status-text');
-                    if(textEl) textEl.textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
+                    document.getElementById('sap-status-text').textContent = `${APP_STATE.rawData.main.length - 1} registros procesados`;
                     if(APP_STATE.activeTab === 'sap') { renderSapTabs(); processSAPData(); }
                     else if(APP_STATE.activeTab === 'resultados') { renderResTabs(); processResData(); }
                     else if(APP_STATE.activeTab === 'fed') { renderFedTabs(); processFEDData(); }
@@ -759,8 +798,7 @@
         async function forceRefreshData() {
             APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null}; APP_STATE.sapDataLoaded = false;
             APP_STATE.currentTableFilters = {};
-            const loader = document.getElementById('sap-loader');
-            if(loader) loader.classList.remove('hidden');
+            document.getElementById('sap-loader').classList.remove('hidden');
             await preloadSAPData();
             if(APP_STATE.activeTab === 'sap') processSAPData();
             if(APP_STATE.activeTab === 'resultados') processResData();
@@ -769,56 +807,39 @@
 
         function handleLogin(e) {
             e.preventDefault();
-            const uEl = document.getElementById('login-user');
-            const pEl = document.getElementById('login-pass');
-            const u = uEl ? uEl.value : ''; const p = pEl ? pEl.value : '';
+            const u = document.getElementById('login-user').value; const p = document.getElementById('login-pass').value;
             const errEl = document.getElementById('login-error');
-            const btnText = document.getElementById('btn-login-text');
-            const btnLoader = document.getElementById('btn-login-loader');
-            
-            if(btnText) btnText.classList.add('hidden');
-            if(btnLoader) btnLoader.classList.remove('hidden');
+            document.getElementById('btn-login-text').classList.add('hidden');
+            document.getElementById('btn-login-loader').classList.remove('hidden');
 
             setTimeout(() => { 
                 const found = APP_STATE.usersList.find(user => user.usuario === u && user.password === p);
                 if (found) { 
                     APP_STATE.currentUser = found; 
-                    const welcome = document.getElementById('welcome-user');
-                    if(welcome) welcome.textContent = found.usuario; 
+                    document.getElementById('welcome-user').textContent = found.usuario; 
                     
-                    const loginView = document.getElementById('login-view');
-                    const appView = document.getElementById('app-view');
-                    if(loginView) loginView.classList.add('hidden'); 
-                    if(appView) appView.classList.remove('hidden'); 
-                    
+                    window.applyUserRoleUI();
+                    APP_STATE.sapCache = {};
+                    APP_STATE.resCache = {};
+                    APP_STATE.fedCache = {ind1: null, ind2: null};
+
+                    document.getElementById('login-view').classList.add('hidden'); 
+                    document.getElementById('app-view').classList.remove('hidden'); 
                     renderUserTable(); 
+                    
+                    if (APP_STATE.activeTab === 'sap') processSAPData();
+                    if (APP_STATE.activeTab === 'resultados') processResData();
+                    if (APP_STATE.activeTab === 'fed') processFEDData();
+
                 } else { 
-                    if(errEl) errEl.classList.remove('hidden'); 
-                    const errMsg = document.getElementById('login-error-msg');
-                    if(errMsg) errMsg.textContent = "Credenciales incorrectas."; 
+                    errEl.classList.remove('hidden'); document.getElementById('login-error-msg').textContent = "Credenciales incorrectas."; 
                 }
-                if(btnText) btnText.classList.remove('hidden');
-                if(btnLoader) btnLoader.classList.add('hidden');
+                document.getElementById('btn-login-text').classList.remove('hidden');
+                document.getElementById('btn-login-loader').classList.add('hidden');
             }, 500);
         }
 
-        function logout() { 
-            APP_STATE.currentUser = null; 
-            const loginView = document.getElementById('login-view');
-            const appView = document.getElementById('app-view');
-            if(appView) appView.classList.add('hidden'); 
-            if(loginView) loginView.classList.remove('hidden'); 
-            
-            const uEl = document.getElementById('login-user');
-            const pEl = document.getElementById('login-pass');
-            if(uEl) uEl.value = ''; 
-            if(pEl) pEl.value = ''; 
-            
-            const errEl = document.getElementById('login-error');
-            if(errEl) errEl.classList.add('hidden'); 
-            
-            switchTab('dashboard'); 
-        }
+        function logout() { APP_STATE.currentUser = null; document.getElementById('app-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; document.getElementById('login-error').classList.add('hidden'); switchTab('dashboard'); }
 
         function switchTab(tabId) {
             APP_STATE.activeTab = tabId;
@@ -843,10 +864,8 @@
             if(viewEl) viewEl.classList.remove('hidden');
 
             if(['sap', 'fed', 'resultados'].includes(tabId)) {
-                if(!APP_STATE.sapDataLoaded) {
-                    const loader = document.getElementById('sap-loader');
-                    if(loader) loader.classList.remove('hidden');
-                } else {
+                if(!APP_STATE.sapDataLoaded) document.getElementById('sap-loader').classList.remove('hidden');
+                else {
                     if(tabId === 'sap') { renderSapTabs(); processSAPData(); }
                     if(tabId === 'resultados') { renderResTabs(); processResData(); }
                     if(tabId === 'fed') { renderFedTabs(); processFEDData(); }
@@ -859,10 +878,7 @@
         // ========================
         function renderSapTabs() {
             const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'inspeccion', label: 'Insp. Rural'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'riesgos', label: 'Riesgos'}];
-            const container = document.getElementById('sap-tabs-container');
-            if (container) {
-                container.innerHTML = tabs.map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join('');
-            }
+            document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join('');
         }
 
         function changeSapSubTab(tabId) { 
@@ -876,7 +892,7 @@
                 if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'inspeccion', 'riesgos'].includes(tabId)) {
                     if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`;
                     else if (tabId === 'inspeccion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Bact., Parasit., Físico-Químico en Captación, y Parasit. en Red.</span>`;
-                    else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados en el mes correspondiente.</span>`;
+                    else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se requiere Informe y Cargo aprobados.</span>`;
                     else desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros requeridos de ${tabId.replace('_', ' ')}.</span>`;
                     desc.classList.remove('hidden');
                 }
@@ -922,15 +938,11 @@
 
         function updateGlobalDateFilter(isRes = false) {
             if(isRes) {
-                const fEl = document.getElementById('res-global-date-from');
-                const tEl = document.getElementById('res-global-date-to');
-                if(fEl) APP_STATE.globalDateFrom = fEl.value;
-                if(tEl) APP_STATE.globalDateTo = tEl.value;
+                APP_STATE.globalDateFrom = document.getElementById('res-global-date-from').value;
+                APP_STATE.globalDateTo = document.getElementById('res-global-date-to').value;
             } else {
-                const fEl = document.getElementById('global-date-from');
-                const tEl = document.getElementById('global-date-to');
-                if(fEl) APP_STATE.globalDateFrom = fEl.value;
-                if(tEl) APP_STATE.globalDateTo = tEl.value;
+                APP_STATE.globalDateFrom = document.getElementById('global-date-from').value;
+                APP_STATE.globalDateTo = document.getElementById('global-date-to').value;
             }
             APP_STATE.currentTableFilters = {};
             APP_STATE.sapCache = {}; 
@@ -947,15 +959,14 @@
                 updateGlobalDateDropdowns();
                 return; 
             }
-            const procEl = document.getElementById('sap-processing');
-            if(procEl) procEl.classList.remove('hidden');
+            document.getElementById('sap-processing').classList.remove('hidden');
             setTimeout(() => {
                 const result = runSapLogic(APP_STATE.sapActiveTab, APP_STATE.rawData, APP_STATE.sapFilterRed, APP_STATE.sapFilterAmbito);
                 APP_STATE.sapCache[cacheKey] = result;
                 renderMainTable(result, 'sap'); 
                 renderConsolidatedAndChart(result, 'sap', APP_STATE.sapActiveTab);
                 updateGlobalDateDropdowns();
-                if(procEl) procEl.classList.add('hidden');
+                document.getElementById('sap-processing').classList.add('hidden');
             }, 10);
         }
 
@@ -967,15 +978,14 @@
                 updateGlobalDateDropdowns();
                 return; 
             }
-            const procEl = document.getElementById('res-processing');
-            if(procEl) procEl.classList.remove('hidden');
+            document.getElementById('res-processing').classList.remove('hidden');
             setTimeout(() => {
                 const result = runSapLogic(APP_STATE.resActiveTab, APP_STATE.rawData, APP_STATE.resFilterRed, APP_STATE.resFilterAmbito);
                 APP_STATE.resCache[cacheKey] = result;
                 renderMainTable(result, 'res'); 
                 renderConsolidatedAndChart(result, 'res', APP_STATE.resActiveTab);
                 updateGlobalDateDropdowns();
-                if(procEl) procEl.classList.add('hidden');
+                document.getElementById('res-processing').classList.add('hidden');
             }, 10);
         }
 
@@ -1025,133 +1035,20 @@
 
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
-            if (['metales', 'fisico', 'parasitologico'].includes(subTab) || subTab === 'inspeccion') {
-                // LOGICA SEMESTRAL (S1 y S2)
-                const getSemester = (yyyymm) => {
-                    const [y, m] = yyyymm.split('-');
-                    return parseInt(m) <= 6 ? `${y}-S1` : `${y}-S2`;
-                };
-                
-                const availableSems = new Set();
-                filteredMonths.forEach(m => availableSems.add(getSemester(m)));
-                const sortedSems = Array.from(availableSems).sort();
-                
-                finalHeaders = [...CORE_HEADERS, ...sortedSems.map(s => s.endsWith('S1') ? `1ra Insp (${s.split('-')[0]})` : `2da Insp (${s.split('-')[0]})`)];
-                const map = {};
-                const idxUbiLugar = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
-
-                dateFilteredRows.forEach(x => {
-                    const row = x.row; const id = row[idxId]; if(!id) return;
-                    let mRaw = idxMes !== -1 ? row[idxMes] : '';
-                    const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()];
-                    if (!mm) return;
-                    const yyyymm = `${x.year}-${mm}`;
-                    const sem = getSemester(yyyymm);
-                    if (!availableSems.has(sem)) return;
-
-                    if(!map[id]) map[id] = { meta: getMeta(row, headers), dataBySem: {} };
-                    if(!map[id].dataBySem[sem]) {
-                        if (subTab === 'inspeccion') {
-                            map[id].dataBySem[sem] = { bactCap: false, parCap: false, fisCap: false, parRed: false };
-                        } else {
-                            map[id].dataBySem[sem] = { foundParams: [] };
-                        }
-                    }
-
-                    if (subTab === 'inspeccion') {
-                        const u = idxUbiLugar !== -1 ? (row[idxUbiLugar] || '') : '';
-                        const isCap = u.includes('Fuente de Captación');
-                        const isRed = u.includes('Red de distribución');
-
-                        if (isCap) {
-                            if (!map[id].dataBySem[sem].bactCap && (checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.B, row))) map[id].dataBySem[sem].bactCap = true;
-                            if (!map[id].dataBySem[sem].parCap && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].dataBySem[sem].parCap = true;
-                            if (!map[id].dataBySem[sem].fisCap && (checkComplianceSet(headers, ANALYSIS_SETS.fisico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.fisico.B, row))) map[id].dataBySem[sem].fisCap = true;
-                        }
-                        if (isRed) {
-                            if (!map[id].dataBySem[sem].parRed && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].dataBySem[sem].parRed = true;
-                        }
-                    } else {
-                        const currentSet = ANALYSIS_SETS[subTab];
-                        const checkItem = (p) => {
-                            if (Array.isArray(p)) {
-                                let found = p.find(sub => { const i = findHeaderIndex(headers, sub); return i !== -1 && !isCellEmpty(row[i]); });
-                                if (found) return found;
-                            } else {
-                                const i = findHeaderIndex(headers, p);
-                                if (i !== -1 && !isCellEmpty(row[i])) return p;
-                            }
-                            return null;
-                        };
-                        if (currentSet?.A) currentSet.A.forEach(p => { const res = checkItem(p); if(res && !map[id].dataBySem[sem].foundParams.includes(res)) map[id].dataBySem[sem].foundParams.push(res); });
-                        if (currentSet?.B) currentSet.B.forEach(p => { const res = checkItem(p); if(res && !map[id].dataBySem[sem].foundParams.includes(res)) map[id].dataBySem[sem].foundParams.push(res); });
-                    }
-                });
-
-                const allSaps = new Map();
-                rowsWithMeta.forEach(x => {
-                    const id = x.row[idxId];
-                    if(id && !allSaps.has(id)) allSaps.set(id, getMeta(x.row, headers));
-                });
-
-                finalData = Array.from(allSaps.keys()).map(id => {
-                    const obj = map[id] || { dataBySem: {} };
-                    const semCols = sortedSems.map(sem => {
-                        const semData = obj.dataBySem[sem];
-                        if (!semData) return JSON.stringify({status: 0, params: []});
-                        
-                        let status = 0; let params = [];
-                        if (subTab === 'inspeccion') {
-                            let count = 0; let faltan = [];
-                            if (semData.bactCap) count++; else faltan.push('Bact. Captación');
-                            if (semData.parCap) count++; else faltan.push('Parasit. Captación');
-                            if (semData.fisCap) count++; else faltan.push('Físico Captación');
-                            if (semData.parRed) count++; else faltan.push('Parasit. Red');
-
-                            if (count === 4) status = 1;
-                            else if (count > 0) { status = 2; params = faltan.map(f => `Falta: ${f}`); }
-                        } else {
-                            const currentSet = ANALYSIS_SETS[subTab];
-                            let expectedA = currentSet?.A?.length || 0;
-                            let expectedB = currentSet?.B?.length || 0;
-                            let countA = 0; let countB = 0;
-                            
-                            if (currentSet?.A) countA = currentSet.A.filter(p => semData.foundParams.includes(Array.isArray(p)?p.find(sub=>semData.foundParams.includes(sub)):p)).length;
-                            if (currentSet?.B) countB = currentSet.B.filter(p => semData.foundParams.includes(Array.isArray(p)?p.find(sub=>semData.foundParams.includes(sub)):p)).length;
-
-                            if (countA > 0 || countB > 0) {
-                                let isComplete = false;
-                                if (expectedA > 0 && countA === expectedA) isComplete = true;
-                                if (expectedB > 0 && countB === expectedB) isComplete = true;
-                                
-                                status = isComplete ? 1 : 2;
-                                if (!isComplete) {
-                                    params = currentSet.A.map(x=>Array.isArray(x)?x[0]:x).filter(x => !semData.foundParams.includes(x));
-                                }
-                            }
-                        }
-
-                        return JSON.stringify({status, params});
-                    });
-                    return [...(obj.meta || allSaps.get(id)), ...semCols];
-                });
-                pivotType = 'status_json';
-
-            } else if (subTab === 'bacteriologico') {
-                // BACTERIOLOGICO MENSUAL SEMAFORO
-                finalHeaders = [...CORE_HEADERS, ...filteredMonths.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)];
+            if (['metales', 'bacteriologico', 'parasitologico', 'fisico'].includes(subTab)) {
+                // NUEVA LOGICA PARA ACTIVIDADES SAP (SEMAFORO)
+                finalHeaders = [...CORE_HEADERS, '1ra Muestra', '2da Muestra'];
                 const map = {}; const currentSet = ANALYSIS_SETS[subTab];
-                
+
                 dateFilteredRows.forEach(x => {
                     const row = x.row; const id = row[idxId]; if(!id) return;
-                    let mRaw = idxMes !== -1 ? row[idxMes] : '';
-                    const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()];
-                    if (!mm) return;
-                    const yyyymm = `${x.year}-${mm}`;
-
-                    if(!map[id]) map[id] = { meta: getMeta(row, headers), dataByMonth: {} };
-                    if(!map[id].dataByMonth[yyyymm]) map[id].dataByMonth[yyyymm] = { foundParams: [] };
+                    if(!map[id]) map[id] = { meta: getMeta(row, headers), muestras: [] };
                     
+                    let foundParams = [];
+                    let expectedA = currentSet?.A?.length || 0;
+                    let expectedB = currentSet?.B?.length || 0;
+                    let countA = 0; let countB = 0;
+
                     const checkItem = (p) => {
                         if (Array.isArray(p)) {
                             let found = p.find(sub => { const i = findHeaderIndex(headers, sub); return i !== -1 && !isCellEmpty(row[i]); });
@@ -1162,8 +1059,18 @@
                         }
                         return null;
                     };
-                    if (currentSet?.A) currentSet.A.forEach(p => { const res = checkItem(p); if(res && !map[id].dataByMonth[yyyymm].foundParams.includes(res)) map[id].dataByMonth[yyyymm].foundParams.push(res); });
-                    if (currentSet?.B) currentSet.B.forEach(p => { const res = checkItem(p); if(res && !map[id].dataByMonth[yyyymm].foundParams.includes(res)) map[id].dataByMonth[yyyymm].foundParams.push(res); });
+
+                    if (currentSet?.A) currentSet.A.forEach(p => { const res = checkItem(p); if(res) { countA++; foundParams.push(res); } });
+                    if (currentSet?.B) currentSet.B.forEach(p => { const res = checkItem(p); if(res && !foundParams.includes(res)) { countB++; foundParams.push(res); } });
+
+                    if (countA > 0 || countB > 0) {
+                        let isComplete = false;
+                        if (expectedA > 0 && countA === expectedA) isComplete = true;
+                        if (expectedB > 0 && countB === expectedB) isComplete = true;
+                        
+                        let status = isComplete ? 1 : 2;
+                        map[id].muestras.push({ status, params: foundParams });
+                    }
                 });
 
                 const allSaps = new Map();
@@ -1173,32 +1080,10 @@
                 });
 
                 finalData = Array.from(allSaps.keys()).map(id => {
-                    const obj = map[id] || { dataByMonth: {} };
-                    const monthCols = filteredMonths.map(m => {
-                        const monthData = obj.dataByMonth[m];
-                        if (!monthData) return JSON.stringify({status: 0, params: []});
-                        
-                        let status = 0; let params = [];
-                        let expectedA = currentSet?.A?.length || 0;
-                        let expectedB = currentSet?.B?.length || 0;
-                        let countA = 0; let countB = 0;
-                        
-                        if (currentSet?.A) countA = currentSet.A.filter(p => monthData.foundParams.includes(Array.isArray(p)?p.find(sub=>monthData.foundParams.includes(sub)):p)).length;
-                        if (currentSet?.B) countB = currentSet.B.filter(p => monthData.foundParams.includes(Array.isArray(p)?p.find(sub=>monthData.foundParams.includes(sub)):p)).length;
-
-                        if (countA > 0 || countB > 0) {
-                            let isComplete = false;
-                            if (expectedA > 0 && countA === expectedA) isComplete = true;
-                            if (expectedB > 0 && countB === expectedB) isComplete = true;
-                            
-                            status = isComplete ? 1 : 2;
-                            if (!isComplete) {
-                                params = currentSet.A.map(x=>Array.isArray(x)?x[0]:x).filter(x => !monthData.foundParams.includes(x));
-                            }
-                        }
-                        return JSON.stringify({status, params});
-                    });
-                    return [...(obj.meta || allSaps.get(id)), ...monthCols];
+                    const sap = map[id] || { muestras: [] };
+                    const m1 = sap.muestras[0] ? JSON.stringify(sap.muestras[0]) : JSON.stringify({status: 0, params: []});
+                    const m2 = sap.muestras[1] ? JSON.stringify(sap.muestras[1]) : JSON.stringify({status: 0, params: []});
+                    return [...(sap.meta || allSaps.get(id)), m1, m2];
                 });
                 pivotType = 'status_json';
 
@@ -1325,7 +1210,7 @@
                                 newStatus = 1;
                             } else if (infVal === 'aprobado') {
                                 newStatus = 2;
-                                params = ['Falta Cargo Aprobado'];
+                                params = ['Falta Cargo'];
                             }
 
                             if (newStatus > currentStatus) {
@@ -1349,13 +1234,59 @@
                     return [...(obj.meta || allSaps.get(id)), ...monthCols];
                 });
                 pivotType = 'status_json';
+
+            } else if (subTab === 'inspeccion') {
+                finalHeaders = [...CORE_HEADERS, 'Estado Evaluación'];
+                const map = {}; 
+                const idxUbi = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
+
+                dateFilteredRows.forEach(x => {
+                    const row = x.row; const id = row[idxId]; if(!id) return;
+                    if(!map[id]) map[id] = { meta: getMeta(row, headers), bactCap: false, parCap: false, fisCap: false, parRed: false };
+
+                    const u = idxUbi !== -1 ? (row[idxUbi] || '') : '';
+                    const isCap = u.includes('Fuente de Captación');
+                    const isRed = u.includes('Red de distribución');
+
+                    if (isCap) {
+                        if (!map[id].bactCap && (checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.B, row))) map[id].bactCap = true;
+                        if (!map[id].parCap && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].parCap = true;
+                        if (!map[id].fisCap && (checkComplianceSet(headers, ANALYSIS_SETS.fisico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.fisico.B, row))) map[id].fisCap = true;
+                    }
+                    if (isRed) {
+                        if (!map[id].parRed && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].parRed = true;
+                    }
+                });
+
+                const allSaps = new Map();
+                rowsWithMeta.forEach(x => {
+                    const id = x.row[idxId];
+                    if(id && !allSaps.has(id)) allSaps.set(id, getMeta(x.row, headers));
+                });
+
+                finalData = Array.from(allSaps.keys()).map(id => {
+                    const obj = map[id];
+                    if (!obj) return [...allSaps.get(id), JSON.stringify({status: 0, params: []})];
+                    
+                    let count = 0; let faltan = [];
+                    if (obj.bactCap) count++; else faltan.push('Bact. Captación');
+                    if (obj.parCap) count++; else faltan.push('Parasit. Captación');
+                    if (obj.fisCap) count++; else faltan.push('Físico Captación');
+                    if (obj.parRed) count++; else faltan.push('Parasit. Red');
+
+                    let status = 0; let params = [];
+                    if (count === 4) status = 1;
+                    else if (count > 0) { status = 2; params = faltan.map(f => `Falta: ${f}`); }
+
+                    return [...obj.meta, JSON.stringify({status, params})];
+                });
+                pivotType = 'status_json';
             }
             return { headers: finalHeaders, data: finalData, type: pivotType };
         }
 
         function renderMainTable(result, prefix) {
             const container = document.getElementById(`${prefix}-main-table-container`);
-            if(!container) return;
             const filterBar = document.getElementById(`${prefix}-active-filters`);
             const displayHeaders = result.headers.filter(h => h !== 'Detalles');
             
@@ -1372,7 +1303,7 @@
                 });
             }
 
-            if (Object.keys(APP_STATE.currentTableFilters).length > 0 && filterBar) {
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                 let filterHtml = `<div class="bg-indigo-50/80 px-4 py-2.5 border-b border-indigo-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full">
                     <span class="text-[10px] font-black text-indigo-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
                 Object.entries(APP_STATE.currentTableFilters).forEach(([idx, val]) => {
@@ -1387,7 +1318,7 @@
                 filterHtml += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`;
                 filterBar.innerHTML = filterHtml;
                 filterBar.classList.remove('hidden');
-            } else if (filterBar) {
+            } else {
                 filterBar.innerHTML = '';
                 filterBar.classList.add('hidden');
             }
@@ -1420,7 +1351,7 @@
                         let displayVal = v;
                         let actualValueToFilter = v;
                         if(h === 'Cumple') displayVal = v === '1' ? 'CUMPLE' : (v === '0' ? 'NO CUMPLE' : 'SIN DATOS');
-                        else if(h.includes('Muestra')) displayVal = v === '1' ? 'CAPTACIÓN' : (v === '2' ? 'PILETA' : (v === '3' ? 'AMBOS' : '-'));
+                        else if(h.includes('Muestra') && !isNaN(parseInt(v))) displayVal = v === '1' ? 'CAPTACIÓN' : (v === '2' ? 'PILETA' : (v === '3' ? 'AMBOS' : '-'));
                         else if(h === 'Excede LMP') displayVal = v === '1' ? 'SÍ' : '-';
                         else if (result.type === 'status_json' && idx >= CORE_HEADERS.length) {
                             displayVal = v === '1' ? 'COMPLETO' : (v === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
@@ -1511,19 +1442,17 @@
             const totalSapsPerRed = {}; 
             
             const isAnalysisTab = result.type === 'analysis';
+            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            const grandTotals = Array(colCount).fill(0);
             let grandTotalSaps = 0;
-            let grandTotals = [];
 
-            if (isAnalysisTab) {
-                const colCount = result.headers.length - valStartIdx; 
-                grandTotals = Array(colCount).fill(0);
+            result.data.forEach(row => {
+                const red = row[idxRed] || 'Sin Red';
+                if(!summary[red]) summary[red] = Array(colCount).fill(0);
+                if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
+                totalSapsPerRed[red]++; grandTotalSaps++;
 
-                result.data.forEach(row => {
-                    const red = row[idxRed] || 'Sin Red';
-                    if(!summary[red]) summary[red] = Array(colCount).fill(0);
-                    if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
-                    totalSapsPerRed[red]++; grandTotalSaps++;
-
+                if (isAnalysisTab) {
                     const u1 = parseInt(row[valStartIdx]) || 0;
                     const u2 = parseInt(row[valStartIdx + 1]) || 0;
                     const excFlag = parseInt(row[valStartIdx + 2]) || 0;
@@ -1540,102 +1469,77 @@
                         summary[red][1] += details.length; grandTotals[1] += details.length;
                         if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
                     }
-                });
-
-                let sumHeaders = ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'];
-                let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-xs font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th>`;
-                sumHeaders.forEach(h => htmlCon += `<th class="px-5 py-4 text-center text-xs font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`);
-                htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-
-                Object.entries(summary).forEach(([red, vals]) => {
-                    htmlCon += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${totalSapsPerRed[red]}</td>`;
-                    vals.forEach((v, i) => {
-                        let style = "text-slate-600 font-medium";
-                        if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) style="text-emerald-600 font-bold";
-                        htmlCon += `<td class="px-5 py-3.5 text-xs text-center ${style}">${v}</td>`
-                    });
-                    htmlCon += `</tr>`;
-                });
-                htmlCon += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${grandTotalSaps}</td>`;
-                grandTotals.forEach(v => htmlCon += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`);
-                htmlCon += `</tr></tbody></table>`;
-                document.getElementById(`${prefix}-consolidated-container`).innerHTML = htmlCon;
-
-                const counts = [grandTotals[2], grandTotalSaps - grandTotals[2], 0];
-                const labels = ['SAPs Cumplen', 'No Cumplen / Sin Info', ''];
-                const colors = ['#10b981', '#ef4444', 'transparent'];
-                renderDoughnutChart(counts, labels, colors, currentTab.replace('res_', '').toUpperCase(), `${prefix}-chart-container`);
-
-            } else if (result.type === 'status_json') {
-                const periodsCount = result.headers.length - valStartIdx;
-                const colCount = periodsCount * 3; 
-                grandTotals = Array(colCount).fill(0);
-
-                result.data.forEach(row => {
-                    const red = row[idxRed] || 'Sin Red';
-                    if(!summary[red]) summary[red] = Array(colCount).fill(0);
-                    if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
-                    totalSapsPerRed[red]++; grandTotalSaps++;
-
+                } else {
                     for(let i = valStartIdx; i < row.length; i++) {
-                        const periodIdx = i - valStartIdx;
-                        let status = 0;
-                        try { const d = JSON.parse(row[i]); status = d.status; } catch(e){}
+                        if(result.headers[i] === 'Detalles') continue;
+                        let val = parseInt(row[i]) || 0;
+                        const sumIdx = i - valStartIdx;
+                        
+                        let add = false;
+                        if(result.type === 'status_json') { 
+                            try { const d = JSON.parse(row[i]); if(d.status === 1 || d.status === 2) add = true; } catch(e){}
+                        }
+                        else { if(val>=1) add=true; }
+                        if(add) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                    }
+                }
+            });
 
-                        if (status === 1) { summary[red][periodIdx * 3 + 0]++; grandTotals[periodIdx * 3 + 0]++; }
-                        else if (status === 2) { summary[red][periodIdx * 3 + 1]++; grandTotals[periodIdx * 3 + 1]++; }
-                        else { summary[red][periodIdx * 3 + 2]++; grandTotals[periodIdx * 3 + 2]++; }
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
+            let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-xs font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th>`;
+            sumHeaders.forEach(h => htmlCon += `<th class="px-5 py-4 text-center text-xs font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`);
+            htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+
+            Object.entries(summary).forEach(([red, vals]) => {
+                htmlCon += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${totalSapsPerRed[red]}</td>`;
+                vals.forEach((v, i) => {
+                    let style = "text-slate-600 font-medium";
+                    if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) style="text-emerald-600 font-bold"; }
+                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center ${style}">${v}</td>`
+                });
+                htmlCon += `</tr>`;
+            });
+            htmlCon += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${grandTotalSaps}</td>`;
+            grandTotals.forEach(v => htmlCon += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`);
+            htmlCon += `</tr></tbody></table>`;
+            document.getElementById(`${prefix}-consolidated-container`).innerHTML = htmlCon;
+
+            const counts = [0,0,0,0]; let labels=[], colors=[];
+            if (isAnalysisTab) {
+                const totalSaps = grandTotalSaps; 
+                const cumplidores = grandTotals[2];
+                counts[0] = cumplidores;
+                counts[1] = totalSaps - cumplidores;
+                labels = ['SAPs Cumplen', 'No Cumplen / Sin Info'];
+                colors = ['#10b981', '#ef4444']; 
+            } else {
+                result.data.forEach(row => { 
+                    if(result.type === 'status_json') { 
+                        for(let i=valStartIdx; i<row.length; i++) { 
+                            try { 
+                                const d = JSON.parse(row[i]); 
+                                if(d.status===1) counts[0]++; // Completo
+                                else if(d.status===2) counts[1]++; // Incompleto
+                                else counts[2]++; // Sin Monitoreo
+                            } catch(e){} 
+                        } 
+                    } else if (result.type === 'boolean') {
+                        for(let i=valStartIdx; i<row.length; i++) { const v = parseInt(row[i])||0; if(v>=0 && v<=3) counts[v]++; }
                     }
                 });
 
-                let htmlCon = `<table class="min-w-full text-left border-collapse"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300">`;
-                htmlCon += `<tr><th rowspan="2" class="px-4 py-2 text-[10px] font-black text-slate-600 uppercase tracking-widest border-r border-slate-200 bg-white">RED</th><th rowspan="2" class="px-4 py-2 text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 border-r border-slate-200 text-center">CANT. SAP</th>`;
-                for (let i = valStartIdx; i < result.headers.length; i++) {
-                    htmlCon += `<th colspan="3" class="px-4 py-2 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center border-r border-slate-200 bg-white">${result.headers[i]}</th>`;
+                if(result.type === 'status_json') { 
+                    labels=['Completo', 'Incompleto', 'Sin Monitoreo']; 
+                    colors=['#10b981', '#f59e0b', '#ef4444']; 
+                } else if (result.type === 'boolean') { 
+                    labels=['No Cumple','Cumple']; 
+                    colors=['#fca5a5','#10b981']; 
+                    const temp = counts[0];
+                    counts[0] = counts[1] || 0; 
+                    counts[1] = temp || 0;
                 }
-                htmlCon += `</tr><tr>`;
-                for (let i = valStartIdx; i < result.headers.length; i++) {
-                    htmlCon += `<th class="px-2 py-1 text-[9px] font-bold text-emerald-600 bg-emerald-50 text-center border-r border-slate-200">COMP</th>`;
-                    htmlCon += `<th class="px-2 py-1 text-[9px] font-bold text-amber-600 bg-amber-50 text-center border-r border-slate-200">INC</th>`;
-                    htmlCon += `<th class="px-2 py-1 text-[9px] font-bold text-red-600 bg-red-50 text-center border-r border-slate-200">SIN</th>`;
-                }
-                htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-
-                Object.entries(summary).forEach(([red, vals]) => {
-                    htmlCon += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-4 py-2 text-xs text-left font-bold text-slate-700 whitespace-nowrap border-r border-slate-100">${red}</td><td class="px-4 py-2 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50 border-r border-slate-100">${totalSapsPerRed[red]}</td>`;
-                    vals.forEach((v, i) => {
-                        let colorClass = "text-slate-600";
-                        if (i % 3 === 0 && v > 0) colorClass = "text-emerald-600 font-bold bg-emerald-50/30";
-                        else if (i % 3 === 1 && v > 0) colorClass = "text-amber-600 font-bold bg-amber-50/30";
-                        else if (i % 3 === 2 && v > 0) colorClass = "text-red-500 bg-red-50/30";
-                        htmlCon += `<td class="px-2 py-2 text-xs text-center ${colorClass} border-r border-slate-100">${v}</td>`;
-                    });
-                    htmlCon += `</tr>`;
-                });
-
-                htmlCon += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-4 py-3 text-xs text-left text-white font-black uppercase tracking-widest border-r border-slate-600">TOTAL GENERAL</td><td class="px-4 py-3 text-xs text-center text-indigo-300 font-black bg-indigo-900/50 border-r border-slate-600">${grandTotalSaps}</td>`;
-                grandTotals.forEach((v, i) => {
-                    let colorClass = "text-white";
-                    if (i % 3 === 0) colorClass = "text-emerald-400";
-                    else if (i % 3 === 1) colorClass = "text-amber-400";
-                    else if (i % 3 === 2) colorClass = "text-red-400";
-                    htmlCon += `<td class="px-2 py-3 text-xs text-center font-bold ${colorClass} border-r border-slate-600">${v}</td>`;
-                });
-                htmlCon += `</tr></tbody></table>`;
-
-                document.getElementById(`${prefix}-consolidated-container`).innerHTML = htmlCon;
-
-                let totalC = 0, totalI = 0, totalS = 0;
-                for(let p=0; p < periodsCount; p++) {
-                    totalC += grandTotals[p * 3 + 0];
-                    totalI += grandTotals[p * 3 + 1];
-                    totalS += grandTotals[p * 3 + 2];
-                }
-                const counts = [totalC, totalI, totalS];
-                const labels = ['Completo', 'Incompleto', 'Sin Monitoreo'];
-                const colors = ['#10b981', '#f59e0b', '#ef4444'];
-                renderDoughnutChart(counts, labels, colors, currentTab.toUpperCase(), `${prefix}-chart-container`);
             }
+            renderDoughnutChart(counts.slice(0, labels.length), labels, colors, currentTab.replace('res_', '').toUpperCase(), `${prefix}-chart-container`);
         }
 
         // ========================
@@ -1643,12 +1547,12 @@
         // ========================
         function renderFedTabs() {
             const tabs = [
-                {id: 'ind1', label: 'AI-01.01 Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas'}, 
-                {id: 'ind2', label: 'AI-02.01 Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas'}
+                {id: 'ind1', label: 'Ind. 1 (Agua con Cloro y Turbiedad)'}, 
+                {id: 'ind2', label: 'Ind. 2 (Vigilancia del Agua)'}
             ];
             const container = document.getElementById('fed-tabs-container');
             if (container) {
-                container.innerHTML = tabs.map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-normal max-w-[320px] leading-tight text-left px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
+                container.innerHTML = tabs.map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
             }
         }
 
@@ -1677,13 +1581,12 @@
                 APP_STATE.fedCache[APP_STATE.fedActiveTab] = runFedLogic(APP_STATE.rawData, APP_STATE.fedActiveTab);
             }
             
-            const procEl = document.getElementById('fed-processing');
-            if(procEl) procEl.classList.remove('hidden');
+            document.getElementById('fed-processing').classList.remove('hidden');
             setTimeout(() => {
                 const filteredResult = filterFedData(APP_STATE.fedCache[APP_STATE.fedActiveTab], APP_STATE.fedFilterRed, APP_STATE.fedFilterAmbito);
                 renderFedTable(filteredResult);
                 renderFedConsolidatedAndChart(filteredResult);
-                if(procEl) procEl.classList.add('hidden');
+                document.getElementById('fed-processing').classList.add('hidden');
             }, 10);
         }
 
@@ -1812,10 +1715,10 @@
             // Generate Output Arrays
             if (indicator === 'ind1') {
                 const finalData = Object.values(map).map(sap => {
-                    const calcEv5p = (m) => (m.tot === 0 ? 0 : ((m.p5 / m.tot) >= 0.7 || m.p5 >= 3 ? 1 : 0));
-                    const ev5_dic = calcEv5p(sap.dic); const ev_dic = (ev5_dic === 1 && sap.dic.clo >= 3 && sap.dic.tur >= 3) ? 1 : 0;
-                    const ev5_ene = calcEv5p(sap.ene); const ev_ene = (ev5_ene === 1 && sap.ene.clo >= 3 && sap.ene.tur >= 3) ? 1 : 0;
-                    const ev5_feb = calcEv5p(sap.feb); const ev_feb = (ev5_feb === 1 && sap.feb.clo >= 3 && sap.feb.tur >= 3) ? 1 : 0;
+                    const calcEv5p = (m) => (m.tot === 0 ? 0 : ((m.p5 / m.tot) >= 0.7 || m.p5 > 3 ? 1 : 0));
+                    const ev5_dic = calcEv5p(sap.dic); const ev_dic = (ev5_dic === 1 && sap.dic.clo > 0 && sap.dic.tur > 0) ? 1 : 0;
+                    const ev5_ene = calcEv5p(sap.ene); const ev_ene = (ev5_ene === 1 && sap.ene.clo > 0 && sap.ene.tur > 0) ? 1 : 0;
+                    const ev5_feb = calcEv5p(sap.feb); const ev_feb = (ev5_feb === 1 && sap.feb.clo > 0 && sap.feb.tur > 0) ? 1 : 0;
 
                     let sumEv = ev_dic + ev_ene + ev_feb;
                     let sumTot = sap.dic.tot + sap.ene.tot + sap.feb.tot;
@@ -2253,7 +2156,22 @@
             document.getElementById('modal-params').classList.add('hidden');
         }
 
-        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
+        function renderUserTable() { 
+            const tbody = document.getElementById('users-table-body'); 
+            document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; 
+            tbody.innerHTML = APP_STATE.usersList.map(u => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>
+                        ${u.usuario}
+                    </td>
+                    <td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td>
+                    <td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td>
+                    <td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td>
+                </tr>
+            `).join(''); 
+        }
+
         function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
         function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
 
