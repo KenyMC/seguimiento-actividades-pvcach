@@ -36,15 +36,6 @@
 
         .sticky-col-shadow { box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.05); }
 
-        /* Estilos de tabla personalizados SAP */
-        .cell-status-1 { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; } 
-        .cell-status-2 { background-color: #fef3c7; color: #92400e; font-weight: bold; text-align: center; } 
-        .cell-status-3 { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; } 
-        .cell-base { background-color: #f9fafb; color: #9ca3af; text-align: center; }
-        .cell-excede-lmp { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; cursor: pointer; }
-        .cell-cumple-si { background-color: #dcfce7; color: #166534; font-weight: bold; text-align: center; }
-        .cell-cumple-no { background-color: #fee2e2; color: #991b1b; font-weight: bold; text-align: center; }
-
         /* Estilos de tabla personalizados FED */
         .cell-fed-verde { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; }
         .cell-fed-naranja { background-color: #ffedd5; color: #b45309; font-weight: bold; text-align: center; }
@@ -208,7 +199,7 @@
                         </div>
                         <div class="h-6 w-px bg-slate-300 mx-1 shrink-0"></div>
                         <button onclick="window.forceRefreshData()" class="p-2 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-lg transition-colors shadow-sm bg-transparent hover:shadow shrink-0" title="Refrescar Datos"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                        <button onclick="window.exportToExcel(true)" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
+                        <button onclick="window.exportToExcel(true)" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
                             <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
                         </button>
                     </div>
@@ -223,7 +214,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Análisis de Muestras (LMP)</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en celdas para filtrar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -301,7 +292,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Registro Detallado</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en celdas para filtrar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -373,7 +364,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-amber-300">Monitoreo por Centro Poblado</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en celdas para filtrar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -550,22 +541,47 @@
         };
 
         // ========================
-        // SISTEMA DE FILTROS RÁPIDOS
+        // SISTEMA DE FILTROS CASCADA (DROPDOWNS)
         // ========================
-        function setTableFilter(colIndex, value) {
-            APP_STATE.currentTableFilters[colIndex] = value;
-            reRenderCurrentTable();
-        }
+        window.toggleFilterDropdown = function(e, prefix, colIdx) {
+            e.stopPropagation();
+            document.querySelectorAll('.filter-dropdown-menu').forEach(el => {
+                if(el.id !== `dropdown-${prefix}-${colIdx}`) el.classList.add('hidden');
+            });
+            const menu = document.getElementById(`dropdown-${prefix}-${colIdx}`);
+            if(menu) {
+                menu.classList.toggle('hidden');
+                if(!menu.classList.contains('hidden')) {
+                    const input = menu.querySelector('input');
+                    if(input) input.focus();
+                }
+            }
+        };
 
-        function removeTableFilter(colIndex) {
-            delete APP_STATE.currentTableFilters[colIndex];
-            reRenderCurrentTable();
-        }
+        window.filterDropdownOptions = function(e, prefix, colIdx) {
+            const term = e.target.value.toLowerCase();
+            const menu = document.getElementById(`dropdown-${prefix}-${colIdx}`);
+            if(!menu) return;
+            const opts = menu.querySelectorAll('.filter-option');
+            opts.forEach(opt => {
+                if(opt.innerText === '[ Todos ]') return; 
+                if(opt.innerText.toLowerCase().includes(term)) opt.style.display = 'block';
+                else opt.style.display = 'none';
+            });
+        };
 
-        function clearAllTableFilters() {
-            APP_STATE.currentTableFilters = {};
+        window.applyTableFilter = function(prefix, colIdx, val) {
+            if(val === '') delete APP_STATE.currentTableFilters[colIdx];
+            else APP_STATE.currentTableFilters[colIdx] = val;
+            document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden'));
             reRenderCurrentTable();
-        }
+        };
+
+        document.addEventListener('click', function(e) {
+            if(!e.target.closest('.filter-wrapper')) {
+                document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden'));
+            }
+        });
 
         function reRenderCurrentTable() {
             if (APP_STATE.activeTab === 'sap') {
@@ -735,8 +751,6 @@
                 checkMaxDate(APP_STATE.rawData.main2, '2026');
                 
                 APP_STATE.availableMonitorMonths = generateMonthsUpTo(maxDateStr);
-                
-                // FORZAR POR DEFECTO RANGO: Diciembre 2025 hasta la última fecha cargada
                 APP_STATE.globalDateFrom = '2025-12';
                 APP_STATE.globalDateTo = maxDateStr;
 
@@ -1036,7 +1050,6 @@
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
             if (['metales', 'bacteriologico', 'parasitologico', 'fisico'].includes(subTab)) {
-                // NUEVA LOGICA PARA ACTIVIDADES SAP (SEMAFORO)
                 finalHeaders = [...CORE_HEADERS, '1ra Muestra', '2da Muestra'];
                 const map = {}; const currentSet = ANALYSIS_SETS[subTab];
 
@@ -1088,7 +1101,6 @@
                 pivotType = 'status_json';
 
             } else if (subTab.startsWith('res_')) {
-                // ANTIGUA LOGICA PARA RESULTADOS (CUMPLE / EXCEDE LMP)
                 const baseTab = subTab.replace('res_', '');
                 finalHeaders = [...CORE_HEADERS, '1ra Muestra', '2da Muestra', 'Excede LMP', 'Cumple', 'Detalles'];
                 const map = {}; const specificLMP = LMP_SCOPES[baseTab]; const currentSet = ANALYSIS_SETS[baseTab];
@@ -1292,10 +1304,10 @@
             
             let filteredData = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
-                filteredData = filteredData.filter(row => {
-                    return Object.entries(APP_STATE.currentTableFilters).every(([idx, filterVal]) => {
-                        let cellVal = String(row[idx] ?? '').trim();
-                        if (result.type === 'status_json' && parseInt(idx) >= CORE_HEADERS.length) {
+                filteredData = result.data.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                        let cellVal = String(row[fIdx] ?? '').trim();
+                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -1324,6 +1336,15 @@
             }
 
             let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
+            
+            const formatDisplayVal = (h, v, isStatusJson) => {
+                if(h === 'Cumple') return v === '1' ? 'CUMPLE' : (v === '0' ? 'NO CUMPLE' : 'SIN DATOS');
+                if(h.includes('Muestra') && !isNaN(parseInt(v))) return v === '1' ? 'CAPTACIÓN' : (v === '2' ? 'PILETA' : (v === '3' ? 'AMBOS' : '-'));
+                if(h === 'Excede LMP') return v === '1' ? 'SÍ' : '-';
+                if(isStatusJson) return v === '1' ? 'COMPLETO' : (v === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
+                return v.substring(0, 30);
+            };
+
             displayHeaders.forEach((h, idx) => { 
                 let stickyClass = "";
                 let leftStyle = "";
@@ -1335,7 +1356,22 @@
                     leftStyle = "left-[80px] min-w-[150px] max-w-[150px]";
                 }
                 
-                const uniqueVals = [...new Set(result.data.map(row => {
+                // LÓGICA CASCADA: Filtrar datos solo para esta columna basándonos en los demás filtros
+                let dataForThisCol = result.data;
+                if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                    dataForThisCol = result.data.filter(row => {
+                        return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                            if (parseInt(fIdx) === idx) return true; // Cascada: ignorar el filtro actual de esta misma columna
+                            let cellVal = String(row[fIdx] ?? '').trim();
+                            if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                                try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
+                            }
+                            return cellVal === String(filterVal);
+                        });
+                    });
+                }
+
+                const uniqueVals = [...new Set(dataForThisCol.map(row => {
                     let val = String(row[idx] ?? '').trim();
                     if (result.type === 'status_json' && idx >= CORE_HEADERS.length) {
                         try { const d = JSON.parse(val); return String(d.status); } catch(e) { return '0'; }
@@ -1344,23 +1380,31 @@
                 }))].filter(Boolean).sort();
 
                 const currentFilterVal = APP_STATE.currentTableFilters[idx] || "";
+                const isStatusJson = result.type === 'status_json' && idx >= CORE_HEADERS.length;
                 
-                let selectHtml = `<select class="mt-2 block w-full max-w-[120px] text-[9px] font-bold text-slate-700 border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-1" onchange="if(this.value) window.setTableFilter(${idx}, this.value); else window.removeTableFilter(${idx});" onclick="event.stopPropagation()">
-                    <option value="">Todos</option>
-                    ${uniqueVals.map(v => {
-                        let displayVal = v;
-                        let actualValueToFilter = v;
-                        if(h === 'Cumple') displayVal = v === '1' ? 'CUMPLE' : (v === '0' ? 'NO CUMPLE' : 'SIN DATOS');
-                        else if(h.includes('Muestra') && !isNaN(parseInt(v))) displayVal = v === '1' ? 'CAPTACIÓN' : (v === '2' ? 'PILETA' : (v === '3' ? 'AMBOS' : '-'));
-                        else if(h === 'Excede LMP') displayVal = v === '1' ? 'SÍ' : '-';
-                        else if (result.type === 'status_json' && idx >= CORE_HEADERS.length) {
-                            displayVal = v === '1' ? 'COMPLETO' : (v === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
-                        }
-                        return `<option value="${actualValueToFilter.replace(/"/g, '&quot;')}" ${currentFilterVal === v ? 'selected' : ''}>${displayVal.substring(0, 30)}</option>`;
-                    }).join('')}
-                </select>`;
+                let selectHtml = `
+                    <div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()">
+                        <button onclick="window.toggleFilterDropdown(event, '${prefix}', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${currentFilterVal ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : ''}">
+                            <span class="truncate">${currentFilterVal ? formatDisplayVal(h, currentFilterVal, isStatusJson) : 'Todos'}</span>
+                            <i data-lucide="filter" class="w-3 h-3 ${currentFilterVal ? 'text-indigo-500' : 'text-slate-400'}"></i>
+                        </button>
+                        <div id="dropdown-${prefix}-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left">
+                            <div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg">
+                                <input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-indigo-500" onkeyup="window.filterDropdownOptions(event, '${prefix}', ${idx})">
+                            </div>
+                            <div class="max-h-48 overflow-y-auto custom-scroll py-1">
+                                <div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${!currentFilterVal ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '')">[ Todos ]</div>
+                                ${uniqueVals.map(v => {
+                                    let dVal = formatDisplayVal(h, v, isStatusJson);
+                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${currentFilterVal === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${v.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${dVal.replace(/"/g, "&quot;")}">${dVal}</div>`;
+                                }).join('')}
+                                ${uniqueVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-                html += `<th class="px-4 py-3 text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-widest align-top ${stickyClass} ${leftStyle}">
+                html += `<th class="px-4 py-3 text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-widest align-top ${stickyClass}" style="${leftStyle}">
                     <div class="flex flex-col h-full justify-between">
                         <span>${h}</span>
                         ${selectHtml}
@@ -1385,7 +1429,7 @@
                     }
                     
                     const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} ${leftStyle} cursor-pointer hover:bg-indigo-100/50 transition-colors" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-indigo-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
                     
                     let content = cell;
                     const v = parseInt(cell);
@@ -1394,8 +1438,8 @@
                         if (v === 1) {
                             const details = row[result.headers.indexOf('Detalles')];
                             content = `<button onclick='event.stopPropagation(); window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
-                            tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} ${leftStyle} text-center"`; 
-                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} ${leftStyle} text-center cursor-pointer hover:bg-indigo-100/50" onclick="window.setTableFilter(${idx}, '0')"`; }
+                            tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; 
+                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center cursor-pointer hover:bg-indigo-100/50" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '0')"`; }
                     } else if (header === 'Cumple') {
                         if (v === 1) { content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; } 
                         else if (v === 0) { content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; }
@@ -1425,7 +1469,7 @@
                         else if (v === 3) content = `<span class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-purple-200">Pileta y Captación</span>`;
                         else { content = `<span class="text-slate-300">-</span>`; }
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else {
+                    } else if (!stickyClass) {
                         tdAttributes = tdAttributes.replace('class="', 'class="text-slate-600 max-w-[150px] truncate ');
                     }
                     html += `<td ${tdAttributes}>${content}</td>`;
@@ -1446,7 +1490,21 @@
             const grandTotals = Array(colCount).fill(0);
             let grandTotalSaps = 0;
 
-            result.data.forEach(row => {
+            // Filtrar los datos en CASCADA antes de consolidar
+            let filteredData = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                filteredData = result.data.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                        let cellVal = String(row[fIdx] ?? '').trim();
+                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                            try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
+                        }
+                        return cellVal === String(filterVal);
+                    });
+                });
+            }
+
+            filteredData.forEach(row => {
                 const red = row[idxRed] || 'Sin Red';
                 if(!summary[red]) summary[red] = Array(colCount).fill(0);
                 if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
@@ -1513,7 +1571,7 @@
                 labels = ['SAPs Cumplen', 'No Cumplen / Sin Info'];
                 colors = ['#10b981', '#ef4444']; 
             } else {
-                result.data.forEach(row => { 
+                filteredData.forEach(row => { 
                     if(result.type === 'status_json') { 
                         for(let i=valStartIdx; i<row.length; i++) { 
                             try { 
@@ -1780,8 +1838,11 @@
 
             let filteredData = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
-                filteredData = filteredData.filter(row => {
-                    return Object.entries(APP_STATE.currentTableFilters).every(([idx, val]) => String(row[idx]) === String(val));
+                filteredData = result.data.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                        let cellVal = String(row[fIdx] ?? '').trim();
+                        return cellVal === String(filterVal);
+                    });
                 });
             }
 
@@ -1812,6 +1873,20 @@
             }
 
             let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
+            
+            const formatDisplayVal = (h, v) => {
+                if (h === 'Seguimiento') {
+                    if(v === 'Verde') return 'CUMPLE (>=2)';
+                    if(v === 'Naranja') return 'CUMPLE (1)';
+                    if(v === 'Rojo') return 'NO CUMPLE';
+                    return 'SIN MONITOREO';
+                }
+                if (h === 'MEF' || h === 'FED') return v === '1' ? 'SÍ' : '-';
+                if (h.includes('Cumple') || h.includes('Cumplimiento')) return v === '1' ? 'CUMPLE' : 'NO CUMPLE';
+                if (h.includes('Ev_') || h.includes('EV_5p')) return v === '1' ? '1' : '0';
+                return v.substring(0, 30);
+            };
+
             result.headers.forEach((h, idx) => {
                 let stickyClass = "";
                 let leftStyle = "";
@@ -1823,30 +1898,43 @@
                     leftStyle = "left-[80px] min-w-[150px] max-w-[150px]";
                 }
                 
-                const uniqueVals = [...new Set(result.data.map(row => String(row[idx] ?? '').trim()))].filter(Boolean).sort();
+                // LÓGICA CASCADA
+                let dataForThisCol = result.data;
+                if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                    dataForThisCol = result.data.filter(row => {
+                        return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                            if (parseInt(fIdx) === idx) return true;
+                            return String(row[fIdx] ?? '').trim() === String(filterVal);
+                        });
+                    });
+                }
+
+                const uniqueVals = [...new Set(dataForThisCol.map(row => String(row[idx] ?? '').trim()))].filter(Boolean).sort();
                 const currentFilterVal = APP_STATE.currentTableFilters[idx] || "";
                 
-                let selectHtml = `<select class="mt-2 block w-full max-w-[120px] text-[9px] font-bold text-slate-700 border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-1" onchange="if(this.value) window.setTableFilter(${idx}, this.value); else window.removeTableFilter(${idx});" onclick="event.stopPropagation()">
-                    <option value="">Todos</option>
-                    ${uniqueVals.map(v => {
-                        let displayVal = v;
-                        if (h === 'Seguimiento') {
-                            if(v === 'Verde') displayVal = 'CUMPLE (>=2)';
-                            else if(v === 'Naranja') displayVal = 'CUMPLE (1)';
-                            else if(v === 'Rojo') displayVal = 'NO CUMPLE';
-                            else displayVal = 'SIN MONITOREO';
-                        } else if (h === 'MEF' || h === 'FED') {
-                            displayVal = v === '1' ? 'SÍ' : '-';
-                        } else if (h.includes('Cumple') || h.includes('Cumplimiento')) {
-                            displayVal = v === '1' ? 'CUMPLE' : 'NO CUMPLE';
-                        } else if (h.includes('Ev_') || h.includes('EV_5p')) {
-                            displayVal = v === '1' ? '1' : '0';
-                        }
-                        return `<option value="${v.replace(/"/g, '&quot;')}" ${currentFilterVal === v ? 'selected' : ''}>${displayVal.substring(0, 30)}</option>`;
-                    }).join('')}
-                </select>`;
+                let selectHtml = `
+                    <div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()">
+                        <button onclick="window.toggleFilterDropdown(event, 'fed', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${currentFilterVal ? 'bg-amber-50 border-amber-300 text-amber-700' : ''}">
+                            <span class="truncate">${currentFilterVal ? formatDisplayVal(h, currentFilterVal) : 'Todos'}</span>
+                            <i data-lucide="filter" class="w-3 h-3 ${currentFilterVal ? 'text-amber-500' : 'text-slate-400'}"></i>
+                        </button>
+                        <div id="dropdown-fed-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left">
+                            <div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg">
+                                <input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-amber-500" onkeyup="window.filterDropdownOptions(event, 'fed', ${idx})">
+                            </div>
+                            <div class="max-h-48 overflow-y-auto custom-scroll py-1">
+                                <div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-amber-50 truncate transition-colors ${!currentFilterVal ? 'bg-amber-100 font-bold text-amber-700' : 'text-slate-600'}" onclick="window.applyTableFilter('fed', ${idx}, '')">[ Todos ]</div>
+                                ${uniqueVals.map(v => {
+                                    let dVal = formatDisplayVal(h, v);
+                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-amber-50 truncate transition-colors ${currentFilterVal === v ? 'bg-amber-100 font-bold text-amber-700' : 'text-slate-600'}" onclick="window.applyTableFilter('fed', ${idx}, '${v.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${dVal.replace(/"/g, "&quot;")}">${dVal}</div>`;
+                                }).join('')}
+                                ${uniqueVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
 
-                html += `<th class="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest align-top ${stickyClass} ${leftStyle}">
+                html += `<th class="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest align-top ${stickyClass}" style="${leftStyle}">
                     <div class="flex flex-col h-full justify-between">
                         <span>${h}</span>
                         ${selectHtml}
@@ -1871,7 +1959,7 @@
                     }
                     
                     const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} ${leftStyle} cursor-pointer hover:bg-amber-100/50 transition-colors" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-amber-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
                     let content = cell;
 
                     if (header === 'Seguimiento') {
@@ -1917,7 +2005,18 @@
             
             const isInd1 = APP_STATE.fedActiveTab === 'ind1';
 
-            result.data.forEach(row => {
+            // Filtrado CASCADA antes del consolidado FED
+            let filteredData = result.data;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
+                filteredData = result.data.filter(row => {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                        let cellVal = String(row[fIdx] ?? '').trim();
+                        return cellVal === String(filterVal);
+                    });
+                });
+            }
+
+            filteredData.forEach(row => {
                 const red = row[4];
                 if(!summary[red]) {
                     summary[red] = { 
@@ -2002,10 +2101,10 @@
             let counts = [0,0,0,0]; 
             let labels = [];
             if(isInd1) {
-                result.data.forEach(row => { const s = row[23]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
+                filteredData.forEach(row => { const s = row[23]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
                 labels = ['Cumple Meta (>=2)', 'Cumple Parcial (1)', 'No Cumple (0)', 'Sin Monitoreo'];
             } else {
-                result.data.forEach(row => { const f = row[9]; if(f===1) counts[0]++; else counts[2]++; });
+                filteredData.forEach(row => { const f = row[9]; if(f===1) counts[0]++; else counts[2]++; });
                 labels = ['SAPs Cumplen Ind 2', '', 'No Cumplen', ''];
             }
             renderDoughnutChart(counts, labels, ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'], `FED - ${APP_STATE.fedActiveTab.toUpperCase()}`, 'fed-chart-container');
@@ -2051,9 +2150,9 @@
             let dataToExport = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                 dataToExport = dataToExport.filter(row => {
-                    return Object.entries(APP_STATE.currentTableFilters).every(([idx, filterVal]) => {
-                        let cellVal = String(row[idx] ?? '').trim();
-                        if (result.type === 'status_json' && parseInt(idx) >= CORE_HEADERS.length) {
+                    return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
+                        let cellVal = String(row[fIdx] ?? '').trim();
+                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -2144,7 +2243,7 @@
         }
         function closeModal() { document.getElementById('modal-lmp').classList.add('hidden'); }
 
-        function openParamsModal(paramsStr) {
+        window.openParamsModal = function(paramsStr) {
             const content = document.getElementById('modal-params-content');
             const params = paramsStr.split(',').filter(p => p.trim() !== '');
             document.getElementById('modal-params-desc').innerText = 'Detalles del registro:';
@@ -2152,52 +2251,13 @@
             lucide.createIcons();
             document.getElementById('modal-params').classList.remove('hidden');
         }
-        function closeParamsModal() {
+        window.closeParamsModal = function() {
             document.getElementById('modal-params').classList.add('hidden');
         }
 
-        function renderUserTable() { 
-            const tbody = document.getElementById('users-table-body'); 
-            document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; 
-            tbody.innerHTML = APP_STATE.usersList.map(u => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4">
-                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>
-                        ${u.usuario}
-                    </td>
-                    <td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td>
-                    <td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td>
-                    <td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td>
-                </tr>
-            `).join(''); 
-        }
-
+        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
         function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
         function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
-
-        // ========================
-        // EXPORTACIONES GLOBALES (Al final para asegurar carga)
-        // ========================
-        window.switchTab = switchTab;
-        window.handleLogin = handleLogin;
-        window.logout = logout;
-        window.changeSapSubTab = changeSapSubTab;
-        window.changeResSubTab = changeResSubTab;
-        window.changeFedSubTab = changeFedSubTab;
-        window.exportToExcel = exportToExcel;
-        window.exportFEDToExcel = exportFEDToExcel;
-        window.openLMPModal = openLMPModal;
-        window.closeModal = closeModal;
-        window.openParamsModal = openParamsModal;
-        window.closeParamsModal = closeParamsModal;
-        window.updateGlobalDateFilter = updateGlobalDateFilter;
-        window.clearCanvas = clearCanvas;
-        window.forceRefreshData = forceRefreshData;
-        window.syncUsers = syncUsers;
-        window.setTableFilter = setTableFilter;
-        window.removeTableFilter = removeTableFilter;
-        window.clearAllTableFilters = clearAllTableFilters;
-        window.renderFedConsolidatedAndChart = renderFedConsolidatedAndChart;
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     </script>
