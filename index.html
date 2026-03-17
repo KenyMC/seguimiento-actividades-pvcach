@@ -541,7 +541,7 @@
         };
 
         // ========================
-        // SISTEMA DE FILTROS CASCADA (DROPDOWNS)
+        // SISTEMA DE FILTROS RÁPIDOS
         // ========================
         window.toggleFilterDropdown = function(e, prefix, colIdx) {
             e.stopPropagation();
@@ -582,6 +582,16 @@
                 document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden'));
             }
         });
+
+        window.removeTableFilter = function(colIndex) {
+            delete APP_STATE.currentTableFilters[colIndex];
+            reRenderCurrentTable();
+        };
+
+        window.clearAllTableFilters = function() {
+            APP_STATE.currentTableFilters = {};
+            reRenderCurrentTable();
+        };
 
         function reRenderCurrentTable() {
             if (APP_STATE.activeTab === 'sap') {
@@ -751,6 +761,8 @@
                 checkMaxDate(APP_STATE.rawData.main2, '2026');
                 
                 APP_STATE.availableMonitorMonths = generateMonthsUpTo(maxDateStr);
+                
+                // FORZAR POR DEFECTO RANGO: Diciembre 2025 hasta la última fecha cargada
                 APP_STATE.globalDateFrom = '2025-12';
                 APP_STATE.globalDateTo = maxDateStr;
 
@@ -905,9 +917,10 @@
             if (desc) {
                 if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'inspeccion', 'riesgos'].includes(tabId)) {
                     if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`;
-                    else if (tabId === 'inspeccion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Bact., Parasit., Físico-Químico en Captación, y Parasit. en Red.</span>`;
+                    else if (tabId === 'inspeccion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Rural:</strong> Requiere Físico, Bact. y Parasit. en Captación; y Parasit. en Pileta (Semestral).</span>`;
                     else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se requiere Informe y Cargo aprobados.</span>`;
-                    else desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros requeridos de ${tabId.replace('_', ' ')}.</span>`;
+                    else if (tabId === 'bacteriologico') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros Bacteriológicos por mes.</span>`;
+                    else desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros en Pileta y Captación por Semestre.</span>`;
                     desc.classList.remove('hidden');
                 }
                 else desc.classList.add('hidden');
@@ -1049,41 +1062,79 @@
 
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
-            if (['metales', 'bacteriologico', 'parasitologico', 'fisico'].includes(subTab)) {
-                finalHeaders = [...CORE_HEADERS, '1ra Muestra', '2da Muestra'];
-                const map = {}; const currentSet = ANALYSIS_SETS[subTab];
+            if (['metales', 'parasitologico', 'fisico', 'inspeccion'].includes(subTab)) {
+                finalHeaders = [...CORE_HEADERS, '1ra Insp. Pileta', '1ra Insp. Captación', '2da Insp. Pileta', '2da Insp. Captación'];
+                const map = {}; 
+                const idxUbiLugar = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
 
                 dateFilteredRows.forEach(x => {
                     const row = x.row; const id = row[idxId]; if(!id) return;
-                    if(!map[id]) map[id] = { meta: getMeta(row, headers), muestras: [] };
+                    if(!map[id]) map[id] = { 
+                        meta: getMeta(row, headers), 
+                        s1_pil: { status: 0, params: [] }, 
+                        s1_cap: { status: 0, params: [] }, 
+                        s2_pil: { status: 0, params: [] }, 
+                        s2_cap: { status: 0, params: [] } 
+                    };
                     
-                    let foundParams = [];
-                    let expectedA = currentSet?.A?.length || 0;
-                    let expectedB = currentSet?.B?.length || 0;
-                    let countA = 0; let countB = 0;
+                    let mRaw = idxMes !== -1 ? row[idxMes] : '';
+                    const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()];
+                    if(!mm) return;
+                    
+                    let isS1 = parseInt(mm) >= 1 && parseInt(mm) <= 6;
+                    let isS2 = parseInt(mm) >= 7 && parseInt(mm) <= 12;
+                    
+                    const u = idxUbiLugar !== -1 ? (row[idxUbiLugar] || '').toLowerCase() : '';
+                    const isCap = u.includes('captación') || u.includes('captacion');
+                    const isPil = u.includes('red') || u.includes('pileta');
 
-                    const checkItem = (p) => {
-                        if (Array.isArray(p)) {
-                            let found = p.find(sub => { const i = findHeaderIndex(headers, sub); return i !== -1 && !isCellEmpty(row[i]); });
-                            if (found) return found;
-                        } else {
-                            const i = findHeaderIndex(headers, p);
-                            if (i !== -1 && !isCellEmpty(row[i])) return p;
+                    const evaluateParams = (paramSet) => {
+                        let count = 0; let expected = paramSet ? paramSet.length : 0;
+                        let missing = []; let foundParams = [];
+                        if(paramSet) {
+                            paramSet.forEach(p => {
+                                let found = false;
+                                if (Array.isArray(p)) {
+                                    let match = p.find(sub => { const i = findHeaderIndex(headers, sub); return i !== -1 && !isCellEmpty(row[i]); });
+                                    if (match) { found = true; foundParams.push(match); }
+                                } else {
+                                    const i = findHeaderIndex(headers, p);
+                                    if (i !== -1 && !isCellEmpty(row[i])) { found = true; foundParams.push(p); }
+                                }
+                                if (!found) missing.push(Array.isArray(p) ? p[0] : p);
+                                else count++;
+                            });
                         }
-                        return null;
+                        return { isComplete: expected > 0 && count === expected, count, expected, missing, found: foundParams };
                     };
 
-                    if (currentSet?.A) currentSet.A.forEach(p => { const res = checkItem(p); if(res) { countA++; foundParams.push(res); } });
-                    if (currentSet?.B) currentSet.B.forEach(p => { const res = checkItem(p); if(res && !foundParams.includes(res)) { countB++; foundParams.push(res); } });
+                    let evalPil, evalCap;
 
-                    if (countA > 0 || countB > 0) {
-                        let isComplete = false;
-                        if (expectedA > 0 && countA === expectedA) isComplete = true;
-                        if (expectedB > 0 && countB === expectedB) isComplete = true;
-                        
-                        let status = isComplete ? 1 : 2;
-                        map[id].muestras.push({ status, params: foundParams });
+                    if (subTab === 'inspeccion') {
+                        evalPil = evaluateParams(ANALYSIS_SETS.parasitologico.A);
+                        const capSet = [...(ANALYSIS_SETS.bacteriologico.B||[]), ...(ANALYSIS_SETS.parasitologico.B||[]), ...(ANALYSIS_SETS.fisico.B||[])];
+                        evalCap = evaluateParams(capSet);
+                    } else {
+                        const currentSet = ANALYSIS_SETS[subTab];
+                        evalPil = evaluateParams(currentSet?.A);
+                        evalCap = evaluateParams(currentSet?.B);
                     }
+
+                    const updateSlot = (slot, evaluation, isSlotValidLocation) => {
+                        if (isSlotValidLocation && evaluation.count > 0) {
+                            let status = evaluation.isComplete ? 1 : 2;
+                            let params = status === 1 ? evaluation.found : evaluation.missing.map(m => `Falta: ${m.replace(/_/g, '')}`);
+                            if (slot.status < status || (slot.status === status && slot.params.length > params.length)) {
+                                slot.status = status;
+                                slot.params = params;
+                            }
+                        }
+                    };
+
+                    updateSlot(map[id].s1_pil, evalPil, isS1 && isPil);
+                    updateSlot(map[id].s1_cap, evalCap, isS1 && isCap);
+                    updateSlot(map[id].s2_pil, evalPil, isS2 && isPil);
+                    updateSlot(map[id].s2_cap, evalCap, isS2 && isCap);
                 });
 
                 const allSaps = new Map();
@@ -1093,10 +1144,17 @@
                 });
 
                 finalData = Array.from(allSaps.keys()).map(id => {
-                    const sap = map[id] || { muestras: [] };
-                    const m1 = sap.muestras[0] ? JSON.stringify(sap.muestras[0]) : JSON.stringify({status: 0, params: []});
-                    const m2 = sap.muestras[1] ? JSON.stringify(sap.muestras[1]) : JSON.stringify({status: 0, params: []});
-                    return [...(sap.meta || allSaps.get(id)), m1, m2];
+                    const sap = map[id] || { 
+                        s1_pil: {status:0, params:[]}, s1_cap: {status:0, params:[]}, 
+                        s2_pil: {status:0, params:[]}, s2_cap: {status:0, params:[]} 
+                    };
+                    return [
+                        ...(sap.meta || allSaps.get(id)), 
+                        JSON.stringify(sap.s1_pil), 
+                        JSON.stringify(sap.s1_cap), 
+                        JSON.stringify(sap.s2_pil), 
+                        JSON.stringify(sap.s2_cap)
+                    ];
                 });
                 pivotType = 'status_json';
 
@@ -1142,9 +1200,10 @@
                 });
                 pivotType = 'analysis';
 
-            } else if (subTab === 'monitor') {
+            } else if (subTab === 'monitor' || subTab === 'bacteriologico') {
                 finalHeaders = [...CORE_HEADERS, ...filteredMonths.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)];
                 const map = {};
+                const currentSet = ANALYSIS_SETS[subTab]; 
                 
                 dateFilteredRows.forEach(x => {
                     const row = x.row;
@@ -1156,14 +1215,41 @@
 
                     if(!map[id]) map[id] = { meta: getMeta(row, headers), dataByMonth: {} };
                     
-                    const paramsCount = [];
-                    MONITOR_5P_PARAMS.forEach(p => { 
-                        if (!isCellEmpty(row[findHeaderIndex(headers, p)])) paramsCount.push(p); 
-                    });
-                    
                     let status = 0;
-                    if (paramsCount.length === 5) status = 1;
-                    else if (paramsCount.length > 0) status = 2; 
+                    let paramsCount = [];
+
+                    if (subTab === 'monitor') {
+                        MONITOR_5P_PARAMS.forEach(p => { 
+                            if (!isCellEmpty(row[findHeaderIndex(headers, p)])) paramsCount.push(p); 
+                        });
+                        if (paramsCount.length === 5) status = 1;
+                        else if (paramsCount.length > 0) status = 2; 
+                    } else {
+                        let expectedA = currentSet?.A?.length || 0;
+                        let expectedB = currentSet?.B?.length || 0;
+                        let countA = 0; let countB = 0;
+
+                        const checkItem = (p) => {
+                            if (Array.isArray(p)) {
+                                let found = p.find(sub => { const i = findHeaderIndex(headers, sub); return i !== -1 && !isCellEmpty(row[i]); });
+                                if (found) return found;
+                            } else {
+                                const i = findHeaderIndex(headers, p);
+                                if (i !== -1 && !isCellEmpty(row[i])) return p;
+                            }
+                            return null;
+                        };
+
+                        if (currentSet?.A) currentSet.A.forEach(p => { const res = checkItem(p); if(res) { countA++; paramsCount.push(res); } });
+                        if (currentSet?.B) currentSet.B.forEach(p => { const res = checkItem(p); if(res && !paramsCount.includes(res)) { countB++; paramsCount.push(res); } });
+
+                        if (countA > 0 || countB > 0) {
+                            let isComplete = false;
+                            if (expectedA > 0 && countA === expectedA) isComplete = true;
+                            if (expectedB > 0 && countB === expectedB) isComplete = true;
+                            status = isComplete ? 1 : 2;
+                        }
+                    }
 
                     if (!map[id].dataByMonth[yyyymm] || map[id].dataByMonth[yyyymm].status < status) {
                         map[id].dataByMonth[yyyymm] = { status, params: paramsCount };
@@ -1247,52 +1333,10 @@
                 });
                 pivotType = 'status_json';
 
-            } else if (subTab === 'inspeccion') {
-                finalHeaders = [...CORE_HEADERS, 'Estado Evaluación'];
-                const map = {}; 
-                const idxUbi = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
-
-                dateFilteredRows.forEach(x => {
-                    const row = x.row; const id = row[idxId]; if(!id) return;
-                    if(!map[id]) map[id] = { meta: getMeta(row, headers), bactCap: false, parCap: false, fisCap: false, parRed: false };
-
-                    const u = idxUbi !== -1 ? (row[idxUbi] || '') : '';
-                    const isCap = u.includes('Fuente de Captación');
-                    const isRed = u.includes('Red de distribución');
-
-                    if (isCap) {
-                        if (!map[id].bactCap && (checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.bacteriologico.B, row))) map[id].bactCap = true;
-                        if (!map[id].parCap && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].parCap = true;
-                        if (!map[id].fisCap && (checkComplianceSet(headers, ANALYSIS_SETS.fisico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.fisico.B, row))) map[id].fisCap = true;
-                    }
-                    if (isRed) {
-                        if (!map[id].parRed && (checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.A, row) || checkComplianceSet(headers, ANALYSIS_SETS.parasitologico.B, row))) map[id].parRed = true;
-                    }
-                });
-
-                const allSaps = new Map();
-                rowsWithMeta.forEach(x => {
-                    const id = x.row[idxId];
-                    if(id && !allSaps.has(id)) allSaps.set(id, getMeta(x.row, headers));
-                });
-
-                finalData = Array.from(allSaps.keys()).map(id => {
-                    const obj = map[id];
-                    if (!obj) return [...allSaps.get(id), JSON.stringify({status: 0, params: []})];
-                    
-                    let count = 0; let faltan = [];
-                    if (obj.bactCap) count++; else faltan.push('Bact. Captación');
-                    if (obj.parCap) count++; else faltan.push('Parasit. Captación');
-                    if (obj.fisCap) count++; else faltan.push('Físico Captación');
-                    if (obj.parRed) count++; else faltan.push('Parasit. Red');
-
-                    let status = 0; let params = [];
-                    if (count === 4) status = 1;
-                    else if (count > 0) { status = 2; params = faltan.map(f => `Falta: ${f}`); }
-
-                    return [...obj.meta, JSON.stringify({status, params})];
-                });
-                pivotType = 'status_json';
+            } else {
+                finalHeaders = [...CORE_HEADERS];
+                finalData = [];
+                pivotType = 'status';
             }
             return { headers: finalHeaders, data: finalData, type: pivotType };
         }
@@ -1429,7 +1473,7 @@
                     }
                     
                     const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-indigo-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
                     
                     let content = cell;
                     const v = parseInt(cell);
@@ -1439,7 +1483,7 @@
                             const details = row[result.headers.indexOf('Detalles')];
                             content = `<button onclick='event.stopPropagation(); window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
                             tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; 
-                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center cursor-pointer hover:bg-indigo-100/50" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '0')"`; }
+                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; }
                     } else if (header === 'Cumple') {
                         if (v === 1) { content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; } 
                         else if (v === 0) { content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; }
@@ -1469,7 +1513,7 @@
                         else if (v === 3) content = `<span class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-purple-200">Pileta y Captación</span>`;
                         else { content = `<span class="text-slate-300">-</span>`; }
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (!stickyClass) {
+                    } else {
                         tdAttributes = tdAttributes.replace('class="', 'class="text-slate-600 max-w-[150px] truncate ');
                     }
                     html += `<td ${tdAttributes}>${content}</td>`;
@@ -1486,8 +1530,11 @@
             const totalSapsPerRed = {}; 
             
             const isAnalysisTab = result.type === 'analysis';
+            const isStatusJson = result.type === 'status_json';
             const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
-            const grandTotals = Array(colCount).fill(0);
+            
+            // Si es status_json, guardaremos {c, i, s} en lugar de un número simple
+            const grandTotals = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
             let grandTotalSaps = 0;
 
             // Filtrar los datos en CASCADA antes de consolidar
@@ -1496,7 +1543,7 @@
                 filteredData = result.data.filter(row => {
                     return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
                         let cellVal = String(row[fIdx] ?? '').trim();
-                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                        if (isStatusJson && parseInt(fIdx) >= CORE_HEADERS.length) {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -1506,7 +1553,7 @@
 
             filteredData.forEach(row => {
                 const red = row[idxRed] || 'Sin Red';
-                if(!summary[red]) summary[red] = Array(colCount).fill(0);
+                if(!summary[red]) summary[red] = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
                 if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
                 totalSapsPerRed[red]++; grandTotalSaps++;
 
@@ -1530,15 +1577,20 @@
                 } else {
                     for(let i = valStartIdx; i < row.length; i++) {
                         if(result.headers[i] === 'Detalles') continue;
-                        let val = parseInt(row[i]) || 0;
                         const sumIdx = i - valStartIdx;
                         
-                        let add = false;
-                        if(result.type === 'status_json') { 
-                            try { const d = JSON.parse(row[i]); if(d.status === 1 || d.status === 2) add = true; } catch(e){}
+                        if(isStatusJson) { 
+                            try { 
+                                const d = JSON.parse(row[i]); 
+                                if(d.status === 1) { summary[red][sumIdx].c++; grandTotals[sumIdx].c++; }
+                                else if(d.status === 2) { summary[red][sumIdx].i++; grandTotals[sumIdx].i++; }
+                                else { summary[red][sumIdx].s++; grandTotals[sumIdx].s++; }
+                            } catch(e){}
                         }
-                        else { if(val>=1) add=true; }
-                        if(add) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                        else { 
+                            let val = parseInt(row[i]) || 0;
+                            if(val>=1) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                        }
                     }
                 }
             });
@@ -1551,14 +1603,32 @@
             Object.entries(summary).forEach(([red, vals]) => {
                 htmlCon += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${totalSapsPerRed[red]}</td>`;
                 vals.forEach((v, i) => {
-                    let style = "text-slate-600 font-medium";
-                    if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) style="text-emerald-600 font-bold"; }
-                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center ${style}">${v}</td>`
+                    if(isStatusJson) {
+                        htmlCon += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span>
+                            <span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span>
+                            <span class="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="x" class="w-3 h-3"></i> ${v.s}</span>
+                        </td>`;
+                    } else {
+                        let style = "text-slate-600 font-medium";
+                        if(isAnalysisTab) { if(i===1 && v>0) style="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) style="text-emerald-600 font-bold"; }
+                        htmlCon += `<td class="px-5 py-3.5 text-xs text-center ${style}">${v}</td>`
+                    }
                 });
                 htmlCon += `</tr>`;
             });
             htmlCon += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${grandTotalSaps}</td>`;
-            grandTotals.forEach(v => htmlCon += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`);
+            grandTotals.forEach(v => {
+                if(isStatusJson) {
+                    htmlCon += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span>
+                        <span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span>
+                        <span class="inline-flex items-center gap-1 text-red-400 font-black"><i data-lucide="x" class="w-3 h-3"></i> ${v.s}</span>
+                    </td>`;
+                } else {
+                    htmlCon += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`;
+                }
+            });
             htmlCon += `</tr></tbody></table>`;
             document.getElementById(`${prefix}-consolidated-container`).innerHTML = htmlCon;
 
@@ -1571,22 +1641,17 @@
                 labels = ['SAPs Cumplen', 'No Cumplen / Sin Info'];
                 colors = ['#10b981', '#ef4444']; 
             } else {
-                filteredData.forEach(row => { 
-                    if(result.type === 'status_json') { 
-                        for(let i=valStartIdx; i<row.length; i++) { 
-                            try { 
-                                const d = JSON.parse(row[i]); 
-                                if(d.status===1) counts[0]++; // Completo
-                                else if(d.status===2) counts[1]++; // Incompleto
-                                else counts[2]++; // Sin Monitoreo
-                            } catch(e){} 
-                        } 
-                    } else if (result.type === 'boolean') {
+                if(isStatusJson) { 
+                    counts[0] = grandTotals.reduce((acc, curr) => acc + curr.c, 0);
+                    counts[1] = grandTotals.reduce((acc, curr) => acc + curr.i, 0);
+                    counts[2] = grandTotals.reduce((acc, curr) => acc + curr.s, 0);
+                } else if (result.type === 'boolean') {
+                    filteredData.forEach(row => {
                         for(let i=valStartIdx; i<row.length; i++) { const v = parseInt(row[i])||0; if(v>=0 && v<=3) counts[v]++; }
-                    }
-                });
+                    });
+                }
 
-                if(result.type === 'status_json') { 
+                if(isStatusJson) { 
                     labels=['Completo', 'Incompleto', 'Sin Monitoreo']; 
                     colors=['#10b981', '#f59e0b', '#ef4444']; 
                 } else if (result.type === 'boolean') { 
@@ -1959,7 +2024,7 @@
                     }
                     
                     const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-amber-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
                     let content = cell;
 
                     if (header === 'Seguimiento') {
@@ -2251,6 +2316,7 @@
             lucide.createIcons();
             document.getElementById('modal-params').classList.remove('hidden');
         }
+        
         window.closeParamsModal = function() {
             document.getElementById('modal-params').classList.add('hidden');
         }
@@ -2258,6 +2324,18 @@
         function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
         function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
         function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
+
+        window.exportToExcel = exportToExcel;
+        window.exportFEDToExcel = exportFEDToExcel;
+        window.openLMPModal = openLMPModal;
+        window.closeModal = closeModal;
+        window.openParamsModal = openParamsModal;
+        window.closeParamsModal = closeParamsModal;
+        window.updateGlobalDateFilter = updateGlobalDateFilter;
+        window.clearCanvas = clearCanvas;
+        window.forceRefreshData = forceRefreshData;
+        window.syncUsers = syncUsers;
+        window.renderFedConsolidatedAndChart = renderFedConsolidatedAndChart;
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
     </script>
