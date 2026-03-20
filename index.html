@@ -480,7 +480,7 @@
         const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS HETEROTRÓFICAS', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cloruros', 'Cobre', 'Color', 'Conductividad', 'Cromo total', 'Dureza total', 'Hierro', 'Huevos Larvas Helmintos', 'Manganeso', 'Mercurio', 'Molibdeno', 'Niquel', 'Nitratos', 'Organismos de vida libre', 'pH', 'Plomo', 'Selenio', 'Sodio', 'Sólidos Totales disueltos', 'Sulfatos', 'Turbiedad', 'Uranio', 'Zinc'];
         const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
-        const SAP_TABS = ['monitor', 'sanitaria', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'riesgos'];
+        const SAP_TABS = ['monitor', 'sanitaria', 'caracterizacion', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'riesgos'];
 
         const generateMonthsUpTo = (limitYYYYMM) => {
             const m = [];
@@ -886,7 +886,16 @@
         // LOGICA SAP Y RESULTADOS
         // ========================
         function renderSapTabs() {
-            const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'sanitaria', label: 'Insp. Sanitaria'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'riesgos', label: 'Riesgos'}];
+            const tabs = [
+                {id: 'monitor', label: 'Monitoreo 5P'}, 
+                {id: 'sanitaria', label: 'Insp. Sanitaria'}, 
+                {id: 'caracterizacion', label: 'Caracterización'}, 
+                {id: 'metales', label: 'Metales Pesados'}, 
+                {id: 'fisico', label: 'Físico Químicos'}, 
+                {id: 'bacteriologico', label: 'Bacteriológico'}, 
+                {id: 'parasitologico', label: 'Parasitológico'}, 
+                {id: 'riesgos', label: 'Riesgos'}
+            ];
             document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join('');
         }
 
@@ -898,9 +907,10 @@
             
             const desc = document.getElementById('sap-monitor-desc');
             if (desc) {
-                if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'riesgos'].includes(tabId)) {
+                if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos'].includes(tabId)) {
                     if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`;
                     else if (tabId === 'sanitaria') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Se verifica la ejecución de inspecciones por semestre. Verde = Completado, Rojo = Sin Inspección.</span>`;
+                    else if (tabId === 'caracterizacion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Se verifica si cuenta con parámetros completos en Fuente de Agua y Red de Distribución.</span>`;
                     else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se requiere Informe y Cargo aprobados.</span>`;
                     else if (tabId === 'bacteriologico') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros Bacteriológicos por mes.</span>`;
                     else desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros en Pileta y Captación por Semestre.</span>`;
@@ -1045,7 +1055,78 @@
 
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
-            if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
+            if (subTab === 'caracterizacion') {
+                finalHeaders = [...CORE_HEADERS, 'Caract. Fuente de Agua', 'Caract. Red de Distribución'];
+                const map = {}; 
+                const idxUbiLugar = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
+
+                dateFilteredRows.forEach(x => {
+                    const row = x.row; const id = row[idxId]; if(!id) return;
+                    if(!map[id]) map[id] = { 
+                        meta: getMeta(row, headers), 
+                        cap: { status: 0, params: [] }, 
+                        pil: { status: 0, params: [] } 
+                    };
+                    
+                    const u = idxUbiLugar !== -1 ? (row[idxUbiLugar] || '').toLowerCase() : '';
+                    const isCap = u.includes('captación') || u.includes('captacion');
+                    const isPil = u.includes('red') || u.includes('pileta');
+
+                    const evaluateParams = (singles, ors) => {
+                        let count = 0; let expected = (singles ? singles.length : 0) + (ors ? ors.length : 0);
+                        let missing = []; let foundParams = [];
+                        if(singles) singles.forEach(p => {
+                            const i = findHeaderIndex(headers, p);
+                            if (i !== -1 && !isCellEmpty(row[i])) { count++; foundParams.push(p); }
+                            else missing.push(p);
+                        });
+                        if(ors) ors.forEach(pair => {
+                            const i1 = findHeaderIndex(headers, pair[0]);
+                            const i2 = findHeaderIndex(headers, pair[1]);
+                            if ((i1 !== -1 && !isCellEmpty(row[i1])) || (i2 !== -1 && !isCellEmpty(row[i2]))) { count++; foundParams.push(pair[0]); }
+                            else missing.push(pair[0]);
+                        });
+                        return { isComplete: expected > 0 && count === expected, count, expected, missing, found: foundParams };
+                    };
+
+                    const updateSlot = (slot, evaluation) => {
+                        if (evaluation.count > 0) {
+                            let status = evaluation.isComplete ? 1 : 2;
+                            let params = status === 1 ? evaluation.found : evaluation.missing.map(m => `Falta: ${m.replace(/_/g, '')}`);
+                            if (slot.status === 0 || (slot.status === 2 && status === 1) || (slot.status === status && slot.params.length > params.length)) {
+                                slot.status = status;
+                                slot.params = params;
+                            }
+                        }
+                    };
+
+                    if (isCap) {
+                        const evalCap = evaluateParams(CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR);
+                        updateSlot(map[id].cap, evalCap);
+                    }
+                    if (isPil) {
+                        const evalPil = evaluateParams(CARACT_PILETA_SINGLE, CARACT_PILETA_OR);
+                        updateSlot(map[id].pil, evalPil);
+                    }
+                });
+
+                const allSaps = new Map();
+                rowsWithMeta.forEach(x => {
+                    const id = x.row[idxId];
+                    if(id && !allSaps.has(id)) allSaps.set(id, getMeta(x.row, headers));
+                });
+
+                finalData = Array.from(allSaps.keys()).map(id => {
+                    const sap = map[id] || { cap: {status:0, params:[]}, pil: {status:0, params:[]} };
+                    return [
+                        ...(sap.meta || allSaps.get(id)), 
+                        JSON.stringify(sap.cap), 
+                        JSON.stringify(sap.pil)
+                    ];
+                });
+                pivotType = 'status_json';
+
+            } else if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
                 finalHeaders = [...CORE_HEADERS, '1ra Insp. Pileta', '1ra Insp. Captación', '2da Insp. Pileta', '2da Insp. Captación'];
                 const map = {}; 
                 const idxUbiLugar = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
@@ -2139,6 +2220,10 @@
                         else content = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>";
                     } else if (header === 'MEF' || header === 'FED') {
                         content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`;
+                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
+                    } else if (header === 'Cumplimiento Ind. 2') {
+                        if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
+                        else content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (header.includes('Cumple') || header === 'Diciembre' || header === 'Enero' || header === 'Febrero') {
                         if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
