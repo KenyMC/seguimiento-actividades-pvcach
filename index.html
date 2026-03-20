@@ -356,8 +356,11 @@
                     </div>
                     
                     <div class="flex flex-col gap-6 max-w-full">
-                        <!-- Pestañas FED -->
-                        <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="fed-tabs-container"></div>
+                        <!-- Pestañas FED y Descripción -->
+                        <div class="flex flex-col gap-2 w-full">
+                            <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="fed-tabs-container"></div>
+                            <div id="fed-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-start gap-2"></div>
+                        </div>
                         
                         <!-- TABLA PRINCIPAL FED -->
                         <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
@@ -378,12 +381,12 @@
                         <div class="flex flex-col xl:flex-row gap-6 w-full pb-10">
                             <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col flex-1 overflow-hidden min-w-0">
                                 <div class="bg-slate-50 px-5 py-4 border-b border-slate-200">
-                                    <h4 class="font-black text-sm text-slate-800 uppercase flex items-center"><i data-lucide="table-2" class="w-4 h-4 mr-2 text-amber-500"></i> Resumen por Red de Salud</h4>
+                                    <h4 class="font-black text-sm text-slate-800 uppercase flex items-center"><i data-lucide="table-2" class="w-4 h-4 mr-2 text-amber-500"></i> Resúmenes Consolidados</h4>
                                 </div>
-                                <div class="overflow-x-auto custom-scroll w-full" id="fed-consolidated-container"></div>
+                                <div class="overflow-y-auto max-h-[600px] custom-scroll w-full bg-slate-50" id="fed-consolidated-container"></div>
                             </div>
 
-                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 w-full xl:w-96 flex flex-col items-center justify-center flex-shrink-0 p-6 relative overflow-hidden">
+                            <div class="bg-white rounded-2xl shadow-md border border-slate-200 w-full xl:w-96 flex flex-col items-center justify-center flex-shrink-0 p-6 relative overflow-hidden h-fit">
                                 <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
                                 <div id="fed-chart-container" class="w-full flex flex-col items-center"></div>
                             </div>
@@ -477,7 +480,7 @@
         const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS HETEROTRÓFICAS', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cloruros', 'Cobre', 'Color', 'Conductividad', 'Cromo total', 'Dureza total', 'Hierro', 'Huevos Larvas Helmintos', 'Manganeso', 'Mercurio', 'Molibdeno', 'Niquel', 'Nitratos', 'Organismos de vida libre', 'pH', 'Plomo', 'Selenio', 'Sodio', 'Sólidos Totales disueltos', 'Sulfatos', 'Turbiedad', 'Uranio', 'Zinc'];
         const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
-        const SAP_TABS = ['monitor', 'inspeccion', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'riesgos'];
+        const SAP_TABS = ['monitor', 'sanitaria', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'riesgos'];
 
         const generateMonthsUpTo = (limitYYYYMM) => {
             const m = [];
@@ -540,9 +543,29 @@
             return arr;
         };
 
+        const safeEscape = (str) => {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ").replace(/\r/g, "");
+        };
+
         // ========================
-        // SISTEMA DE FILTROS RÁPIDOS
+        // SISTEMA DE FILTROS RÁPIDOS Y CASCADA
         // ========================
+        window.setTableFilter = function(colIndex, value) {
+            APP_STATE.currentTableFilters[colIndex] = value;
+            reRenderCurrentTable();
+        }
+
+        window.removeTableFilter = function(colIndex) {
+            delete APP_STATE.currentTableFilters[colIndex];
+            reRenderCurrentTable();
+        }
+
+        window.clearAllTableFilters = function() {
+            APP_STATE.currentTableFilters = {};
+            reRenderCurrentTable();
+        }
+
         window.toggleFilterDropdown = function(e, prefix, colIdx) {
             e.stopPropagation();
             document.querySelectorAll('.filter-dropdown-menu').forEach(el => {
@@ -583,16 +606,6 @@
             }
         });
 
-        window.removeTableFilter = function(colIndex) {
-            delete APP_STATE.currentTableFilters[colIndex];
-            reRenderCurrentTable();
-        };
-
-        window.clearAllTableFilters = function() {
-            APP_STATE.currentTableFilters = {};
-            reRenderCurrentTable();
-        };
-
         function reRenderCurrentTable() {
             if (APP_STATE.activeTab === 'sap') {
                 const cacheKey = `${APP_STATE.sapActiveTab}_${APP_STATE.sapFilterRed}_${APP_STATE.sapFilterAmbito}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`;
@@ -618,41 +631,12 @@
             
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             
-            // SAP FILTERS
-            document.getElementById('sap-filter-red').addEventListener('change', (e) => { 
-                APP_STATE.sapFilterRed = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processSAPData(); 
-            });
-            document.getElementById('sap-filter-ambito').addEventListener('change', (e) => { 
-                APP_STATE.sapFilterAmbito = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processSAPData(); 
-            });
-
-            // RES FILTERS
-            document.getElementById('res-filter-red').addEventListener('change', (e) => { 
-                APP_STATE.resFilterRed = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processResData(); 
-            });
-            document.getElementById('res-filter-ambito').addEventListener('change', (e) => { 
-                APP_STATE.resFilterAmbito = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processResData(); 
-            });
-            
-            // FED FILTERS
-            document.getElementById('fed-filter-red').addEventListener('change', (e) => { 
-                APP_STATE.fedFilterRed = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processFEDData(); 
-            });
-            document.getElementById('fed-filter-ambito').addEventListener('change', (e) => { 
-                APP_STATE.fedFilterAmbito = e.target.value; 
-                APP_STATE.currentTableFilters = {}; 
-                processFEDData(); 
-            });
+            document.getElementById('sap-filter-red').addEventListener('change', (e) => { APP_STATE.sapFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processSAPData(); });
+            document.getElementById('sap-filter-ambito').addEventListener('change', (e) => { APP_STATE.sapFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processSAPData(); });
+            document.getElementById('res-filter-red').addEventListener('change', (e) => { APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processResData(); });
+            document.getElementById('res-filter-ambito').addEventListener('change', (e) => { APP_STATE.resFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processResData(); });
+            document.getElementById('fed-filter-red').addEventListener('change', (e) => { APP_STATE.fedFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processFEDData(); });
+            document.getElementById('fed-filter-ambito').addEventListener('change', (e) => { APP_STATE.fedFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processFEDData(); });
             
             initWhiteboard();
         }
@@ -762,7 +746,6 @@
                 
                 APP_STATE.availableMonitorMonths = generateMonthsUpTo(maxDateStr);
                 
-                // FORZAR POR DEFECTO RANGO: Diciembre 2025 hasta la última fecha cargada
                 APP_STATE.globalDateFrom = '2025-12';
                 APP_STATE.globalDateTo = maxDateStr;
 
@@ -821,7 +804,7 @@
             } catch (error) { console.error("Error Preloading", error); }
         }
 
-        async function forceRefreshData() {
+        window.forceRefreshData = async function() {
             APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null}; APP_STATE.sapDataLoaded = false;
             APP_STATE.currentTableFilters = {};
             document.getElementById('sap-loader').classList.remove('hidden');
@@ -831,7 +814,7 @@
             if(APP_STATE.activeTab === 'fed') processFEDData();
         }
 
-        function handleLogin(e) {
+        window.handleLogin = function(e) {
             e.preventDefault();
             const u = document.getElementById('login-user').value; const p = document.getElementById('login-pass').value;
             const errEl = document.getElementById('login-error');
@@ -865,9 +848,9 @@
             }, 500);
         }
 
-        function logout() { APP_STATE.currentUser = null; document.getElementById('app-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; document.getElementById('login-error').classList.add('hidden'); switchTab('dashboard'); }
+        window.logout = function() { APP_STATE.currentUser = null; document.getElementById('app-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = ''; document.getElementById('login-error').classList.add('hidden'); switchTab('dashboard'); }
 
-        function switchTab(tabId) {
+        window.switchTab = function(tabId) {
             APP_STATE.activeTab = tabId;
             APP_STATE.currentTableFilters = {}; 
 
@@ -903,11 +886,11 @@
         // LOGICA SAP Y RESULTADOS
         // ========================
         function renderSapTabs() {
-            const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'inspeccion', label: 'Insp. Rural'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'riesgos', label: 'Riesgos'}];
+            const tabs = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'sanitaria', label: 'Insp. Sanitaria'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'riesgos', label: 'Riesgos'}];
             document.getElementById('sap-tabs-container').innerHTML = tabs.map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join('');
         }
 
-        function changeSapSubTab(tabId) { 
+        window.changeSapSubTab = function(tabId) { 
             if(APP_STATE.sapActiveTab === tabId) return; 
             APP_STATE.sapActiveTab = tabId; 
             APP_STATE.currentTableFilters = {}; 
@@ -915,9 +898,9 @@
             
             const desc = document.getElementById('sap-monitor-desc');
             if (desc) {
-                if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'inspeccion', 'riesgos'].includes(tabId)) {
+                if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'riesgos'].includes(tabId)) {
                     if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`;
-                    else if (tabId === 'inspeccion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Rural:</strong> Requiere Físico, Bact. y Parasit. en Captación; y Parasit. en Pileta (Semestral).</span>`;
+                    else if (tabId === 'sanitaria') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Se verifica la ejecución de inspecciones por semestre. Verde = Completado, Rojo = Sin Inspección.</span>`;
                     else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se requiere Informe y Cargo aprobados.</span>`;
                     else if (tabId === 'bacteriologico') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros Bacteriológicos por mes.</span>`;
                     else desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se verifica la presencia de los parámetros en Pileta y Captación por Semestre.</span>`;
@@ -937,7 +920,7 @@
             }
         }
 
-        function changeResSubTab(tabId) {
+        window.changeResSubTab = function(tabId) {
             if(APP_STATE.resActiveTab === tabId) return; 
             APP_STATE.resActiveTab = tabId; 
             APP_STATE.currentTableFilters = {}; 
@@ -963,7 +946,7 @@
             if(toSelRes) { toSelRes.innerHTML = html; toSelRes.value = APP_STATE.globalDateTo; }
         }
 
-        function updateGlobalDateFilter(isRes = false) {
+        window.updateGlobalDateFilter = function(isRes = false) {
             if(isRes) {
                 APP_STATE.globalDateFrom = document.getElementById('res-global-date-from').value;
                 APP_STATE.globalDateTo = document.getElementById('res-global-date-to').value;
@@ -1062,7 +1045,7 @@
 
             let finalHeaders = [], finalData = [], pivotType = 'status'; const idxId = findHeaderIndex(headers, 'Id. SAP');
 
-            if (['metales', 'parasitologico', 'fisico', 'inspeccion'].includes(subTab)) {
+            if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
                 finalHeaders = [...CORE_HEADERS, '1ra Insp. Pileta', '1ra Insp. Captación', '2da Insp. Pileta', '2da Insp. Captación'];
                 const map = {}; 
                 const idxUbiLugar = findHeaderIndex(headers, 'Ubicación Lugar de Muestreo');
@@ -1108,17 +1091,9 @@
                         return { isComplete: expected > 0 && count === expected, count, expected, missing, found: foundParams };
                     };
 
-                    let evalPil, evalCap;
-
-                    if (subTab === 'inspeccion') {
-                        evalPil = evaluateParams(ANALYSIS_SETS.parasitologico.A);
-                        const capSet = [...(ANALYSIS_SETS.bacteriologico.B||[]), ...(ANALYSIS_SETS.parasitologico.B||[]), ...(ANALYSIS_SETS.fisico.B||[])];
-                        evalCap = evaluateParams(capSet);
-                    } else {
-                        const currentSet = ANALYSIS_SETS[subTab];
-                        evalPil = evaluateParams(currentSet?.A);
-                        evalCap = evaluateParams(currentSet?.B);
-                    }
+                    const currentSet = ANALYSIS_SETS[subTab];
+                    const evalPil = evaluateParams(currentSet?.A);
+                    const evalCap = evaluateParams(currentSet?.B);
 
                     const updateSlot = (slot, evaluation, isSlotValidLocation) => {
                         if (isSlotValidLocation && evaluation.count > 0) {
@@ -1333,6 +1308,68 @@
                 });
                 pivotType = 'status_json';
 
+            } else if (subTab === 'sanitaria') {
+                let localRows = dataObj.sanitaria.slice(1); let localHeaders = dataObj.sanitaria[0] || [];
+                if (redFilter !== 'Todos') localRows = localRows.filter(r => r[findHeaderIndex(localHeaders, 'Red de Salud')] === redFilter);
+                if (ambitoFilter === 'MEF') { const sIdx = findHeaderIndex(localHeaders, 'Id. SAP'); if(sIdx!==-1) localRows = localRows.filter(r => APP_STATE.mefSapIds.has(String(r[sIdx]).trim())); }
+                if (ambitoFilter === 'FED') { const uIdx = findHeaderIndex(localHeaders, 'Ubigeo'); if(uIdx!==-1) localRows = localRows.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uIdx]))); }
+                
+                const semSet = new Set();
+                filteredMonths.forEach(m => {
+                    const [y, mm] = m.split('-');
+                    semSet.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`);
+                });
+                const semKeys = Array.from(semSet).sort();
+                const semLabels = semKeys.map(k => {
+                    const [y, s] = k.split('-');
+                    return s === 'S1' ? `1ra Inspección ${y}` : `2da Inspección ${y}`;
+                });
+                
+                finalHeaders = [...CORE_HEADERS, ...semLabels]; 
+                const map = {}; const localIdxId = findHeaderIndex(localHeaders, 'Id. SAP');
+                const idxAno = findHeaderIndex(localHeaders, 'Año');
+                const idxMes = findHeaderIndex(localHeaders, 'Mes');
+                const idxFecha = findHeaderIndex(localHeaders, 'Fecha de inspección');
+
+                localRows.forEach(row => {
+                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')]; if(!id) return;
+                    if(!map[id]) { 
+                        map[id] = { meta: getMeta(row, localHeaders), sems: {} };
+                        semKeys.forEach(k => map[id].sems[k] = 0);
+                    }
+                    
+                    let ano = idxAno !== -1 && row[idxAno] ? String(row[idxAno]).trim() : '';
+                    let mes = idxMes !== -1 ? row[idxMes] : '';
+                    const mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()];
+                    
+                    if (mm) {
+                        if (!ano) {
+                            if (mes.toLowerCase() === 'diciembre') ano = '2025';
+                            else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero') ano = '2026';
+                            else ano = '2025';
+                        }
+                        const semKey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`;
+                        if (semKeys.includes(semKey) && !isCellEmpty(row[idxFecha])) {
+                            map[id].sems[semKey] = 1;
+                        }
+                    }
+                });
+
+                const allSaps = new Map();
+                localRows.forEach(row => {
+                    const id = row[localIdxId] || row[findHeaderIndex(localHeaders, 'Nombre SAP')];
+                    if(id && !allSaps.has(id)) allSaps.set(id, getMeta(row, localHeaders));
+                });
+
+                finalData = Array.from(allSaps.keys()).map(id => {
+                    const obj = map[id] || { sems: {} };
+                    const semCols = semKeys.map(k => {
+                        let status = obj.sems[k] === 1 ? 1 : 0;
+                        return JSON.stringify({status: status === 1 ? 1 : 3, params: []});
+                    });
+                    return [...(obj.meta || allSaps.get(id)), ...semCols];
+                });
+                pivotType = 'status_json';
             } else {
                 finalHeaders = [...CORE_HEADERS];
                 finalData = [];
@@ -1429,7 +1466,7 @@
                 let selectHtml = `
                     <div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()">
                         <button onclick="window.toggleFilterDropdown(event, '${prefix}', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${currentFilterVal ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : ''}">
-                            <span class="truncate">${currentFilterVal ? formatDisplayVal(h, currentFilterVal, isStatusJson) : 'Todos'}</span>
+                            <span class="truncate">${currentFilterVal ? safeEscape(formatDisplayVal(h, currentFilterVal, isStatusJson)) : 'Todos'}</span>
                             <i data-lucide="filter" class="w-3 h-3 ${currentFilterVal ? 'text-indigo-500' : 'text-slate-400'}"></i>
                         </button>
                         <div id="dropdown-${prefix}-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left">
@@ -1440,7 +1477,7 @@
                                 <div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${!currentFilterVal ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '')">[ Todos ]</div>
                                 ${uniqueVals.map(v => {
                                     let dVal = formatDisplayVal(h, v, isStatusJson);
-                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${currentFilterVal === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${v.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${dVal.replace(/"/g, "&quot;")}">${dVal}</div>`;
+                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${currentFilterVal === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${safeEscape(v)}')" title="${safeEscape(dVal)}">${safeEscape(dVal)}</div>`;
                                 }).join('')}
                                 ${uniqueVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}
                             </div>
@@ -1472,8 +1509,8 @@
                         leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
                     }
                     
-                    const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
+                    const rawValStr = safeEscape(cell);
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-indigo-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar"`;
                     
                     let content = cell;
                     const v = parseInt(cell);
@@ -1481,9 +1518,9 @@
                     if (header === 'Excede LMP') {
                         if (v === 1) {
                             const details = row[result.headers.indexOf('Detalles')];
-                            content = `<button onclick='event.stopPropagation(); window.openLMPModal(${JSON.stringify(details).replace(/'/g, "&#39;")})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
+                            content = `<button onclick='event.stopPropagation(); window.openLMPModal(${safeEscape(JSON.stringify(details))})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
                             tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; 
-                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; }
+                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center cursor-pointer hover:bg-indigo-100/50" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '0')"`; }
                     } else if (header === 'Cumple') {
                         if (v === 1) { content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; } 
                         else if (v === 0) { content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; }
@@ -1497,7 +1534,7 @@
                         if (d.status === 1) {
                             content = `<div class="mx-auto w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner" title="Completo"><i data-lucide="check" class="w-4 h-4"></i></div>`;
                         } else if (d.status === 2) {
-                            const pStr = d.params.join(', ');
+                            const pStr = safeEscape(d.params.join(', '));
                             content = `<div class="mx-auto w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 cursor-pointer shadow-inner hover:bg-amber-200 transition-colors" onclick="event.stopPropagation(); window.openParamsModal('${pStr}')" title="Incompleto - Clic para ver"><i data-lucide="info" class="w-4 h-4"></i></div>`;
                         } else {
                             content = `<div class="mx-auto w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner" title="Sin Monitoreo"><i data-lucide="x" class="w-4 h-4"></i></div>`;
@@ -1513,14 +1550,64 @@
                         else if (v === 3) content = `<span class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-purple-200">Pileta y Captación</span>`;
                         else { content = `<span class="text-slate-300">-</span>`; }
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else {
+                    } else if (!stickyClass) {
                         tdAttributes = tdAttributes.replace('class="', 'class="text-slate-600 max-w-[150px] truncate ');
                     }
                     html += `<td ${tdAttributes}>${content}</td>`;
                 });
                 html += `</tr>`;
             });
-            html += `</tbody></table>`; container.innerHTML = html; lucide.createIcons();
+
+            // NUEVA FILA DE TOTALES SAP / RESULTADOS (FLOTANTE STICKY Y DINÁMICA)
+            html += `</tbody><tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">`;
+            html += `<tr class="bg-indigo-100 border-t-2 border-indigo-300 font-black text-indigo-900">`;
+            displayHeaders.forEach((h, idx) => {
+                let stickyClass = "";
+                let leftStyle = "";
+                if (h === 'Ubigeo') {
+                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow`;
+                    leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                } else if (h === 'Nombre CCPP') {
+                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow`;
+                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                }
+                
+                let cellContent = "";
+                if (idx === 0) cellContent = "TOTALES:";
+                else if (idx === 1) cellContent = `<span class="text-indigo-600 text-sm">${filteredData.length}</span> reg.`;
+                else if (idx >= CORE_HEADERS.length) {
+                    if (result.type === 'status_json') {
+                        let c = 0, inc = 0, s = 0;
+                        filteredData.forEach(row => {
+                            try {
+                                const d = JSON.parse(row[idx]);
+                                if (d.status === 1) c++;
+                                else if (d.status === 2) inc++;
+                                else s++;
+                            } catch(e){}
+                        });
+                        cellContent = `<div class="flex justify-center gap-2 text-[10px]">
+                            <span class="text-emerald-600 flex items-center" title="Completos"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${c}</span> 
+                            <span class="text-amber-600 flex items-center" title="Incompletos"><i data-lucide="info" class="w-3 h-3 mr-0.5"></i>${inc}</span> 
+                            <span class="text-red-500 flex items-center" title="Sin Monitoreo"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${s}</span>
+                        </div>`;
+                    } else if (result.type === 'boolean') {
+                        let sum = 0;
+                        filteredData.forEach(row => { let val = parseInt(row[idx]) || 0; if(val >= 1) sum++; });
+                        cellContent = `<span class="text-emerald-600 flex items-center justify-center"><i data-lucide="check-circle-2" class="w-3 h-3 mr-1"></i>${sum}</span>`;
+                    } else if (result.type === 'analysis') {
+                        let sum = 0;
+                        filteredData.forEach(row => { let val = parseInt(row[idx]) || 0; if(val >= 1) sum++; });
+                        if (h === 'Excede LMP') cellContent = `<span class="text-red-600 flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i>${sum}</span>`;
+                        else cellContent = `<span class="text-indigo-600 flex items-center justify-center">${sum}</span>`;
+                    }
+                }
+
+                html += `<td class="px-4 py-2 text-xs uppercase tracking-widest text-center ${stickyClass}" style="${leftStyle}">${cellContent}</td>`;
+            });
+            html += `</tr></tfoot></table>`;
+            container.innerHTML = html;
+            lucide.createIcons();
         }
 
         function renderConsolidatedAndChart(result, prefix, currentTab) {
@@ -1533,11 +1620,9 @@
             const isStatusJson = result.type === 'status_json';
             const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
             
-            // Si es status_json, guardaremos {c, i, s} en lugar de un número simple
             const grandTotals = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
             let grandTotalSaps = 0;
 
-            // Filtrar los datos en CASCADA antes de consolidar
             let filteredData = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                 filteredData = result.data.filter(row => {
@@ -1670,16 +1755,24 @@
         // ========================
         function renderFedTabs() {
             const tabs = [
-                {id: 'ind1', label: 'Ind. 1 (Agua con Cloro y Turbiedad)'}, 
-                {id: 'ind2', label: 'Ind. 2 (Vigilancia del Agua)'}
+                {id: 'ind1', label: 'AI-01.01'}, 
+                {id: 'ind2', label: 'AI-02.01'}
             ];
             const container = document.getElementById('fed-tabs-container');
             if (container) {
                 container.innerHTML = tabs.map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
             }
+            
+            const desc = document.getElementById('fed-monitor-desc');
+            if (desc) {
+                if (APP_STATE.fedActiveTab === 'ind1') desc.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="target" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-01.01:</strong> Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas.</span>`;
+                else if (APP_STATE.fedActiveTab === 'ind2') desc.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="target" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-02.01:</strong> Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas y ejecución presupuestal.</span>`;
+                desc.classList.remove('hidden');
+                lucide.createIcons();
+            }
         }
 
-        function changeFedSubTab(tabId) { 
+        window.changeFedSubTab = function(tabId) { 
             if(APP_STATE.fedActiveTab === tabId) return; 
             APP_STATE.fedActiveTab = tabId; 
             APP_STATE.currentTableFilters = {}; 
@@ -1813,9 +1906,28 @@
             if (indicator === 'ind2') {
                 const sHeaders = dataObj.sanitaria[0] || [];
                 const sRows = dataObj.sanitaria.slice(1);
+                const idxMesSan = findHeaderIndex(sHeaders, 'Mes');
+                const idxAnoSan = findHeaderIndex(sHeaders, 'Año');
+                const idxFechaSan = findHeaderIndex(sHeaders, 'Fecha de inspección');
+
                 sRows.forEach(row => {
                     const id = initCCPP(row, sHeaders); if(!id) return;
-                    if(!isCellEmpty(row[findHeaderIndex(sHeaders, 'Fecha de inspección')])) map[id].insp++;
+                    
+                    let mes = idxMesSan !== -1 ? normalizeHeader(row[idxMesSan]) : '';
+                    let ano = idxAnoSan !== -1 ? String(row[idxAnoSan]).trim() : '';
+                    
+                    if (!ano) {
+                        if (mes === 'diciembre') ano = '2025';
+                        else if (mes === 'enero' || mes === 'febrero') ano = '2026';
+                    }
+                    
+                    const isDic25 = (mes === 'diciembre' && ano === '2025');
+                    const isEne26 = (mes === 'enero' && ano === '2026');
+                    const isFeb26 = (mes === 'febrero' && ano === '2026');
+                    
+                    if ((isDic25 || isEne26 || isFeb26) && !isCellEmpty(row[idxFechaSan])) {
+                        map[id].insp++;
+                    }
                 });
             }
 
@@ -1823,15 +1935,24 @@
             if (indicator === 'ind2') {
                 const rHeaders = dataObj.riesgos[0] || [];
                 const rRows = dataObj.riesgos.slice(1);
+                const idxAno = findHeaderIndex(rHeaders, 'Año');
+                
                 rRows.forEach(row => {
                     const id = initCCPP(row, rHeaders); if(!id) return;
-                    ['Diciembre', 'Enero', 'Febrero'].forEach(m => {
-                        const inf = row[findHeaderIndex(rHeaders, `Informe ${m}`)];
-                        const car = row[findHeaderIndex(rHeaders, `Cargo ${m}`)];
-                        if(normalizeHeader(inf) === 'aprobado' && normalizeHeader(car) === 'aprobado') {
-                            map[id].riesgos[m.toLowerCase()] = true;
-                        }
-                    });
+                    const ano = idxAno !== -1 ? String(row[idxAno]).trim() : '';
+                    
+                    if (ano === '2025' || ano === '') {
+                        const carDic = row[findHeaderIndex(rHeaders, 'Cargo Diciembre')];
+                        if (normalizeHeader(carDic) === 'aprobado') map[id].riesgos.dic = true;
+                    }
+                    
+                    if (ano === '2026' || ano === '') {
+                        const carEne = row[findHeaderIndex(rHeaders, 'Cargo Enero')];
+                        if (normalizeHeader(carEne) === 'aprobado') map[id].riesgos.ene = true;
+                        
+                        const carFeb = row[findHeaderIndex(rHeaders, 'Cargo Febrero')];
+                        if (normalizeHeader(carFeb) === 'aprobado') map[id].riesgos.feb = true;
+                    }
                 });
             }
 
@@ -1844,45 +1965,31 @@
                     const ev5_feb = calcEv5p(sap.feb); const ev_feb = (ev5_feb === 1 && sap.feb.clo > 0 && sap.feb.tur > 0) ? 1 : 0;
 
                     let sumEv = ev_dic + ev_ene + ev_feb;
-                    let sumTot = sap.dic.tot + sap.ene.tot + sap.feb.tot;
-                    let seg = sumTot === 0 ? 'Gris' : (sumEv >= 2 ? 'Verde' : (sumEv === 1 ? 'Naranja' : 'Rojo'));
+                    let seg = sumEv >= 3 ? 'Verde' : (sumEv > 0 ? 'Naranja' : 'Rojo');
 
                     const isMef = APP_STATE.mefUbigeos.has(sap.ubigeo) ? 1 : 0;
                     const isFed = APP_STATE.fedUbigeos.has(sap.ubigeo) ? 1 : 0;
 
                     return [
                         sap.ubigeo, sap.ccpp, sap.provincia, sap.distrito, sap.red,
-                        sap.dic.tot, sap.dic.p5, ev5_dic, sap.dic.clo, sap.dic.tur, ev_dic,
-                        sap.ene.tot, sap.ene.p5, ev5_ene, sap.ene.clo, sap.ene.tur, ev_ene,
-                        sap.feb.tot, sap.feb.p5, ev5_feb, sap.feb.clo, sap.feb.tur, ev_feb,
-                        seg, isMef, isFed
+                        ev_dic, ev_ene, ev_feb, seg, isMef, isFed
                     ];
                 });
                 return {
-                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (0.5<=Cl<=5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (0.5<=Cl<=5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (0.5<=Cl<=2)', 'Feb (Turb<=5)', 'Ev_Feb', 'Seguimiento', 'MEF', 'FED'],
+                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Diciembre', 'Enero', 'Febrero', 'Seguimiento', 'MEF', 'FED'],
                     data: finalData
                 };
             } 
             else if (indicator === 'ind2') {
                 const finalData = Object.values(map).map(sap => {
-                    // 1. Insp Sanitaria
                     const ev_insp = sap.insp > 0 ? 1 : 0;
-                    
-                    // 2. Caracterizacion
                     const ev_caract = (sap.caract.cap && sap.caract.pil) ? 1 : 0;
-                    
-                    // 3. Monitoreo 5P
                     const calcMes5p = (m) => m.p5 > 3 ? 1 : 0;
                     const sum5p = calcMes5p(sap.dic) + calcMes5p(sap.ene) + calcMes5p(sap.feb);
                     const ev_monit = sum5p >= 2 ? 1 : 0;
-
-                    // 4. Reportes Riesgos
                     const sumRiesgos = (sap.riesgos.dic?1:0) + (sap.riesgos.ene?1:0) + (sap.riesgos.feb?1:0);
-                    const ev_riesgos = sumRiesgos >= 2 ? 1 : 0;
-
-                    // Final Indicator
+                    const ev_riesgos = sumRiesgos >= 3 ? 1 : 0;
                     const ind_final = (ev_insp === 1 && ev_caract === 1 && ev_monit === 1 && ev_riesgos === 1) ? 1 : 0;
-
                     const isMef = APP_STATE.mefUbigeos.has(sap.ubigeo) ? 1 : 0;
                     const isFed = APP_STATE.fedUbigeos.has(sap.ubigeo) ? 1 : 0;
 
@@ -1918,13 +2025,13 @@
                 Object.entries(APP_STATE.currentTableFilters).forEach(([idx, val]) => {
                     let displayVal = val;
                     if(result.headers[idx] === 'Seguimiento') {
-                        if(val === 'Verde') displayVal = 'CUMPLE (>=2)';
-                        else if(val === 'Naranja') displayVal = 'CUMPLE (1)';
+                        if(val === 'Verde') displayVal = 'CUMPLE (>=3)';
+                        else if(val === 'Naranja') displayVal = 'CUMPLE PARCIAL';
                         else if(val === 'Rojo') displayVal = 'NO CUMPLE';
                         else displayVal = 'SIN MONITOREO';
                     } else if(result.headers[idx] === 'MEF' || result.headers[idx] === 'FED') {
                         displayVal = val === '1' ? 'SÍ' : '-';
-                    } else if(result.headers[idx].includes('Cumple') || result.headers[idx].includes('Cumplimiento')) {
+                    } else if(result.headers[idx].includes('Cumple') || result.headers[idx].includes('Cumplimiento') || result.headers[idx] === 'Diciembre' || result.headers[idx] === 'Enero' || result.headers[idx] === 'Febrero') {
                         displayVal = val === '1' ? 'CUMPLE' : 'NO CUMPLE';
                     }
                     filterHtml += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${idx})" title="Quitar filtro">${result.headers[idx]}: ${displayVal} <i data-lucide="x" class="w-3 h-3"></i></span>`;
@@ -1941,15 +2048,14 @@
             
             const formatDisplayVal = (h, v) => {
                 if (h === 'Seguimiento') {
-                    if(v === 'Verde') return 'CUMPLE (>=2)';
-                    if(v === 'Naranja') return 'CUMPLE (1)';
+                    if(v === 'Verde') return 'CUMPLE (>=3)';
+                    if(v === 'Naranja') return 'CUMPLE PARCIAL';
                     if(v === 'Rojo') return 'NO CUMPLE';
                     return 'SIN MONITOREO';
                 }
                 if (h === 'MEF' || h === 'FED') return v === '1' ? 'SÍ' : '-';
-                if (h.includes('Cumple') || h.includes('Cumplimiento')) return v === '1' ? 'CUMPLE' : 'NO CUMPLE';
-                if (h.includes('Ev_') || h.includes('EV_5p')) return v === '1' ? '1' : '0';
-                return v.substring(0, 30);
+                if (h.includes('Cumple') || h.includes('Cumplimiento') || h === 'Diciembre' || h === 'Enero' || h === 'Febrero') return v === '1' ? 'CUMPLE' : 'NO CUMPLE';
+                return String(v).substring(0, 30);
             };
 
             result.headers.forEach((h, idx) => {
@@ -1963,7 +2069,6 @@
                     leftStyle = "left-[80px] min-w-[150px] max-w-[150px]";
                 }
                 
-                // LÓGICA CASCADA
                 let dataForThisCol = result.data;
                 if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                     dataForThisCol = result.data.filter(row => {
@@ -1980,7 +2085,7 @@
                 let selectHtml = `
                     <div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()">
                         <button onclick="window.toggleFilterDropdown(event, 'fed', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${currentFilterVal ? 'bg-amber-50 border-amber-300 text-amber-700' : ''}">
-                            <span class="truncate">${currentFilterVal ? formatDisplayVal(h, currentFilterVal) : 'Todos'}</span>
+                            <span class="truncate">${currentFilterVal ? safeEscape(formatDisplayVal(h, currentFilterVal)) : 'Todos'}</span>
                             <i data-lucide="filter" class="w-3 h-3 ${currentFilterVal ? 'text-amber-500' : 'text-slate-400'}"></i>
                         </button>
                         <div id="dropdown-fed-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left">
@@ -1991,7 +2096,7 @@
                                 <div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-amber-50 truncate transition-colors ${!currentFilterVal ? 'bg-amber-100 font-bold text-amber-700' : 'text-slate-600'}" onclick="window.applyTableFilter('fed', ${idx}, '')">[ Todos ]</div>
                                 ${uniqueVals.map(v => {
                                     let dVal = formatDisplayVal(h, v);
-                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-amber-50 truncate transition-colors ${currentFilterVal === v ? 'bg-amber-100 font-bold text-amber-700' : 'text-slate-600'}" onclick="window.applyTableFilter('fed', ${idx}, '${v.replace(/'/g, "\\'").replace(/"/g, "&quot;")}')" title="${dVal.replace(/"/g, "&quot;")}">${dVal}</div>`;
+                                    return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-amber-50 truncate transition-colors ${currentFilterVal === v ? 'bg-amber-100 font-bold text-amber-700' : 'text-slate-600'}" onclick="window.applyTableFilter('fed', ${idx}, '${safeEscape(v)}')" title="${safeEscape(dVal)}">${safeEscape(dVal)}</div>`;
                                 }).join('')}
                                 ${uniqueVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}
                             </div>
@@ -2023,27 +2128,21 @@
                         leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
                     }
                     
-                    const rawValStr = String(cell).replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
+                    const rawValStr = safeEscape(cell);
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-amber-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
                     let content = cell;
 
                     if (header === 'Seguimiento') {
-                        if(cell === 'Verde') content = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>CUMPLE (>=2)</span>";
-                        else if(cell === 'Naranja') content = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE (1)</span>";
+                        if(cell === 'Verde') content = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>CUMPLE (>=3)</span>";
+                        else if(cell === 'Naranja') content = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE PARCIAL</span>";
                         else if(cell === 'Rojo') content = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>";
                         else content = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>";
                     } else if (header === 'MEF' || header === 'FED') {
                         content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`;
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (header === 'Cumplimiento Ind. 2') {
+                    } else if (header.includes('Cumple') || header === 'Diciembre' || header === 'Enero' || header === 'Febrero') {
                         if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
                         else content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
-                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (header.includes('Cumple ')) {
-                        content = cell === 1 ? `<div class="mx-auto w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i data-lucide="check" class="w-3 h-3"></i></div>` : `<div class="mx-auto w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="x" class="w-3 h-3"></i></div>`;
-                        tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (header.includes('Ev_') || header.includes('EV_5p')) {
-                        content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200">1</span>` : `<span class="text-slate-300">0</span>`;
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (typeof cell === 'number') {
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center text-slate-600 font-mono ');
@@ -2055,22 +2154,67 @@
                 });
                 html += `</tr>`;
             });
-            html += `</tbody></table>`;
+
+            // NUEVA FILA DE TOTALES FED (FLOTANTE STICKY Y DINÁMICA)
+            html += `</tbody><tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">`;
+            html += `<tr class="bg-amber-100 border-t-2 border-amber-300 font-black text-amber-900">`;
+            result.headers.forEach((h, idx) => {
+                let stickyClass = "";
+                let leftStyle = "";
+                if (h === 'Ubigeo') {
+                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow`;
+                    leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                } else if (h === 'Nombre CCPP') {
+                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow`;
+                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                }
+                
+                let cellContent = "";
+                if (idx === 0) cellContent = "TOTALES:";
+                else if (idx === 1) cellContent = `<span class="text-amber-600 text-sm">${filteredData.length}</span> reg.`;
+                else if (idx > 4) { 
+                    if (h === 'Seguimiento') {
+                        let v = 0, n = 0, r = 0;
+                        filteredData.forEach(row => {
+                            if(row[idx] === 'Verde') v++; else if(row[idx] === 'Naranja') n++; else if(row[idx] === 'Rojo') r++;
+                        });
+                        cellContent = `<div class="flex justify-center gap-2 text-[10px]">
+                            <span class="text-emerald-600 flex items-center" title="Cumple (>=3)"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${v}</span> 
+                            <span class="text-amber-600 flex items-center" title="Parcial"><i data-lucide="minus" class="w-3 h-3 mr-0.5"></i>${n}</span> 
+                            <span class="text-red-500 flex items-center" title="No Cumple"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${r}</span>
+                        </div>`;
+                    } else if (h === 'MEF' || h === 'FED' || h.includes('Cumple') || h.includes('Cumplimiento') || h === 'Diciembre' || h === 'Enero' || h === 'Febrero') {
+                        let sum = 0;
+                        filteredData.forEach(row => { if (parseInt(row[idx]) === 1) sum++; });
+                        cellContent = `<span class="text-indigo-600">${sum}</span>`;
+                    } else {
+                        let sum = 0;
+                        filteredData.forEach(row => {
+                            let val = parseFloat(row[idx]);
+                            if(!isNaN(val)) sum += val;
+                        });
+                        cellContent = `<span class="text-amber-700">${sum}</span>`;
+                    }
+                }
+
+                html += `<td class="px-4 py-2 text-xs uppercase tracking-widest text-center ${stickyClass}" style="${leftStyle}">${cellContent}</td>`;
+            });
+            html += `</tr></tfoot></table>`;
             container.innerHTML = html;
             lucide.createIcons();
         }
 
         function renderFedConsolidatedAndChart(result) {
-            const summary = {}; 
+            const summaryRed = {}; 
+            const summaryProv = {}; 
+            const summaryDist = {}; 
+
             let grandTotalCcpp=0, grandCumplenInd=0;
-            // Ind 1 variables
-            let grandEv5pDic=0, grandDic=0, grandEv5pEne=0, grandEne=0, grandEv5pFeb=0, grandFeb=0;
-            // Ind 2 variables
+            let grandDic=0, grandEne=0, grandFeb=0;
             let grandInsp=0, grandCaract=0, grandMonit=0, grandRiesgos=0;
             
             const isInd1 = APP_STATE.fedActiveTab === 'ind1';
 
-            // Filtrado CASCADA antes del consolidado FED
             let filteredData = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                 filteredData = result.data.filter(row => {
@@ -2082,92 +2226,138 @@
             }
 
             filteredData.forEach(row => {
-                const red = row[4];
-                if(!summary[red]) {
-                    summary[red] = { 
-                        ccpp:0, 
-                        ev5Dic:0, dic:0, ev5Ene:0, ene:0, ev5Feb:0, feb:0, cumplen:0, 
-                        insp:0, caract:0, monit:0, riesgos:0 
-                    };
-                }
-                summary[red].ccpp++; grandTotalCcpp++;
+                const red = row[4] || 'Sin Red';
+                const prov = row[2] || 'Sin Provincia';
+                const dist = row[3] || 'Sin Distrito';
 
+                [summaryRed, summaryProv, summaryDist].forEach((obj, idx) => {
+                    const key = idx === 0 ? red : (idx === 1 ? prov : dist);
+                    if(!obj[key]) {
+                        obj[key] = { ccpp:0, dic:0, ene:0, feb:0, cumplen:0, insp:0, caract:0, monit:0, riesgos:0 };
+                    }
+                    obj[key].ccpp++;
+
+                    if (isInd1) {
+                        const evDic = row[5]; 
+                        const evEne = row[6]; 
+                        const evFeb = row[7];
+                        const sumEv = evDic + evEne + evFeb;
+                        
+                        if(evDic===1) obj[key].dic++;
+                        if(evEne===1) obj[key].ene++;
+                        if(evFeb===1) obj[key].feb++;
+                        if(sumEv>=3) obj[key].cumplen++;
+                    } else {
+                        const eInsp = row[5]; const eCaract = row[6]; const eMonit = row[7]; const eRiesgos = row[8]; const eFinal = row[9];
+                        if(eInsp===1) obj[key].insp++;
+                        if(eCaract===1) obj[key].caract++;
+                        if(eMonit===1) obj[key].monit++;
+                        if(eRiesgos===1) obj[key].riesgos++;
+                        if(eFinal===1) obj[key].cumplen++;
+                    }
+                });
+
+                grandTotalCcpp++;
                 if (isInd1) {
-                    const ev5Dic = row[7]; const evDic = row[10]; 
-                    const ev5Ene = row[13]; const evEne = row[16]; 
-                    const ev5Feb = row[19]; const evFeb = row[22];
-                    const sumEv = evDic + evEne + evFeb;
-                    
-                    if(ev5Dic===1) { summary[red].ev5Dic++; grandEv5pDic++; }
-                    if(evDic===1) { summary[red].dic++; grandDic++; }
-                    if(ev5Ene===1) { summary[red].ev5Ene++; grandEv5pEne++; }
-                    if(evEne===1) { summary[red].ene++; grandEne++; }
-                    if(ev5Feb===1) { summary[red].ev5Feb++; grandEv5pFeb++; }
-                    if(evFeb===1) { summary[red].feb++; grandFeb++; }
-                    if(sumEv>=2) { summary[red].cumplen++; grandCumplenInd++; }
+                    const sumEv = row[5] + row[6] + row[7];
+                    if(row[5]===1) grandDic++;
+                    if(row[6]===1) grandEne++;
+                    if(row[7]===1) grandFeb++;
+                    if(sumEv>=3) grandCumplenInd++;
                 } else {
-                    const eInsp = row[5]; const eCaract = row[6]; const eMonit = row[7]; const eRiesgos = row[8]; const eFinal = row[9];
-                    if(eInsp===1) { summary[red].insp++; grandInsp++; }
-                    if(eCaract===1) { summary[red].caract++; grandCaract++; }
-                    if(eMonit===1) { summary[red].monit++; grandMonit++; }
-                    if(eRiesgos===1) { summary[red].riesgos++; grandRiesgos++; }
-                    if(eFinal===1) { summary[red].cumplen++; grandCumplenInd++; }
+                    if(row[5]===1) grandInsp++;
+                    if(row[6]===1) grandCaract++;
+                    if(row[7]===1) grandMonit++;
+                    if(row[8]===1) grandRiesgos++;
+                    if(row[9]===1) grandCumplenInd++;
                 }
             });
 
-            let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr>
-                <th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th>
-                <th class="px-5 py-4 text-center text-xs font-black text-slate-600 uppercase">Total CCPP</th>`;
-            
-            if (isInd1) {
-                htmlCon += `<th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">EV_5p Dic</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Diciembre</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">EV_5p Ene</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Enero</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">EV_5p Feb</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Febrero</th>
-                <th class="px-5 py-4 text-center text-xs font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=2 Meses</th>`;
-            } else {
-                htmlCon += `<th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Inspección</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Caracterización</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Monitoreo 5P</th>
-                <th class="px-5 py-4 text-center text-xs font-bold text-slate-500 uppercase">Riesgos</th>
-                <th class="px-5 py-4 text-center text-xs font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`;
-            }
-            htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+            const buildTableHtml = (summaryObj, firstColLabel) => {
+                let htmlCon = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0">`;
+                htmlCon += `<div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${firstColLabel}</h5></div>`;
+                htmlCon += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>
+                    <th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${firstColLabel}</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th>`;
+                
+                if (isInd1) {
+                    htmlCon += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>`;
+                } else {
+                    htmlCon += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th>
+                    <th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`;
+                }
+                htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
 
-            Object.entries(summary).forEach(([red, vals]) => {
-                htmlCon += `<tr class="hover:bg-slate-50 transition-colors">
-                    <td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700">${red}</td>
-                    <td class="px-5 py-3.5 text-xs text-center font-bold text-slate-600">${vals.ccpp}</td>`;
+                Object.entries(summaryObj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, vals]) => {
+                    htmlCon += `<tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td>
+                        <td class="px-5 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${vals.ccpp}</td>`;
+                    if(isInd1) {
+                        htmlCon += `<td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${vals.dic}</td>
+                        <td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${vals.ene}</td>
+                        <td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${vals.feb}</td>`;
+                    } else {
+                        htmlCon += `<td class="px-4 py-2.5 text-xs text-center text-slate-500">${vals.insp}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${vals.caract}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${vals.monit}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${vals.riesgos}</td>`;
+                    }
+                    htmlCon += `<td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${vals.cumplen}</td></tr>`;
+                });
+
+                htmlCon += `<tr class="bg-slate-800 border-t border-slate-700">
+                    <td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td>
+                    <td class="px-5 py-3 text-xs text-center text-white font-bold bg-slate-900">${grandTotalCcpp}</td>`;
                 if(isInd1) {
-                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.ev5Dic}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500 font-bold">${vals.dic}</td>
-                    <td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.ev5Ene}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500 font-bold">${vals.ene}</td>
-                    <td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.ev5Feb}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500 font-bold">${vals.feb}</td>`;
+                    htmlCon += `<td class="px-4 py-3 text-xs text-center text-white font-bold">${grandDic}</td>
+                    <td class="px-4 py-3 text-xs text-center text-white font-bold">${grandEne}</td>
+                    <td class="px-4 py-3 text-xs text-center text-white font-bold">${grandFeb}</td>`;
                 } else {
-                    htmlCon += `<td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.insp}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.caract}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.monit}</td><td class="px-5 py-3.5 text-xs text-center text-slate-500">${vals.riesgos}</td>`;
+                    htmlCon += `<td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${grandInsp}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${grandCaract}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${grandMonit}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${grandRiesgos}</td>`;
                 }
-                htmlCon += `<td class="px-5 py-3.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${vals.cumplen}</td></tr>`;
-            });
+                htmlCon += `<td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${grandCumplenInd}</td></tr></tbody></table></div></div>`;
+                return htmlCon;
+            };
 
-            htmlCon += `<tr class="bg-slate-800 border-t border-slate-700">
-                <td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td>
-                <td class="px-5 py-4 text-xs text-center text-white font-bold">${grandTotalCcpp}</td>`;
-            if(isInd1) {
-                htmlCon += `<td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandEv5pDic}</td><td class="px-5 py-4 text-xs text-center text-white font-bold">${grandDic}</td>
-                <td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandEv5pEne}</td><td class="px-5 py-4 text-xs text-center text-white font-bold">${grandEne}</td>
-                <td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandEv5pFeb}</td><td class="px-5 py-4 text-xs text-center text-white font-bold">${grandFeb}</td>`;
-            } else {
-                htmlCon += `<td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandInsp}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandCaract}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandMonit}</td><td class="px-5 py-4 text-xs text-center text-slate-300 font-bold">${grandRiesgos}</td>`;
+            let allHtml = '<div class="flex flex-col w-full p-4">';
+            allHtml += buildTableHtml(summaryRed, "RED DE SALUD");
+            allHtml += buildTableHtml(summaryProv, "PROVINCIA");
+            allHtml += buildTableHtml(summaryDist, "DISTRITO");
+            
+            // AGREGAR TABLA META ASUMIDA AL FINAL PARA IND1
+            if (isInd1) {
+                let metaHtml = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6">`;
+                metaHtml += `<div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div>`;
+                metaHtml += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Meta Asumida</th>
+                </tr></thead><tbody class="divide-y divide-slate-100">`;
+                metaHtml += `<tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${grandDic}</td>
+                    <td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${grandEne}</td>
+                    <td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${grandFeb}</td>
+                    <td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${grandCumplenInd}</td>
+                    <td class="px-5 py-4 text-lg text-center font-black text-blue-700 bg-blue-50">200</td>
+                </tr>`;
+                metaHtml += `</tbody></table></div></div>`;
+                allHtml += metaHtml;
             }
-            htmlCon += `<td class="px-5 py-4 text-xs text-center text-emerald-400 font-black">${grandCumplenInd}</td></tr></tbody></table>`;
-            document.getElementById('fed-consolidated-container').innerHTML = htmlCon;
+
+            allHtml += '</div>';
+
+            document.getElementById('fed-consolidated-container').innerHTML = allHtml;
 
             let counts = [0,0,0,0]; 
             let labels = [];
             if(isInd1) {
-                filteredData.forEach(row => { const s = row[23]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
-                labels = ['Cumple Meta (>=2)', 'Cumple Parcial (1)', 'No Cumple (0)', 'Sin Monitoreo'];
+                filteredData.forEach(row => { const s = row[8]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
+                labels = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo'];
             } else {
                 filteredData.forEach(row => { const f = row[9]; if(f===1) counts[0]++; else counts[2]++; });
                 labels = ['SAPs Cumplen Ind 2', '', 'No Cumplen', ''];
@@ -2176,7 +2366,7 @@
         }
 
         // ========================
-        // OTRAS FUNCIONES COMPARTIDAS
+        // OTRAS FUNCIONES COMPARTIDAS Y EXPORTS
         // ========================
         function renderDoughnutChart(data, labels, colors, title, containerId) {
             const total = data.reduce((a,b) => a+b, 0);
@@ -2200,7 +2390,7 @@
             document.getElementById(containerId).innerHTML = svg;
         }
 
-        function exportToExcel(isRes = false) {
+        window.exportToExcel = function(isRes = false) {
             const activeTab = isRes ? APP_STATE.resActiveTab : APP_STATE.sapActiveTab;
             const filterRed = isRes ? APP_STATE.resFilterRed : APP_STATE.sapFilterRed;
             const filterAmbito = isRes ? APP_STATE.resFilterAmbito : APP_STATE.sapFilterAmbito;
@@ -2211,7 +2401,6 @@
             
             const wb = XLSX.utils.book_new();
 
-            // Aplicar filtro si existe
             let dataToExport = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                 dataToExport = dataToExport.filter(row => {
@@ -2234,7 +2423,7 @@
                         try { const d = JSON.parse(cell); return Array.isArray(d) ? d.map(x => `${x.metal}=${x.value} (${x.month})`).join(', ') : ''; } catch (e) { return ''; }
                     } 
                     if (header === 'Cumple') { return cell === 1 ? 'SI' : (cell === 0 ? 'NO' : '-'); }
-                    if (header.includes('Muestra')) {
+                    if (header.includes('Muestra') || header.includes('Insp.')) {
                         if (cell === 1) return 'Captación';
                         if (cell === 2) return 'Pileta';
                         if (cell === 3) return 'Pileta y Captación';
@@ -2265,7 +2454,7 @@
             XLSX.writeFile(wb, `Reporte_${isRes ? 'RESULTADOS' : 'ACTIVIDADES'}_${activeTab}.xlsx`);
         }
 
-        function exportFEDToExcel() {
+        window.exportFEDToExcel = function() {
             if(!APP_STATE.fedCache[APP_STATE.fedActiveTab]) return;
             const result = filterFedData(APP_STATE.fedCache[APP_STATE.fedActiveTab], APP_STATE.fedFilterRed, APP_STATE.fedFilterAmbito);
             
@@ -2280,15 +2469,112 @@
                 const fedIdx = result.headers.indexOf('FED');
                 if (mefIdx !== -1) newRow[mefIdx] = newRow[mefIdx] === 1 ? 'SI' : '';
                 if (fedIdx !== -1) newRow[fedIdx] = newRow[fedIdx] === 1 ? 'SI' : '';
+
+                // Formatear textos de la columna Seguimiento
+                const segIdx = result.headers.indexOf('Seguimiento');
+                if (segIdx !== -1) {
+                    if (newRow[segIdx] === 'Verde') newRow[segIdx] = 'CUMPLE (>=3)';
+                    else if (newRow[segIdx] === 'Naranja') newRow[segIdx] = 'CUMPLE PARCIAL';
+                    else if (newRow[segIdx] === 'Rojo') newRow[segIdx] = 'NO CUMPLE';
+                    else newRow[segIdx] = 'SIN MONITOREO';
+                }
                 return newRow;
             });
 
+            // Generar los datos para las pestañas de RESUMEN de forma dinámica
+            const summaryRed = {}; 
+            const summaryProv = {}; 
+            const summaryDist = {}; 
+
+            let grandTotalCcpp=0, grandCumplenInd=0;
+            let grandDic=0, grandEne=0, grandFeb=0;
+            let grandInsp=0, grandCaract=0, grandMonit=0, grandRiesgos=0;
+            const isInd1 = APP_STATE.fedActiveTab === 'ind1';
+
+            dataToExport.forEach(row => {
+                const red = row[4] || 'Sin Red';
+                const prov = row[2] || 'Sin Provincia';
+                const dist = row[3] || 'Sin Distrito';
+
+                [summaryRed, summaryProv, summaryDist].forEach((obj, idx) => {
+                    const key = idx === 0 ? red : (idx === 1 ? prov : dist);
+                    if(!obj[key]) {
+                        obj[key] = { ccpp:0, dic:0, ene:0, feb:0, cumplen:0, insp:0, caract:0, monit:0, riesgos:0 };
+                    }
+                    obj[key].ccpp++;
+
+                    if (isInd1) {
+                        const evDic = row[5]; 
+                        const evEne = row[6]; 
+                        const evFeb = row[7];
+                        const sumEv = evDic + evEne + evFeb;
+                        
+                        if(evDic===1) obj[key].dic++;
+                        if(evEne===1) obj[key].ene++;
+                        if(evFeb===1) obj[key].feb++;
+                        if(sumEv>=3) obj[key].cumplen++;
+                    } else {
+                        const eInsp = row[5]; const eCaract = row[6]; const eMonit = row[7]; const eRiesgos = row[8]; const eFinal = row[9];
+                        if(eInsp===1) obj[key].insp++;
+                        if(eCaract===1) obj[key].caract++;
+                        if(eMonit===1) obj[key].monit++;
+                        if(eRiesgos===1) obj[key].riesgos++;
+                        if(eFinal===1) obj[key].cumplen++;
+                    }
+                });
+
+                grandTotalCcpp++;
+                if (isInd1) {
+                    const sumEv = row[5] + row[6] + row[7];
+                    if(row[5]===1) grandDic++;
+                    if(row[6]===1) grandEne++;
+                    if(row[7]===1) grandFeb++;
+                    if(sumEv>=3) grandCumplenInd++;
+                } else {
+                    if(row[5]===1) grandInsp++;
+                    if(row[6]===1) grandCaract++;
+                    if(row[7]===1) grandMonit++;
+                    if(row[8]===1) grandRiesgos++;
+                    if(row[9]===1) grandCumplenInd++;
+                }
+            });
+
+            const buildAOA = (summaryObj, firstColLabel) => {
+                const aoa = [];
+                if (isInd1) {
+                    aoa.push([firstColLabel, "TOTAL CCPP", "Diciembre", "Enero", "Febrero", "CUMPLEN >=3 MESES"]);
+                    Object.entries(summaryObj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, vals]) => {
+                        aoa.push([k, vals.ccpp, vals.dic, vals.ene, vals.feb, vals.cumplen]);
+                    });
+                    aoa.push(["TOTAL GENERAL", grandTotalCcpp, grandDic, grandEne, grandFeb, grandCumplenInd]);
+                } else {
+                    aoa.push([firstColLabel, "TOTAL CCPP", "Inspección", "Caracterización", "Monitoreo 5P", "Riesgos", "CUMPLEN IND. 2"]);
+                    Object.entries(summaryObj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, vals]) => {
+                        aoa.push([k, vals.ccpp, vals.insp, vals.caract, vals.monit, vals.riesgos, vals.cumplen]);
+                    });
+                    aoa.push(["TOTAL GENERAL", grandTotalCcpp, grandInsp, grandCaract, grandMonit, grandRiesgos, grandCumplenInd]);
+                }
+                return aoa;
+            };
+
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([result.headers, ...excelData]), "Detalle_FED");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAOA(summaryRed, "RED DE SALUD")), "Resumen_Red");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAOA(summaryProv, "PROVINCIA")), "Resumen_Provincia");
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildAOA(summaryDist, "DISTRITO")), "Resumen_Distrito");
+            
+            if (isInd1) {
+                const metaAOA = [
+                    ["Diciembre", "Enero", "Febrero", "Cumplen >=3 Meses", "Meta Asumida"],
+                    [grandDic, grandEne, grandFeb, grandCumplenInd, 200]
+                ];
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(metaAOA), "Avance_Meta");
+            }
+
             XLSX.writeFile(wb, `Reporte_FED_${APP_STATE.fedActiveTab}.xlsx`);
         }
 
-        function openLMPModal(jsonString) {
+        window.openLMPModal = function(jsonString) {
             const data = JSON.parse(jsonString);
             const content = document.getElementById('modal-lmp-content');
             content.innerHTML = data.map(d => `
@@ -2305,8 +2591,11 @@
             `).join('');
             lucide.createIcons();
             document.getElementById('modal-lmp').classList.remove('hidden');
-        }
-        function closeModal() { document.getElementById('modal-lmp').classList.add('hidden'); }
+        };
+
+        window.closeModal = function() {
+            document.getElementById('modal-lmp').classList.add('hidden');
+        };
 
         window.openParamsModal = function(paramsStr) {
             const content = document.getElementById('modal-params-content');
@@ -2315,24 +2604,70 @@
             content.innerHTML = params.map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim()}</span>`).join('');
             lucide.createIcons();
             document.getElementById('modal-params').classList.remove('hidden');
-        }
-        
+        };
+
         window.closeParamsModal = function() {
             document.getElementById('modal-params').classList.add('hidden');
+        };
+
+        function renderUserTable() { 
+            const tbody = document.getElementById('users-table-body'); 
+            document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; 
+            tbody.innerHTML = APP_STATE.usersList.map(u => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>
+                        ${u.usuario}
+                    </td>
+                    <td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td>
+                    <td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td>
+                    <td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td>
+                </tr>
+            `).join(''); 
         }
 
-        function renderUserTable() { const tbody = document.getElementById('users-table-body'); document.getElementById('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tbody.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50 transition-colors"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs shadow-inner">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase tracking-wider">${u.red}</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
-        function initWhiteboard() { const canvas = document.getElementById('wb-canvas'); const ctx = canvas.getContext('2d'); let isDrawing = false; const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height); }; window.addEventListener('resize', resize); const observer = new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { resize(); } }); }); observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; const stop = () => { isDrawing = false; }; canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop); }
-        function clearCanvas() { const c = document.getElementById('wb-canvas'); const x = c.getContext('2d'); x.fillRect(0,0,c.width,c.height); }
+        function initWhiteboard() { 
+            const canvas = document.getElementById('wb-canvas'); 
+            const ctx = canvas.getContext('2d'); 
+            let isDrawing = false; 
+            const resize = () => { 
+                canvas.width = canvas.offsetWidth; 
+                canvas.height = canvas.offsetHeight; 
+                ctx.fillStyle = "white"; 
+                ctx.fillRect(0,0,canvas.width, canvas.height); 
+            }; 
+            window.addEventListener('resize', resize); 
+            const observer = new MutationObserver((mutations) => { 
+                mutations.forEach((mutation) => { 
+                    if (mutation.target.id === 'view-whiteboard' && !mutation.target.classList.contains('hidden')) { 
+                        resize(); 
+                    } 
+                }); 
+            }); 
+            observer.observe(document.getElementById('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); 
+            const start = (e) => { isDrawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }; 
+            const draw = (e) => { if(!isDrawing) return; ctx.strokeStyle = "#4f46e5"; ctx.lineWidth = 2; ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }; 
+            const stop = () => { isDrawing = false; }; 
+            canvas.addEventListener('mousedown', start); 
+            canvas.addEventListener('mousemove', draw); 
+            canvas.addEventListener('mouseup', stop); 
+            canvas.addEventListener('mouseleave', stop); 
+        }
 
-        window.exportToExcel = exportToExcel;
-        window.exportFEDToExcel = exportFEDToExcel;
-        window.openLMPModal = openLMPModal;
-        window.closeModal = closeModal;
-        window.openParamsModal = openParamsModal;
-        window.closeParamsModal = closeParamsModal;
+        window.clearCanvas = function() { 
+            const c = document.getElementById('wb-canvas'); 
+            const x = c.getContext('2d'); 
+            x.fillStyle = "white";
+            x.fillRect(0,0,c.width,c.height); 
+        };
+
+        window.switchTab = switchTab;
+        window.handleLogin = handleLogin;
+        window.logout = logout;
+        window.changeSapSubTab = changeSapSubTab;
+        window.changeResSubTab = changeResSubTab;
+        window.changeFedSubTab = changeFedSubTab;
         window.updateGlobalDateFilter = updateGlobalDateFilter;
-        window.clearCanvas = clearCanvas;
         window.forceRefreshData = forceRefreshData;
         window.syncUsers = syncUsers;
         window.renderFedConsolidatedAndChart = renderFedConsolidatedAndChart;
