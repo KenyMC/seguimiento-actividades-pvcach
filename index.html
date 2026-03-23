@@ -271,7 +271,7 @@
                         </div>
                         <div class="h-6 w-px bg-slate-300 mx-1 shrink-0"></div>
                         <button onclick="window.forceRefreshData()" class="p-2 hover:bg-white text-slate-500 hover:text-indigo-600 rounded-lg transition-colors shadow-sm bg-transparent hover:shadow shrink-0" title="Refrescar Datos"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
-                        <button onclick="window.exportToExcel()" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
+                        <button onclick="window.exportToExcel()" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-50 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel Filtrado">
                             <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
                         </button>
                     </div>
@@ -2053,11 +2053,14 @@
 
                     return [
                         sap.ubigeo, sap.ccpp, sap.provincia, sap.distrito, sap.red,
-                        ev_dic, ev_ene, ev_feb, seg, isMef, isFed
+                        sap.dic.tot, sap.dic.p5, ev5_dic, sap.dic.clo, sap.dic.tur, ev_dic,
+                        sap.ene.tot, sap.ene.p5, ev5_ene, sap.ene.clo, sap.ene.tur, ev_ene,
+                        sap.feb.tot, sap.feb.p5, ev5_feb, sap.feb.clo, sap.feb.tur, ev_feb,
+                        seg, isMef, isFed
                     ];
                 });
                 return {
-                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Diciembre', 'Enero', 'Febrero', 'Seguimiento', 'MEF', 'FED'],
+                    headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Seguimiento', 'MEF', 'FED'],
                     data: finalData
                 };
             } 
@@ -2112,7 +2115,7 @@
                         else displayVal = 'SIN MONITOREO';
                     } else if(result.headers[idx] === 'MEF' || result.headers[idx] === 'FED') {
                         displayVal = val === '1' ? 'SÍ' : '-';
-                    } else if(result.headers[idx].includes('Cumple') || result.headers[idx].includes('Cumplimiento') || result.headers[idx] === 'Diciembre' || result.headers[idx] === 'Enero' || result.headers[idx] === 'Febrero') {
+                    } else if(result.headers[idx].includes('Cumple') || result.headers[idx].includes('Cumplimiento') || result.headers[idx].includes('Ev_') || result.headers[idx].includes('EV_5p')) {
                         displayVal = val === '1' ? 'CUMPLE' : 'NO CUMPLE';
                     }
                     filterHtml += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${idx})" title="Quitar filtro">${result.headers[idx]}: ${displayVal} <i data-lucide="x" class="w-3 h-3"></i></span>`;
@@ -2135,7 +2138,7 @@
                     return 'SIN MONITOREO';
                 }
                 if (h === 'MEF' || h === 'FED') return v === '1' ? 'SÍ' : '-';
-                if (h.includes('Cumple') || h.includes('Cumplimiento') || h === 'Diciembre' || h === 'Enero' || h === 'Febrero') return v === '1' ? 'CUMPLE' : 'NO CUMPLE';
+                if (h.includes('Cumple') || h.includes('Cumplimiento') || h.includes('Ev_') || h.includes('EV_5p')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE';
                 return String(v).substring(0, 30);
             };
 
@@ -2221,13 +2224,12 @@
                     } else if (header === 'MEF' || header === 'FED') {
                         content = cell === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`;
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (header === 'Cumplimiento Ind. 2') {
+                    } else if (header === 'Cumplimiento Ind. 2' || header.includes('Ev_') || header.includes('EV_5p')) {
                         if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
                         else content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (header.includes('Cumple') || header === 'Diciembre' || header === 'Enero' || header === 'Febrero') {
-                        if (cell === 1) content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
-                        else content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
+                    } else if (header.includes('Cumple')) {
+                        content = cell === 1 ? `<div class="mx-auto w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i data-lucide="check" class="w-3 h-3"></i></div>` : `<div class="mx-auto w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="x" class="w-3 h-3"></i></div>`;
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
                     } else if (typeof cell === 'number') {
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center text-slate-600 font-mono ');
@@ -2257,7 +2259,7 @@
                 let cellContent = "";
                 if (idx === 0) cellContent = "TOTALES:";
                 else if (idx === 1) cellContent = `<span class="text-amber-600 text-sm">${filteredData.length}</span> reg.`;
-                else if (idx > 4) { 
+                else if (idx > 4) { // Columnas después de Red de Salud
                     if (h === 'Seguimiento') {
                         let v = 0, n = 0, r = 0;
                         filteredData.forEach(row => {
@@ -2268,17 +2270,17 @@
                             <span class="text-amber-600 flex items-center" title="Parcial"><i data-lucide="minus" class="w-3 h-3 mr-0.5"></i>${n}</span> 
                             <span class="text-red-500 flex items-center" title="No Cumple"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${r}</span>
                         </div>`;
-                    } else if (h === 'MEF' || h === 'FED' || h.includes('Cumple') || h.includes('Cumplimiento') || h === 'Diciembre' || h === 'Enero' || h === 'Febrero') {
+                    } else if (h === 'MEF' || h === 'FED' || h.includes('Cumple') || h.includes('Cumplimiento') || h.includes('Ev_') || h.includes('EV_5p')) {
                         let sum = 0;
                         filteredData.forEach(row => { if (parseInt(row[idx]) === 1) sum++; });
                         cellContent = `<span class="text-indigo-600">${sum}</span>`;
                     } else {
-                        let sum = 0;
+                        let countCcpp = 0;
                         filteredData.forEach(row => {
                             let val = parseFloat(row[idx]);
-                            if(!isNaN(val)) sum += val;
+                            if(!isNaN(val) && val > 0) countCcpp++;
                         });
-                        cellContent = `<span class="text-amber-700">${sum}</span>`;
+                        cellContent = `<span class="text-amber-700">${countCcpp}</span>`;
                     }
                 }
 
@@ -2323,9 +2325,9 @@
                     obj[key].ccpp++;
 
                     if (isInd1) {
-                        const evDic = row[5]; 
-                        const evEne = row[6]; 
-                        const evFeb = row[7];
+                        const evDic = row[10]; 
+                        const evEne = row[16]; 
+                        const evFeb = row[22];
                         const sumEv = evDic + evEne + evFeb;
                         
                         if(evDic===1) obj[key].dic++;
@@ -2344,10 +2346,10 @@
 
                 grandTotalCcpp++;
                 if (isInd1) {
-                    const sumEv = row[5] + row[6] + row[7];
-                    if(row[5]===1) grandDic++;
-                    if(row[6]===1) grandEne++;
-                    if(row[7]===1) grandFeb++;
+                    const sumEv = row[10] + row[16] + row[22];
+                    if(row[10]===1) grandDic++;
+                    if(row[16]===1) grandEne++;
+                    if(row[22]===1) grandFeb++;
                     if(sumEv>=3) grandCumplenInd++;
                 } else {
                     if(row[5]===1) grandInsp++;
@@ -2417,9 +2419,9 @@
                 let metaHtml = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6">`;
                 metaHtml += `<div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div>`;
                 metaHtml += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>
-                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre</th>
-                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero</th>
-                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre (Eval. Completa)</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero (Eval. Completa)</th>
+                    <th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero (Eval. Completa)</th>
                     <th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>
                     <th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Meta Asumida</th>
                 </tr></thead><tbody class="divide-y divide-slate-100">`;
@@ -2441,7 +2443,7 @@
             let counts = [0,0,0,0]; 
             let labels = [];
             if(isInd1) {
-                filteredData.forEach(row => { const s = row[8]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
+                filteredData.forEach(row => { const s = row[23]; if(s==='Verde') counts[0]++; else if(s==='Naranja') counts[1]++; else if(s==='Rojo') counts[2]++; else counts[3]++; });
                 labels = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo'];
             } else {
                 filteredData.forEach(row => { const f = row[9]; if(f===1) counts[0]++; else counts[2]++; });
@@ -2533,8 +2535,117 @@
                 detHeaders = result.headers.filter(h => h !== 'Detalles');
                 detData = dataToExport.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles'));
             }
+
+            // NUEVO: Agregando MEF y FED como columnas adicionales solo para "Monitoreo 5P"
+            if (activeTab === 'monitor') {
+                detHeaders.push('MEF', 'FED');
+                detData = detData.map((row, rIdx) => {
+                    const origRow = dataToExport[rIdx];
+                    const idSap = String(origRow[0]).trim(); // Index 0 es Id. SAP
+                    const ubi = String(origRow[2]).trim();   // Index 2 es Ubigeo
+                    const isMef = APP_STATE.mefSapIds.has(idSap) ? 'SÍ' : '-';
+                    const isFed = APP_STATE.fedUbigeos.has(ubi) ? 'SÍ' : '-';
+                    return [...row, isMef, isFed];
+                });
+            }
+
             const wsDetalle = XLSX.utils.aoa_to_sheet([detHeaders, ...detData]);
             XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle");
+
+            // NUEVO: Generando segunda pestaña "Resumen"
+            const valStartIdx = CORE_HEADERS.length;
+            const idxRed = CORE_HEADERS.indexOf('Red de Salud');
+            const summary = {};
+            const totalSapsPerRed = {}; 
+            
+            const isAnalysisTab = result.type === 'analysis';
+            const isStatusJson = result.type === 'status_json';
+            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            
+            const grandTotals = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
+            let grandTotalSaps = 0;
+
+            dataToExport.forEach(row => {
+                const red = row[idxRed] || 'Sin Red';
+                if(!summary[red]) summary[red] = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
+                if(!totalSapsPerRed[red]) totalSapsPerRed[red] = 0;
+                totalSapsPerRed[red]++; grandTotalSaps++;
+
+                if (isAnalysisTab) {
+                    const u1 = parseInt(row[valStartIdx]) || 0;
+                    const u2 = parseInt(row[valStartIdx + 1]) || 0;
+                    const excFlag = parseInt(row[valStartIdx + 2]) || 0;
+                    const cumple = parseInt(row[valStartIdx + 3]);
+                    const detailsStr = row[valStartIdx + 4];
+                    let details = [];
+                    try { details = detailsStr ? JSON.parse(detailsStr) : []; } catch(e) {}
+                    if (!Array.isArray(details)) details = [];
+
+                    const hasData = u1 > 0 || u2 > 0 || excFlag > 0;
+
+                    if (hasData) {
+                        summary[red][0] += 1; grandTotals[0] += 1;
+                        summary[red][1] += details.length; grandTotals[1] += details.length;
+                        if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
+                    }
+                } else {
+                    for(let i = valStartIdx; i < row.length; i++) {
+                        if(result.headers[i] === 'Detalles') continue;
+                        const sumIdx = i - valStartIdx;
+                        
+                        if(isStatusJson) { 
+                            try { 
+                                const d = JSON.parse(row[i]); 
+                                if(d.status === 1) { summary[red][sumIdx].c++; grandTotals[sumIdx].c++; }
+                                else if(d.status === 2) { summary[red][sumIdx].i++; grandTotals[sumIdx].i++; }
+                                else { summary[red][sumIdx].s++; grandTotals[sumIdx].s++; }
+                            } catch(e){}
+                        }
+                        else { 
+                            let val = parseInt(row[i]) || 0;
+                            if(val>=1) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                        }
+                    }
+                }
+            });
+
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
+            
+            let resumenAOA = [];
+            let headerRow = ["RED DE SALUD", "CANT. SAP"];
+            sumHeaders.forEach(h => {
+                if (isStatusJson) {
+                    headerRow.push(`${h} (Completo)`, `${h} (Incompleto)`, `${h} (Sin Monitoreo)`);
+                } else {
+                    headerRow.push(h);
+                }
+            });
+            resumenAOA.push(headerRow);
+
+            Object.entries(summary).sort((a,b) => a[0].localeCompare(b[0])).forEach(([red, vals]) => {
+                let rowAOA = [red, totalSapsPerRed[red]];
+                vals.forEach(v => {
+                    if (isStatusJson) {
+                        rowAOA.push(v.c, v.i, v.s);
+                    } else {
+                        rowAOA.push(v);
+                    }
+                });
+                resumenAOA.push(rowAOA);
+            });
+
+            let totalRowAOA = ["TOTAL GENERAL", grandTotalSaps];
+            grandTotals.forEach(v => {
+                if (isStatusJson) {
+                    totalRowAOA.push(v.c, v.i, v.s);
+                } else {
+                    totalRowAOA.push(v);
+                }
+            });
+            resumenAOA.push(totalRowAOA);
+
+            const wsResumen = XLSX.utils.aoa_to_sheet(resumenAOA);
+            XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 
             XLSX.writeFile(wb, `Reporte_${isRes ? 'RESULTADOS' : 'ACTIVIDADES'}_${activeTab}.xlsx`);
         }
@@ -2573,7 +2684,14 @@
 
             let grandTotalCcpp=0, grandCumplenInd=0;
             let grandDic=0, grandEne=0, grandFeb=0;
+            // Nuevas variables para desglose Ind 1
+            let grandP5Dic=0, grandCloDic=0, grandTurDic=0;
+            let grandP5Ene=0, grandCloEne=0, grandTurEne=0;
+            let grandP5Feb=0, grandCloFeb=0, grandTurFeb=0;
+            
+            // Variables para Ind 2
             let grandInsp=0, grandCaract=0, grandMonit=0, grandRiesgos=0;
+            
             const isInd1 = APP_STATE.fedActiveTab === 'ind1';
 
             dataToExport.forEach(row => {
@@ -2584,20 +2702,34 @@
                 [summaryRed, summaryProv, summaryDist].forEach((obj, idx) => {
                     const key = idx === 0 ? red : (idx === 1 ? prov : dist);
                     if(!obj[key]) {
-                        obj[key] = { ccpp:0, dic:0, ene:0, feb:0, cumplen:0, insp:0, caract:0, monit:0, riesgos:0 };
+                        obj[key] = { 
+                            ccpp:0, dic:0, ene:0, feb:0, cumplen:0, insp:0, caract:0, monit:0, riesgos:0,
+                            p5Dic:0, cloDic:0, turDic:0, p5Ene:0, cloEne:0, turEne:0, p5Feb:0, cloFeb:0, turFeb:0
+                        };
                     }
                     obj[key].ccpp++;
 
                     if (isInd1) {
-                        const evDic = row[5]; 
-                        const evEne = row[6]; 
-                        const evFeb = row[7];
-                        const sumEv = evDic + evEne + evFeb;
-                        
-                        if(evDic===1) obj[key].dic++;
-                        if(evEne===1) obj[key].ene++;
-                        if(evFeb===1) obj[key].feb++;
-                        if(sumEv>=3) obj[key].cumplen++;
+                        const dic_tot = row[5], dic_p5 = row[6], ev5Dic = row[7], dic_clo = row[8], dic_tur = row[9], evDic = row[10];
+                        const ene_tot = row[11], ene_p5 = row[12], ev5Ene = row[13], ene_clo = row[14], ene_tur = row[15], evEne = row[16];
+                        const feb_tot = row[17], feb_p5 = row[18], ev5Feb = row[19], feb_clo = row[20], feb_tur = row[21], evFeb = row[22];
+
+                        if(ev5Dic === 1) obj[key].p5Dic++;
+                        if(dic_clo > 0) obj[key].cloDic++;
+                        if(dic_tur > 0) obj[key].turDic++;
+                        if(evDic === 1) obj[key].dic++;
+
+                        if(ev5Ene === 1) obj[key].p5Ene++;
+                        if(ene_clo > 0) obj[key].cloEne++;
+                        if(ene_tur > 0) obj[key].turEne++;
+                        if(evEne === 1) obj[key].ene++;
+
+                        if(ev5Feb === 1) obj[key].p5Feb++;
+                        if(feb_clo > 0) obj[key].cloFeb++;
+                        if(feb_tur > 0) obj[key].turFeb++;
+                        if(evFeb === 1) obj[key].feb++;
+
+                        if((evDic + evEne + evFeb)>=3) obj[key].cumplen++;
                     } else {
                         const eInsp = row[5]; const eCaract = row[6]; const eMonit = row[7]; const eRiesgos = row[8]; const eFinal = row[9];
                         if(eInsp===1) obj[key].insp++;
@@ -2610,11 +2742,26 @@
 
                 grandTotalCcpp++;
                 if (isInd1) {
-                    const sumEv = row[5] + row[6] + row[7];
-                    if(row[5]===1) grandDic++;
-                    if(row[6]===1) grandEne++;
-                    if(row[7]===1) grandFeb++;
-                    if(sumEv>=3) grandCumplenInd++;
+                    const dic_tot = row[5], dic_p5 = row[6], ev5Dic = row[7], dic_clo = row[8], dic_tur = row[9], evDic = row[10];
+                    const ene_tot = row[11], ene_p5 = row[12], ev5Ene = row[13], ene_clo = row[14], ene_tur = row[15], evEne = row[16];
+                    const feb_tot = row[17], feb_p5 = row[18], ev5Feb = row[19], feb_clo = row[20], feb_tur = row[21], evFeb = row[22];
+
+                    if (ev5Dic === 1) grandP5Dic++;
+                    if (dic_clo > 0) grandCloDic++;
+                    if (dic_tur > 0) grandTurDic++;
+                    if (evDic === 1) grandDic++;
+
+                    if (ev5Ene === 1) grandP5Ene++;
+                    if (ene_clo > 0) grandCloEne++;
+                    if (ene_tur > 0) grandTurEne++;
+                    if (evEne === 1) grandEne++;
+
+                    if (ev5Feb === 1) grandP5Feb++;
+                    if (feb_clo > 0) grandCloFeb++;
+                    if (feb_tur > 0) grandTurFeb++;
+                    if (evFeb === 1) grandFeb++;
+
+                    if((evDic + evEne + evFeb)>=3) grandCumplenInd++;
                 } else {
                     if(row[5]===1) grandInsp++;
                     if(row[6]===1) grandCaract++;
@@ -2627,11 +2774,29 @@
             const buildAOA = (summaryObj, firstColLabel) => {
                 const aoa = [];
                 if (isInd1) {
-                    aoa.push([firstColLabel, "TOTAL CCPP", "Diciembre", "Enero", "Febrero", "CUMPLEN >=3 MESES"]);
+                    aoa.push([
+                        firstColLabel, "TOTAL CCPP", 
+                        "Dic (Cumple 5P)", "Dic (Cumple Cloro)", "Dic (Cumple Turbiedad)", "Dic (Eval. Completa)",
+                        "Ene (Cumple 5P)", "Ene (Cumple Cloro)", "Ene (Cumple Turbiedad)", "Ene (Eval. Completa)",
+                        "Feb (Cumple 5P)", "Feb (Cumple Cloro)", "Feb (Cumple Turbiedad)", "Feb (Eval. Completa)",
+                        "CUMPLEN >=3 MESES"
+                    ]);
                     Object.entries(summaryObj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, vals]) => {
-                        aoa.push([k, vals.ccpp, vals.dic, vals.ene, vals.feb, vals.cumplen]);
+                        aoa.push([
+                            k, vals.ccpp, 
+                            vals.p5Dic, vals.cloDic, vals.turDic, vals.dic, 
+                            vals.p5Ene, vals.cloEne, vals.turEne, vals.ene, 
+                            vals.p5Feb, vals.cloFeb, vals.turFeb, vals.feb, 
+                            vals.cumplen
+                        ]);
                     });
-                    aoa.push(["TOTAL GENERAL", grandTotalCcpp, grandDic, grandEne, grandFeb, grandCumplenInd]);
+                    aoa.push([
+                        "TOTAL GENERAL", grandTotalCcpp, 
+                        grandP5Dic, grandCloDic, grandTurDic, grandDic, 
+                        grandP5Ene, grandCloEne, grandTurEne, grandEne, 
+                        grandP5Feb, grandCloFeb, grandTurFeb, grandFeb, 
+                        grandCumplenInd
+                    ]);
                 } else {
                     aoa.push([firstColLabel, "TOTAL CCPP", "Inspección", "Caracterización", "Monitoreo 5P", "Riesgos", "CUMPLEN IND. 2"]);
                     Object.entries(summaryObj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, vals]) => {
@@ -2650,7 +2815,7 @@
             
             if (isInd1) {
                 const metaAOA = [
-                    ["Diciembre", "Enero", "Febrero", "Cumplen >=3 Meses", "Meta Asumida"],
+                    ["Diciembre (Eval. Completa)", "Enero (Eval. Completa)", "Febrero (Eval. Completa)", "Cumplen >=3 Meses", "Meta Asumida"],
                     [grandDic, grandEne, grandFeb, grandCumplenInd, 200]
                 ];
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(metaAOA), "Avance_Meta");
