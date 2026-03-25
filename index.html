@@ -214,7 +214,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Análisis de Muestras (LMP)</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -292,7 +292,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Registro Detallado</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -367,7 +367,7 @@
                             <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                                 <span class="text-xs font-bold uppercase tracking-widest text-amber-300">Monitoreo por Centro Poblado</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Clic en filtros para buscar</span>
+                                    <span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span>
                                     <span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span>
                                 </div>
                             </div>
@@ -438,10 +438,48 @@
         </div>
     </div>
 
+    <!-- MODAL OBSERVACIONES (CRUD) -->
+    <div id="modal-obs" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all border border-slate-200">
+            <div class="bg-indigo-50 border-b border-indigo-100 px-6 py-5 flex justify-between items-center">
+                <h3 class="text-indigo-800 font-black text-lg flex items-center">
+                    <div class="bg-indigo-100 p-1.5 rounded-lg mr-3"><i data-lucide="message-square" class="w-5 h-5 text-indigo-600"></i></div> Observación del SAP
+                </h3>
+                <button onclick="window.closeObsModal()" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl p-2 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 bg-white">
+                <div class="mb-4 bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
+                    <p><strong class="text-slate-700">Id. SAP:</strong> <span id="obs-meta-idsap" class="text-slate-500"></span></p>
+                    <p><strong class="text-slate-700">Nombre SAP:</strong> <span id="obs-meta-nomsap" class="text-slate-500"></span></p>
+                    <p><strong class="text-slate-700">CCPP:</strong> <span id="obs-meta-ccpp" class="text-slate-500"></span></p>
+                </div>
+                
+                <input type="hidden" id="obs-input-idsap">
+                <input type="hidden" id="obs-input-nomsap">
+                <input type="hidden" id="obs-input-ubi">
+                <input type="hidden" id="obs-input-ccpp">
+                
+                <label class="block text-sm font-bold text-slate-700 mb-2">Detalle su observación (Dejar vacío para eliminar):</label>
+                <textarea id="obs-input-text" rows="4" class="w-full p-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm resize-none custom-scroll shadow-sm" placeholder="Escriba aquí..."></textarea>
+            </div>
+            <div class="p-5 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button onclick="window.closeObsModal()" class="px-5 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Cancelar</button>
+                <button onclick="window.saveObservation()" id="btn-save-obs" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 shadow-md transition-all flex items-center active:scale-95">
+                    <span id="btn-save-obs-text">Guardar</span>
+                    <i id="btn-save-obs-loader" data-lucide="loader-2" class="w-4 h-4 ml-2 animate-spin hidden"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ========================
         // CONFIGURACIÓN & ESTADO
         // ========================
+
+        // AQUI PONES TU URL GENERADA EN GOOGLE APPS SCRIPT PARA GUARDAR DATOS
+        window.APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfaJM_yxZ08fdMOmtWkEEG_u4BmjDW7GBE05X4KSrZpWVn8E5_IK3kodh60ou219QRDQ/exec'; 
+
         const URLS = {
             MAIN: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?output=csv',
             MAIN2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1862181922&single=true&output=csv',
@@ -449,7 +487,8 @@
             RIESGOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1175942303&single=true&output=csv',
             USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv',
             MEF_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=943272105&single=true&output=csv',
-            FED_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=2002511486&single=true&output=csv'
+            FED_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=2002511486&single=true&output=csv',
+            OBSERVACIONES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=579471984&single=true&output=csv'
         };
 
         const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -498,7 +537,7 @@
 
         const APP_STATE = { 
             currentUser: null, usersList: [], 
-            rawData: { main: [], main2: [], sanitaria: [], riesgos: [] }, 
+            rawData: { main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [] }, 
             sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia', sapCache: {}, 
             resActiveTab: 'res_metales', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {}, 
             fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null },
@@ -711,14 +750,15 @@
             };
 
             try {
-                const [mText, m2Text, sText, rText, mefText, fedText] = await Promise.all([
-                    fetchWithRetry(URLS.MAIN), fetchWithRetry(URLS.MAIN2), fetchWithRetry(URLS.SANITARIA), fetchWithRetry(URLS.RIESGOS), fetchWithRetry(URLS.MEF_UB), fetchWithRetry(URLS.FED_UB)
+                const [mText, m2Text, sText, rText, mefText, fedText, obsText] = await Promise.all([
+                    fetchWithRetry(URLS.MAIN), fetchWithRetry(URLS.MAIN2), fetchWithRetry(URLS.SANITARIA), fetchWithRetry(URLS.RIESGOS), fetchWithRetry(URLS.MEF_UB), fetchWithRetry(URLS.FED_UB), fetchWithRetry(URLS.OBSERVACIONES)
                 ]);
                 
                 APP_STATE.rawData.main = await asyncParseCSV(mText); 
                 APP_STATE.rawData.main2 = await asyncParseCSV(m2Text); 
                 APP_STATE.rawData.sanitaria = await asyncParseCSV(sText); 
                 APP_STATE.rawData.riesgos = await asyncParseCSV(rText);
+                APP_STATE.rawData.observaciones = await asyncParseCSV(obsText);
                 
                 const mefData = await asyncParseCSV(mefText);
                 const fedData = await asyncParseCSV(fedText);
@@ -908,7 +948,7 @@
             const desc = document.getElementById('sap-monitor-desc');
             if (desc) {
                 if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos'].includes(tabId)) {
-                    if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`;
+                    if (tabId === 'monitor') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad. En esta pestaña puedes registrar Observaciones.</span>`;
                     else if (tabId === 'sanitaria') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Se verifica la ejecución de inspecciones por semestre. Verde = Completado, Rojo = Sin Inspección.</span>`;
                     else if (tabId === 'caracterizacion') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Se verifica si cuenta con parámetros completos en Fuente de Agua y Red de Distribución.</span>`;
                     else if (tabId === 'riesgos') desc.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Se requiere Informe y Cargo aprobados.</span>`;
@@ -1011,7 +1051,6 @@
 
         function checkComplianceSet(h, s, r) { if (!s) return false; return s.every(p => { if (Array.isArray(p)) return p.some(sub => { const idx = findHeaderIndex(h, sub); return idx !== -1 && !isCellEmpty(r[idx]); }); const idx = findHeaderIndex(h, p); return idx !== -1 && !isCellEmpty(r[idx]); }); }
         function classifyMonitoringStatus(h, r) { let c = 0; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) c++; }); const cl = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]); if (c === 5) return 1; if (cl && c === 1) return 2; return c > 0 ? 3 : 0; }
-        function classifyInspeccionStatus(h, r) { const a = findHeaderIndex(h, 'Ambito'), t = findHeaderIndex(h, 'Tipo SAP'); const ir = (a === -1) || (r[a] === 'RURAL'); const iv = (t === -1) || RURAL_SAP_TYPES.includes(r[t]); if (!ir || !iv) return 0; const hd = !isCellEmpty(r[findHeaderIndex(h, 'Cloro')]) || !isCellEmpty(r[findHeaderIndex(h, 'pH')]); return hd ? 1 : 0; }
         function classifyAnalysisByLocation(h, r, sa, sb) { const ha = checkComplianceSet(h, sa, r), hb = checkComplianceSet(h, sb, r); if (!ha && !hb) return 0; const u = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || ''; if (u.includes('Fuente de Captación') && u.includes('Red de distribución')) return 3; if (u.includes('Red de distribución')) return 2; if (u.includes('Fuente de Captación')) return 1; return 0; }
         function checkParamLMPExceeded(h, r, limitSet) { const l = []; for (const k in limitSet) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) { const v = parseFloat(r[idx]); const limit = limitSet[k]; if (!isNaN(v) && v > limit) l.push({ metal: k, value: v, lmp: limit }); } } return l.length > 0 ? l : 0; }
 
@@ -1258,8 +1297,31 @@
 
             } else if (subTab === 'monitor' || subTab === 'bacteriologico') {
                 finalHeaders = [...CORE_HEADERS, ...filteredMonths.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)];
+                
                 const map = {};
                 const currentSet = ANALYSIS_SETS[subTab]; 
+
+                // CRUD OBSERVACIONES: Preparar mapa de observaciones
+                const obsHeaders = dataObj.observaciones[0] || [];
+                const obsRows = dataObj.observaciones.slice(1);
+                const obsMap = {};
+                let idxObsIdSap = findHeaderIndex(obsHeaders, 'Id. SAP');
+                let idxObsText = findHeaderIndex(obsHeaders, 'Observacion');
+                
+                if (subTab === 'monitor') {
+                    // Fallbacks por si el nombre de cabecera varía ligeramente
+                    if (idxObsIdSap === -1 && obsHeaders.length > 0) idxObsIdSap = 0;
+                    if (idxObsText === -1 && obsHeaders.length > 4) idxObsText = 4;
+                    
+                    if (idxObsIdSap !== -1 && idxObsText !== -1) {
+                        obsRows.forEach(r => {
+                            const id = r[idxObsIdSap];
+                            if (id) obsMap[String(id).trim()] = String(r[idxObsText]).trim();
+                        });
+                    }
+                    // Forzamos a que la columna siempre se dibuje
+                    finalHeaders.push('Observación');
+                }
                 
                 dateFilteredRows.forEach(x => {
                     const row = x.row;
@@ -1323,7 +1385,13 @@
                     const monthCols = filteredMonths.map(m => {
                         return obj.dataByMonth[m] ? JSON.stringify(obj.dataByMonth[m]) : JSON.stringify({status: 0, params: []});
                     });
-                    return [...(obj.meta || allSaps.get(id)), ...monthCols];
+
+                    let returnRow = [...(obj.meta || allSaps.get(id)), ...monthCols];
+                    if (subTab === 'monitor') {
+                        const obsText = obsMap[String(id).trim()] || '';
+                        returnRow.push(obsText);
+                    }
+                    return returnRow;
                 });
                 pivotType = 'status_json';
 
@@ -1469,7 +1537,7 @@
                 filteredData = result.data.filter(row => {
                     return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
                         let cellVal = String(row[fIdx] ?? '').trim();
-                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length && result.headers[fIdx] !== 'Observación') {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -1484,7 +1552,7 @@
                     let displayVal = val;
                     if(result.headers[idx] === 'Cumple') displayVal = val === '1' ? 'CUMPLE' : (val === '0' ? 'NO CUMPLE' : 'SIN DATOS');
                     else if(result.headers[idx].includes('Muestra')) displayVal = val === '1' ? 'CAPTACIÓN' : (val === '2' ? 'PILETA' : (val === '3' ? 'AMBOS' : '-'));
-                    else if (result.type === 'status_json' && parseInt(idx) >= CORE_HEADERS.length) {
+                    else if (result.type === 'status_json' && parseInt(idx) >= CORE_HEADERS.length && result.headers[idx] !== 'Observación') {
                         displayVal = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
                     }
                     filterHtml += `<span class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${idx})" title="Quitar filtro">${result.headers[idx]}: ${displayVal} <i data-lucide="x" class="w-3 h-3"></i></span>`;
@@ -1503,7 +1571,7 @@
                 if(h === 'Cumple') return v === '1' ? 'CUMPLE' : (v === '0' ? 'NO CUMPLE' : 'SIN DATOS');
                 if(h.includes('Muestra') && !isNaN(parseInt(v))) return v === '1' ? 'CAPTACIÓN' : (v === '2' ? 'PILETA' : (v === '3' ? 'AMBOS' : '-'));
                 if(h === 'Excede LMP') return v === '1' ? 'SÍ' : '-';
-                if(isStatusJson) return v === '1' ? 'COMPLETO' : (v === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
+                if(isStatusJson && h !== 'Observación') return v === '1' ? 'COMPLETO' : (v === '2' ? 'INCOMPLETO' : 'SIN MONITOREO');
                 return v.substring(0, 30);
             };
 
@@ -1512,20 +1580,19 @@
                 let leftStyle = "";
                 if (h === 'Ubigeo') {
                     stickyClass = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow";
-                    leftStyle = "left-0 min-w-[80px] max-w-[80px]";
+                    leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                 } else if (h === 'Nombre CCPP') {
                     stickyClass = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow";
-                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px]";
+                    leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                 }
                 
-                // LÓGICA CASCADA: Filtrar datos solo para esta columna basándonos en los demás filtros
                 let dataForThisCol = result.data;
                 if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
                     dataForThisCol = result.data.filter(row => {
                         return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
-                            if (parseInt(fIdx) === idx) return true; // Cascada: ignorar el filtro actual de esta misma columna
+                            if (parseInt(fIdx) === idx) return true;
                             let cellVal = String(row[fIdx] ?? '').trim();
-                            if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                            if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length && result.headers[fIdx] !== 'Observación') {
                                 try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                             }
                             return cellVal === String(filterVal);
@@ -1535,7 +1602,7 @@
 
                 const uniqueVals = [...new Set(dataForThisCol.map(row => {
                     let val = String(row[idx] ?? '').trim();
-                    if (result.type === 'status_json' && idx >= CORE_HEADERS.length) {
+                    if (result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación') {
                         try { const d = JSON.parse(val); return String(d.status); } catch(e) { return '0'; }
                     }
                     return val;
@@ -1578,39 +1645,54 @@
             filteredData.forEach((row, i) => {
                 const rowBg = i % 2 === 0 ? "bg-white" : "bg-slate-50";
                 html += `<tr class="${rowBg} hover:bg-indigo-50/60 transition-colors group">`;
-                row.filter((_, idx) => result.headers[idx] !== 'Detalles').forEach((cell, idx) => {
-                    const header = displayHeaders[idx];
+                row.filter((_, idx) => result.headers[idx] !== 'Detalles').forEach((cell, idxOriginal) => {
+                    const header = displayHeaders[idxOriginal];
                     let stickyClass = "";
                     let leftStyle = "";
                     if (header === 'Ubigeo') {
-                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-indigo-50/60 sticky-col-shadow`;
-                        leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-indigo-50/60 sticky-col-shadow truncate`;
+                        leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                     } else if (header === 'Nombre CCPP') {
-                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-indigo-50/60 sticky-col-shadow`;
-                        leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-indigo-50/60 sticky-col-shadow truncate`;
+                        leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                     }
                     
                     const rawValStr = safeEscape(cell);
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-indigo-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
                     
                     let content = cell;
                     const v = parseInt(cell);
 
-                    if (header === 'Excede LMP') {
+                    if (header === 'Observación') {
+                        const idSap = row[0];
+                        const nomSap = row[1];
+                        const ubi = row[2];
+                        const ccpp = row[3];
+                        
+                        if (cell && cell.trim() !== '') {
+                            content = `<div class="w-full min-w-[150px] max-w-[250px] whitespace-normal break-words text-xs text-slate-700 bg-amber-50/50 p-2 rounded-lg border border-amber-100 cursor-pointer hover:bg-amber-100 transition-colors flex justify-between items-start gap-2" onclick="event.stopPropagation(); window.openObsModal('${safeEscape(idSap)}', '${safeEscape(nomSap)}', '${safeEscape(ubi)}', '${safeEscape(ccpp)}', '${safeEscape(cell)}')">
+                                <span class="flex-1">${safeEscape(cell)}</span>
+                                <i data-lucide="edit-3" class="w-3 h-3 text-amber-600 flex-shrink-0 mt-0.5"></i>
+                            </div>`;
+                        } else {
+                            content = `<button onclick="event.stopPropagation(); window.openObsModal('${safeEscape(idSap)}', '${safeEscape(nomSap)}', '${safeEscape(ubi)}', '${safeEscape(ccpp)}', '')" class="text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100 flex items-center justify-center mx-auto whitespace-nowrap"><i data-lucide="plus" class="w-3 h-3 mr-1"></i> Añadir Obs.</button>`;
+                        }
+                        tdAttributes = `class="px-4 py-2 align-top ${stickyClass}" style="${leftStyle}"`;
+                    }
+                    else if (header === 'Excede LMP') {
                         if (v === 1) {
                             const details = row[result.headers.indexOf('Detalles')];
                             content = `<button onclick='event.stopPropagation(); window.openLMPModal(${safeEscape(JSON.stringify(details))})' class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`;
                             tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; 
-                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center cursor-pointer hover:bg-indigo-100/50" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '0')"`; }
+                        } else { content = "<span class='text-slate-300'>-</span>"; tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} text-center" style="${leftStyle}"`; }
                     } else if (header === 'Cumple') {
                         if (v === 1) { content = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; } 
                         else if (v === 0) { content = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; }
                         else { content = "<span class='text-slate-300'>-</span>"; }
                         tdAttributes = tdAttributes.replace('class="', 'class="text-center ');
-                    } else if (result.type === 'status_json' && idx >= CORE_HEADERS.length) {
+                    } else if (result.type === 'status_json' && idxOriginal >= CORE_HEADERS.length) {
                         let d = {status: 0, params: []};
                         try { d = JSON.parse(cell); } catch(e){}
-                        tdAttributes = tdAttributes.replace(`'${rawValStr}'`, `'${d.status}'`);
 
                         if (d.status === 1) {
                             content = `<div class="mx-auto w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner" title="Completo"><i data-lucide="check" class="w-4 h-4"></i></div>`;
@@ -1646,16 +1728,19 @@
                 let stickyClass = "";
                 let leftStyle = "";
                 if (h === 'Ubigeo') {
-                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow`;
-                    leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`;
+                    leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                 } else if (h === 'Nombre CCPP') {
-                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow`;
-                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                    stickyClass = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`;
+                    leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                 }
                 
                 let cellContent = "";
                 if (idx === 0) cellContent = "TOTALES:";
                 else if (idx === 1) cellContent = `<span class="text-indigo-600 text-sm">${filteredData.length}</span> reg.`;
+                else if (h === 'Observación') {
+                    cellContent = "-"; 
+                }
                 else if (idx >= CORE_HEADERS.length) {
                     if (result.type === 'status_json') {
                         let c = 0, inc = 0, s = 0;
@@ -1699,7 +1784,9 @@
             
             const isAnalysisTab = result.type === 'analysis';
             const isStatusJson = result.type === 'status_json';
-            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles' && h !== 'Observación');
+            const colCount = sumHeaders.length; 
             
             const grandTotals = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
             let grandTotalSaps = 0;
@@ -1709,7 +1796,7 @@
                 filteredData = result.data.filter(row => {
                     return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
                         let cellVal = String(row[fIdx] ?? '').trim();
-                        if (isStatusJson && parseInt(fIdx) >= CORE_HEADERS.length) {
+                        if (isStatusJson && parseInt(fIdx) >= CORE_HEADERS.length && result.headers[fIdx] !== 'Observación') {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -1741,27 +1828,27 @@
                         if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
                     }
                 } else {
+                    let currentSumIdx = 0;
                     for(let i = valStartIdx; i < row.length; i++) {
-                        if(result.headers[i] === 'Detalles') continue;
-                        const sumIdx = i - valStartIdx;
+                        if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación') continue;
                         
                         if(isStatusJson) { 
                             try { 
                                 const d = JSON.parse(row[i]); 
-                                if(d.status === 1) { summary[red][sumIdx].c++; grandTotals[sumIdx].c++; }
-                                else if(d.status === 2) { summary[red][sumIdx].i++; grandTotals[sumIdx].i++; }
-                                else { summary[red][sumIdx].s++; grandTotals[sumIdx].s++; }
+                                if(d.status === 1) { summary[red][currentSumIdx].c++; grandTotals[currentSumIdx].c++; }
+                                else if(d.status === 2) { summary[red][currentSumIdx].i++; grandTotals[currentSumIdx].i++; }
+                                else { summary[red][currentSumIdx].s++; grandTotals[currentSumIdx].s++; }
                             } catch(e){}
                         }
                         else { 
                             let val = parseInt(row[i]) || 0;
-                            if(val>=1) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                            if(val>=1) { summary[red][currentSumIdx]++; grandTotals[currentSumIdx]++; }
                         }
+                        currentSumIdx++;
                     }
                 }
             });
 
-            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
             let htmlCon = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-xs font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th>`;
             sumHeaders.forEach(h => htmlCon += `<th class="px-5 py-4 text-center text-xs font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`);
             htmlCon += `</tr></thead><tbody class="divide-y divide-slate-100">`;
@@ -2147,10 +2234,10 @@
                 let leftStyle = "";
                 if (h === 'Ubigeo') {
                     stickyClass = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow";
-                    leftStyle = "left-0 min-w-[80px] max-w-[80px]";
+                    leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                 } else if (h === 'Nombre CCPP') {
                     stickyClass = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow";
-                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px]";
+                    leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                 }
                 
                 let dataForThisCol = result.data;
@@ -2205,15 +2292,15 @@
                     let stickyClass = "";
                     let leftStyle = "";
                     if (header === 'Ubigeo') {
-                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-amber-50/60 sticky-col-shadow`;
-                        leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`;
+                        leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                     } else if (header === 'Nombre CCPP') {
-                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-amber-50/60 sticky-col-shadow`;
-                        leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                        stickyClass = `sticky z-10 border-r border-slate-200 ${rowBg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`;
+                        leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                     }
                     
                     const rawValStr = safeEscape(cell);
-                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} cursor-pointer hover:bg-amber-100/50 transition-colors" style="${leftStyle}" onclick="window.setTableFilter(${idx}, '${rawValStr}')" title="Clic para filtrar por: ${rawValStr}"`;
+                    let tdAttributes = `class="px-4 py-2.5 text-xs ${stickyClass} transition-colors" style="${leftStyle}"`;
                     let content = cell;
 
                     if (header === 'Seguimiento') {
@@ -2249,11 +2336,11 @@
                 let stickyClass = "";
                 let leftStyle = "";
                 if (h === 'Ubigeo') {
-                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow`;
-                    leftStyle = "left-0 min-w-[80px] max-w-[80px] truncate";
+                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow truncate`;
+                    leftStyle = "left: 0px; min-width: 80px; max-width: 80px;";
                 } else if (h === 'Nombre CCPP') {
-                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow`;
-                    leftStyle = "left-[80px] min-w-[150px] max-w-[150px] truncate";
+                    stickyClass = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow truncate`;
+                    leftStyle = "left: 80px; min-width: 150px; max-width: 150px;";
                 }
                 
                 let cellContent = "";
@@ -2493,7 +2580,7 @@
                 dataToExport = dataToExport.filter(row => {
                     return Object.entries(APP_STATE.currentTableFilters).every(([fIdx, filterVal]) => {
                         let cellVal = String(row[fIdx] ?? '').trim();
-                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length) {
+                        if (result.type === 'status_json' && parseInt(fIdx) >= CORE_HEADERS.length && result.headers[fIdx] !== 'Observación') {
                             try { const d = JSON.parse(cellVal); return String(d.status) === String(filterVal); } catch(e) { return false; }
                         }
                         return cellVal === String(filterVal);
@@ -2521,7 +2608,8 @@
             } else if (result.type === 'status_json') {
                 detHeaders = result.headers.filter(h => h !== 'Detalles');
                 detData = dataToExport.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles').map((cell, i) => {
-                    if (i >= CORE_HEADERS.length) {
+                    const header = detHeaders[i];
+                    if (i >= CORE_HEADERS.length && header !== 'Observación') {
                         try { 
                             const d = JSON.parse(cell);
                             if(d.status === 1) return 'Completo';
@@ -2536,13 +2624,12 @@
                 detData = dataToExport.map(row => row.filter((_, i) => result.headers[i] !== 'Detalles'));
             }
 
-            // NUEVO: Agregando MEF y FED como columnas adicionales solo para "Monitoreo 5P"
             if (activeTab === 'monitor') {
                 detHeaders.push('MEF', 'FED');
                 detData = detData.map((row, rIdx) => {
                     const origRow = dataToExport[rIdx];
-                    const idSap = String(origRow[0]).trim(); // Index 0 es Id. SAP
-                    const ubi = String(origRow[2]).trim();   // Index 2 es Ubigeo
+                    const idSap = String(origRow[0]).trim(); 
+                    const ubi = String(origRow[2]).trim();   
                     const isMef = APP_STATE.mefSapIds.has(idSap) ? 'SÍ' : '-';
                     const isFed = APP_STATE.fedUbigeos.has(ubi) ? 'SÍ' : '-';
                     return [...row, isMef, isFed];
@@ -2552,7 +2639,6 @@
             const wsDetalle = XLSX.utils.aoa_to_sheet([detHeaders, ...detData]);
             XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle");
 
-            // NUEVO: Generando segunda pestaña "Resumen"
             const valStartIdx = CORE_HEADERS.length;
             const idxRed = CORE_HEADERS.indexOf('Red de Salud');
             const summary = {};
@@ -2560,7 +2646,9 @@
             
             const isAnalysisTab = result.type === 'analysis';
             const isStatusJson = result.type === 'status_json';
-            const colCount = isAnalysisTab ? 3 : (result.headers.length - valStartIdx); 
+            
+            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles' && h !== 'Observación');
+            const colCount = sumHeaders.length; 
             
             const grandTotals = Array(colCount).fill(null).map(() => isStatusJson ? {c:0, i:0, s:0} : 0);
             let grandTotalSaps = 0;
@@ -2589,27 +2677,26 @@
                         if (cumple === 1) { summary[red][2]++; grandTotals[2]++; }
                     }
                 } else {
+                    let currentSumIdx = 0;
                     for(let i = valStartIdx; i < row.length; i++) {
-                        if(result.headers[i] === 'Detalles') continue;
-                        const sumIdx = i - valStartIdx;
+                        if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación') continue;
                         
                         if(isStatusJson) { 
                             try { 
                                 const d = JSON.parse(row[i]); 
-                                if(d.status === 1) { summary[red][sumIdx].c++; grandTotals[sumIdx].c++; }
-                                else if(d.status === 2) { summary[red][sumIdx].i++; grandTotals[sumIdx].i++; }
-                                else { summary[red][sumIdx].s++; grandTotals[sumIdx].s++; }
+                                if(d.status === 1) { summary[red][currentSumIdx].c++; grandTotals[currentSumIdx].c++; }
+                                else if(d.status === 2) { summary[red][currentSumIdx].i++; grandTotals[currentSumIdx].i++; }
+                                else { summary[red][currentSumIdx].s++; grandTotals[currentSumIdx].s++; }
                             } catch(e){}
                         }
                         else { 
                             let val = parseInt(row[i]) || 0;
-                            if(val>=1) { summary[red][sumIdx]++; grandTotals[sumIdx]++; }
+                            if(val>=1) { summary[red][currentSumIdx]++; grandTotals[currentSumIdx]++; }
                         }
+                        currentSumIdx++;
                     }
                 }
             });
-
-            let sumHeaders = isAnalysisTab ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(valStartIdx).filter(h => h !== 'Detalles');
             
             let resumenAOA = [];
             let headerRow = ["RED DE SALUD", "CANT. SAP"];
@@ -2666,7 +2753,6 @@
                 if (mefIdx !== -1) newRow[mefIdx] = newRow[mefIdx] === 1 ? 'SI' : '';
                 if (fedIdx !== -1) newRow[fedIdx] = newRow[fedIdx] === 1 ? 'SI' : '';
 
-                // Formatear textos de la columna Seguimiento
                 const segIdx = result.headers.indexOf('Seguimiento');
                 if (segIdx !== -1) {
                     if (newRow[segIdx] === 'Verde') newRow[segIdx] = 'CUMPLE (>=3)';
@@ -2677,19 +2763,16 @@
                 return newRow;
             });
 
-            // Generar los datos para las pestañas de RESUMEN de forma dinámica
             const summaryRed = {}; 
             const summaryProv = {}; 
             const summaryDist = {}; 
 
             let grandTotalCcpp=0, grandCumplenInd=0;
             let grandDic=0, grandEne=0, grandFeb=0;
-            // Nuevas variables para desglose Ind 1
             let grandP5Dic=0, grandCloDic=0, grandTurDic=0;
             let grandP5Ene=0, grandCloEne=0, grandTurEne=0;
             let grandP5Feb=0, grandCloFeb=0, grandTurFeb=0;
             
-            // Variables para Ind 2
             let grandInsp=0, grandCaract=0, grandMonit=0, grandRiesgos=0;
             
             const isInd1 = APP_STATE.fedActiveTab === 'ind1';
@@ -2824,40 +2907,98 @@
             XLSX.writeFile(wb, `Reporte_FED_${APP_STATE.fedActiveTab}.xlsx`);
         }
 
-        window.openLMPModal = function(jsonString) {
-            const data = JSON.parse(jsonString);
-            const content = document.getElementById('modal-lmp-content');
-            content.innerHTML = data.map(d => `
-                <div class="bg-white p-5 rounded-2xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300 transition-colors">
-                    <div>
-                        <span class="font-black text-slate-800 text-sm block mb-1.5">${d.metal}</span>
-                        <span class="inline-flex items-center text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md tracking-wider"><i data-lucide="calendar" class="w-3 h-3 mr-1.5"></i> ${d.month}</span>
-                    </div>
-                    <div class="text-right">
-                        <span class="text-red-600 font-black text-xl block leading-none mb-1.5">${d.value}</span>
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">LMP: ${d.lmp}</span>
-                    </div>
-                </div>
-            `).join('');
-            lucide.createIcons();
-            document.getElementById('modal-lmp').classList.remove('hidden');
+        window.openObsModal = function(idSap, nomSap, ubi, ccpp, obsText) {
+            document.getElementById('obs-meta-idsap').innerText = idSap;
+            document.getElementById('obs-input-idsap').value = idSap;
+            
+            document.getElementById('obs-meta-nomsap').innerText = nomSap;
+            document.getElementById('obs-input-nomsap').value = nomSap;
+            
+            document.getElementById('obs-input-ubi').value = ubi;
+            
+            document.getElementById('obs-meta-ccpp').innerText = ccpp;
+            document.getElementById('obs-input-ccpp').value = ccpp;
+            
+            document.getElementById('obs-input-text').value = obsText;
+            
+            const btnText = document.getElementById('btn-save-obs-text');
+            btnText.innerText = obsText ? 'Actualizar' : 'Guardar';
+            
+            document.getElementById('modal-obs').classList.remove('hidden');
         };
 
-        window.closeModal = function() {
-            document.getElementById('modal-lmp').classList.add('hidden');
+        window.closeObsModal = function() {
+            document.getElementById('modal-obs').classList.add('hidden');
         };
 
-        window.openParamsModal = function(paramsStr) {
-            const content = document.getElementById('modal-params-content');
-            const params = paramsStr.split(',').filter(p => p.trim() !== '');
-            document.getElementById('modal-params-desc').innerText = 'Detalles del registro:';
-            content.innerHTML = params.map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim()}</span>`).join('');
-            lucide.createIcons();
-            document.getElementById('modal-params').classList.remove('hidden');
-        };
+        window.saveObservation = async function() {
+            const idSap = document.getElementById('obs-input-idsap').value;
+            const nomSap = document.getElementById('obs-input-nomsap').value;
+            const ubi = document.getElementById('obs-input-ubi').value;
+            const ccpp = document.getElementById('obs-input-ccpp').value;
+            const text = document.getElementById('obs-input-text').value.trim();
+            const action = text === '' ? 'DELETE' : 'SAVE';
+            
+            const btnText = document.getElementById('btn-save-obs-text');
+            const loader = document.getElementById('btn-save-obs-loader');
+            btnText.innerText = "Guardando...";
+            loader.classList.remove('hidden');
+            
+            const obsData = APP_STATE.rawData.observaciones;
+            if (obsData.length > 0) {
+                const headers = obsData[0];
+                let idIdx = findHeaderIndex(headers, 'Id. SAP');
+                let textIdx = findHeaderIndex(headers, 'Observacion');
+                
+                // Fallbacks si las columnas varían
+                if (idIdx === -1) idIdx = 0;
+                if (textIdx === -1) textIdx = 4;
+                
+                if (idIdx !== -1 && textIdx !== -1) {
+                    let found = false;
+                    for (let i = 1; i < obsData.length; i++) {
+                        if (String(obsData[i][idIdx]).trim() === String(idSap).trim()) {
+                            obsData[i][textIdx] = text;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found && action === 'SAVE') {
+                        let newRow = Array(headers.length).fill('');
+                        newRow[idIdx] = idSap;
+                        let nomIdx = findHeaderIndex(headers, 'Nombre SAP'); if(nomIdx !== -1) newRow[nomIdx] = nomSap;
+                        let ubiIdx = findHeaderIndex(headers, 'Ubigeo'); if(ubiIdx !== -1) newRow[ubiIdx] = ubi;
+                        let ccppIdx = findHeaderIndex(headers, 'Nombre CCPP'); if(ccppIdx !== -1) newRow[ccppIdx] = ccpp;
+                        newRow[textIdx] = text;
+                        obsData.push(newRow);
+                    }
+                }
+            }
 
-        window.closeParamsModal = function() {
-            document.getElementById('modal-params').classList.add('hidden');
+            try {
+                if (window.APP_SCRIPT_URL) {
+                    await fetch(window.APP_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action, idSap, nomSap, ubi, ccpp, obsText: text })
+                    });
+                } else {
+                    console.warn("APP_SCRIPT_URL no configurada. Simulación local.");
+                    await new Promise(r => setTimeout(r, 600)); 
+                }
+                
+                processSAPData();
+                window.closeObsModal();
+            } catch (e) {
+                console.error("Error guardando observación:", e);
+                alert("Ocurrió un error al guardar. Se actualizó de manera local temporalmente.");
+                processSAPData();
+                window.closeObsModal();
+            } finally {
+                btnText.innerText = "Guardar";
+                loader.classList.add('hidden');
+            }
         };
 
         function renderUserTable() { 
@@ -2878,6 +3019,7 @@
 
         function initWhiteboard() { 
             const canvas = document.getElementById('wb-canvas'); 
+            if(!canvas) return;
             const ctx = canvas.getContext('2d'); 
             let isDrawing = false; 
             const resize = () => { 
@@ -2906,6 +3048,7 @@
 
         window.clearCanvas = function() { 
             const c = document.getElementById('wb-canvas'); 
+            if(!c) return;
             const x = c.getContext('2d'); 
             x.fillStyle = "white";
             x.fillRect(0,0,c.width,c.height); 
