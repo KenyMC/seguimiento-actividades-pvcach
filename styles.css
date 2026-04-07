@@ -1,0 +1,40 @@
+/* --- ESTILOS GENERALES --- */
+body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
+.custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- ANIMACIONES --- */
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.fade-in { animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- COMPONENTES DE TABLA --- */
+.sticky-col-shadow { box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.05); }
+.cell-fed-verde { background-color: #d1fae5; color: #065f46; font-weight: bold; text-align: center; }
+.cell-fed-naranja { background-color: #ffedd5; color: #b45309; font-weight: bold; text-align: center; }
+.cell-fed-rojo { background-color: #fee2e2; color: #b91c1c; font-weight: bold; text-align: center; }
+.cell-fed-gris { background-color: #f1f5f9; color: #64748b; font-weight: bold; text-align: center; }
+
+/* Filtros en cabecera */
+.filter-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.25rem;
+    width: 12rem;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    font-weight: normal;
+    text-align: left;
+}
