@@ -42,7 +42,7 @@ const getEl = id => document.getElementById(id);
         currentUser: null, usersList: [], rawData: { main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [] }, 
         main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia', 
         sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {}, 
-        fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null }, 
+        fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null }, 
         mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), uniqueRedes: new Set(), currentTableFilters: {}, 
         globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false 
     };
@@ -176,7 +176,7 @@ const getEl = id => document.getElementById(id);
     }
 
     window.forceRefreshData = async () => { 
-        APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null}; APP_STATE.sapDataLoaded = false; APP_STATE.currentTableFilters = {}; 
+        APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; APP_STATE.sapDataLoaded = false; APP_STATE.currentTableFilters = {}; 
         const l = getEl('sap-loader'); if(l) { l.innerHTML = `<div class="relative"><div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div><p id="sap-loader-text" class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">Sincronizando...</p>`; lucide.createIcons(); l.classList.remove('hidden'); } 
         await preloadSAPData(); processActiveData(); 
     }
@@ -186,7 +186,7 @@ const getEl = id => document.getElementById(id);
         getEl('btn-login-text').classList.add('hidden'); getEl('btn-login-loader').classList.remove('hidden'); 
         setTimeout(() => { 
             const f = APP_STATE.usersList.find(x => x.usuario === u && x.password === p); 
-            if (f) { APP_STATE.currentUser = f; getEl('welcome-user').textContent = f.usuario; window.applyUserRoleUI(); APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null}; getEl('login-view').classList.add('hidden'); getEl('app-view').classList.remove('hidden'); renderUserTable(); processActiveData(); } 
+            if (f) { APP_STATE.currentUser = f; getEl('welcome-user').textContent = f.usuario; window.applyUserRoleUI(); APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; getEl('login-view').classList.add('hidden'); getEl('app-view').classList.remove('hidden'); renderUserTable(); processActiveData(); } 
             else { er.classList.remove('hidden'); getEl('login-error-msg').textContent = "Credenciales incorrectas."; } 
             getEl('btn-login-text').classList.remove('hidden'); getEl('btn-login-loader').classList.add('hidden'); 
         }, 500); 
@@ -212,7 +212,7 @@ const getEl = id => document.getElementById(id);
     function renderResTabs() { getEl('res-tabs-container').innerHTML = [{id: 'res_cloro', label: 'Cloro'}, {id: 'res_metales', label: 'Metales Pesados'}, {id: 'res_fisico', label: 'Físico Químicos'}, {id: 'res_bacteriologico', label: 'Bacteriológico'}, {id: 'res_parasitologico', label: 'Parasitológico'}].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
     window.changeResSubTab = id => { if(APP_STATE.resActiveTab === id) return; APP_STATE.resActiveTab = id; APP_STATE.currentTableFilters = {}; renderResTabs(); updateGlobalDateDropdowns(); processActiveData(); }
 
-    function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{id: 'ind1', label: 'AI-01.01'}, {id: 'ind2', label: 'AI-02.01'}].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+    function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{id: 'ind1', label: 'AI-01.01'}, {id: 'ind2', label: 'AI-02.01'}, {id: 'ind3', label: 'AI-03.01'}].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
     window.changeFedSubTab = id => { APP_STATE.fedActiveTab = id; APP_STATE.currentTableFilters = {}; renderFedTabs(); processActiveData(); }
 
     function updateGlobalDateDropdowns() { 
@@ -350,11 +350,43 @@ const getEl = id => document.getElementById(id);
             const aS = new Map(); dRows.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
             fD = Array.from(aS.keys()).map(id => { const obj = map[id] || { dM: {} }; let hasD = false; const mC = fM.map(m => { if (obj.dM[m] && obj.dM[m].status > 0) hasD = true; return obj.dM[m] ? JSON.stringify(obj.dM[m]) : JSON.stringify({status: 0, params: []}); }); const oTx = subTab === 'monitor' ? (oMap[String(id).trim()] || '') : ''; if (!hasD && !oTx) return null; let rr = [...(obj.meta || aS.get(id)), ...mC]; if (subTab === 'monitor') { rr.push(oTx); rr.push(JSON.stringify(obj.history || [])); } return rr; }).filter(Boolean); pT = 'status_json';
         } else if (subTab === 'riesgos') {
-            let lR = dO.riesgos.slice(1); let lH = dO.riesgos[0] || []; if (redFilter !== 'Todos') lR = lR.filter(r => r[findHeaderIndex(lH, 'Red de Salud')] === redFilter); if (ambitoFilter === 'MEF') { const sI = findHeaderIndex(lH, 'Id. SAP'); if(sI!==-1) lR = lR.filter(r => APP_STATE.mefSapIds.has(String(r[sI]).trim())); } if (ambitoFilter === 'FED') { const uI = findHeaderIndex(lH, 'Ubigeo'); if(uI!==-1) lR = lR.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uI]))); }
-            fH = [...CORE_HEADERS, ...fM.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)]; const map = {}; const lId = findHeaderIndex(lH, 'Id. SAP'); const iAR = findHeaderIndex(lH, 'Año');
-            lR.forEach(r => { const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(!id) return; if(!map[id]) map[id] = { meta: getMeta(r, lH), vM: {} }; let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : ''; Object.keys(MONTH_NUM).forEach(mR => { const mS = MONTH_NUM[mR]; let yy = ano ? ano : (mS === '12' ? '2025' : '2026'); const ym = `${yy}-${mS}`; if (ym >= aF && ym <= aT) { const mC = mR.charAt(0) + mR.slice(1).toLowerCase(); const iI = findHeaderIndex(lH, `Informe ${mC}`); const iC = findHeaderIndex(lH, `Cargo ${mC}`); const iV = iI !== -1 ? normalizeHeader(r[iI]) : ''; const cV = iC !== -1 ? normalizeHeader(r[iC]) : ''; let cS = map[id].vM[ym]?.status || 0; let nS = 0; let p = []; if (iV === 'aprobado' && cV === 'aprobado') { nS = 1; } else if (iV === 'aprobado') { nS = 2; p = ['Falta Cargo']; } if (nS > cS) { map[id].vM[ym] = { status: nS, params: p }; } } }); });
+            let lR = dO.riesgos.slice(1); let lH = dO.riesgos[0] || []; 
+            if (redFilter !== 'Todos') lR = lR.filter(r => r[findHeaderIndex(lH, 'Red de Salud')] === redFilter); 
+            if (ambitoFilter === 'MEF') { const sI = findHeaderIndex(lH, 'Id. SAP'); if(sI!==-1) lR = lR.filter(r => APP_STATE.mefSapIds.has(String(r[sI]).trim())); } 
+            if (ambitoFilter === 'FED') { const uI = findHeaderIndex(lH, 'Ubigeo'); if(uI!==-1) lR = lR.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uI]))); }
+            
+            const fixedMonths = ['2025-12', '2026-01', '2026-02', '2026-03'];
+            fH = [...CORE_HEADERS, 'Dic 2025', 'Ene 2026', 'Feb 2026', 'Mar 2026']; 
+            const map = {}; const lId = findHeaderIndex(lH, 'Id. SAP'); const iAR = findHeaderIndex(lH, 'Año');
+            
+            lR.forEach(r => { 
+                const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(!id) return; 
+                if(!map[id]) map[id] = { meta: getMeta(r, lH), vM: {} }; 
+                let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : ''; 
+                
+                fixedMonths.forEach(ym => {
+                    const [y, m] = ym.split('-');
+                    const mNameMap = { '12': 'Diciembre', '01': 'Enero', '02': 'Febrero', '03': 'Marzo' };
+                    const mC = mNameMap[m];
+                    if (ano && ano !== y) return;
+                    
+                    const iC = findHeaderIndex(lH, `Cargo ${mC}`); 
+                    const cV = iC !== -1 ? normalizeHeader(r[iC]) : ''; 
+                    
+                    let cS = map[id].vM[ym]?.status || 0; 
+                    let nS = 3; 
+                    if (cV === 'aprobado') { nS = 1; }
+                    
+                    if (nS < cS || cS === 0) { map[id].vM[ym] = { status: nS, params: [] }; } 
+                }); 
+            });
             const aS = new Map(); lR.forEach(r => { const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(id && !aS.has(id)) aS.set(id, getMeta(r, lH)); });
-            fD = Array.from(aS.keys()).map(id => { const o = map[id] || { vM: {} }; let hD = false; const mC = fM.map(m => { if (o.vM[m] && o.vM[m].status > 0) hD = true; return o.vM[m] ? JSON.stringify(o.vM[m]) : JSON.stringify({status: 0, params: []}); }); if (!hD) return null; return [...(o.meta || aS.get(id)), ...mC]; }).filter(Boolean); pT = 'status_json';
+            fD = Array.from(aS.keys()).map(id => { 
+                const o = map[id] || { vM: {} }; 
+                const mC = fixedMonths.map(m => { return o.vM[m] ? JSON.stringify(o.vM[m]) : JSON.stringify({status: 3, params: []}); }); 
+                return [...(o.meta || aS.get(id)), ...mC]; 
+            }).filter(Boolean); 
+            pT = 'status_json';
         } else if (subTab === 'sanitaria') {
             let lR = dO.sanitaria.slice(1); let lH = dO.sanitaria[0] || []; if (redFilter !== 'Todos') lR = lR.filter(r => r[findHeaderIndex(lH, 'Red de Salud')] === redFilter); if (ambitoFilter === 'MEF') { const sI = findHeaderIndex(lH, 'Id. SAP'); if(sI!==-1) lR = lR.filter(r => APP_STATE.mefSapIds.has(String(r[sI]).trim())); } if (ambitoFilter === 'FED') { const uI = findHeaderIndex(lH, 'Ubigeo'); if(uI!==-1) lR = lR.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uI]))); }
             const sS = new Set(); fM.forEach(m => { const [y, mm] = m.split('-'); sS.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`); }); const sK = Array.from(sS).sort(); const sL = sK.map(k => { const [y, s] = k.split('-'); return s === 'S1' ? `1ra Inspección ${y}` : `2da Inspección ${y}`; });
@@ -368,16 +400,175 @@ const getEl = id => document.getElementById(id);
     }
 
     function runFedLogic(dO, ind) {
+        if (ind === 'ind3') {
+            const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
+            
+            const h1 = dO.main[0] || []; const r1 = dO.main.slice(1);
+            const iBcfNmp = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (NMP)');
+            const iBcfUfc = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (UFC)');
+            const iBctNmp = findHeaderIndex(h1, 'Bacterias Coliformes Totales (NMP)');
+            const iBctUfc = findHeaderIndex(h1, 'Bacterias Coliformes Totales (UFC)');
+            const iEcNmp = findHeaderIndex(h1, 'E. Coli (NMP)');
+            const iEcUfc = findHeaderIndex(h1, 'E. Coli (UFC)');
+            const iU1 = findHeaderIndex(h1, 'Ubigeo');
+            const iC1 = findHeaderIndex(h1, 'Nombre CCPP');
+            
+            const paramsToExtract = [
+                'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+            ];
+            const pIdx = {};
+            paramsToExtract.forEach(p => pIdx[p] = findHeaderIndex(h1, p));
+
+            const mMain = {};
+            r1.forEach(r => {
+                const u = formatUbigeo(r[iU1]); const n = r[iC1];
+                if (!u || !n) return;
+                const id = u + '_' + n;
+                if (!mMain[id]) { 
+                    mMain[id] = { bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity }; 
+                    paramsToExtract.forEach(p => mMain[id][p] = -Infinity);
+                }
+                const parseVal = (idx) => {
+                    if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
+                    return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
+                };
+                const v1 = parseVal(iBcfNmp); if (!isNaN(v1) && v1 > mMain[id].bcfNmp) mMain[id].bcfNmp = v1;
+                const v2 = parseVal(iBcfUfc); if (!isNaN(v2) && v2 > mMain[id].bcfUfc) mMain[id].bcfUfc = v2;
+                const v3 = parseVal(iBctNmp); if (!isNaN(v3) && v3 > mMain[id].bctNmp) mMain[id].bctNmp = v3;
+                const v4 = parseVal(iBctUfc); if (!isNaN(v4) && v4 > mMain[id].bctUfc) mMain[id].bctUfc = v4;
+                const v5 = parseVal(iEcNmp); if (!isNaN(v5) && v5 > mMain[id].ecNmp) mMain[id].ecNmp = v5;
+                const v6 = parseVal(iEcUfc); if (!isNaN(v6) && v6 > mMain[id].ecUfc) mMain[id].ecUfc = v6;
+                
+                paramsToExtract.forEach(p => {
+                    const vx = parseVal(pIdx[p]);
+                    if (!isNaN(vx) && vx > mMain[id][p]) mMain[id][p] = vx;
+                });
+            });
+
+            const m3 = {};
+            rR.forEach(r => {
+                const u = formatUbigeo(r[findHeaderIndex(rH, 'Ubigeo')]); const n = r[findHeaderIndex(rH, 'Nombre CCPP')];
+                if (!u || !n) return;
+                const id = u + '_' + n;
+                if (!m3[id]) {
+                    m3[id] = {
+                        u: u || '', c: n || '', p: r[findHeaderIndex(rH, 'Provincia')] || '', d: r[findHeaderIndex(rH, 'Distrito')] || '', r: r[findHeaderIndex(rH, 'Red de Salud')] || '', jul: 0, ago: 0, set: 0, oct: 0, nov: 0, dic: 0,
+                        m_bcfNmp: mMain[id] ? mMain[id].bcfNmp : -Infinity,
+                        m_bcfUfc: mMain[id] ? mMain[id].bcfUfc : -Infinity,
+                        m_bctNmp: mMain[id] ? mMain[id].bctNmp : -Infinity,
+                        m_bctUfc: mMain[id] ? mMain[id].bctUfc : -Infinity,
+                        m_ecNmp: mMain[id] ? mMain[id].ecNmp : -Infinity,
+                        m_ecUfc: mMain[id] ? mMain[id].ecUfc : -Infinity,
+                        mMain: mMain[id] || {}
+                    };
+                }
+                const a = iA !== -1 ? String(r[iA]).trim() : '';
+                if (a === '2025' || a === '') {
+                    const checkAlerta = (mes) => {
+                        const idx = findHeaderIndex(rH, `Alerta ${mes}`);
+                        return idx !== -1 && normalizeHeader(r[idx]) === 'si' ? 1 : 0;
+                    };
+                    if (checkAlerta('Julio')) m3[id].jul = 1;
+                    if (checkAlerta('Agosto')) m3[id].ago = 1;
+                    if (checkAlerta('Setiembre') || checkAlerta('Septiembre')) m3[id].set = 1;
+                    if (checkAlerta('Octubre')) m3[id].oct = 1;
+                    if (checkAlerta('Noviembre')) m3[id].nov = 1;
+                    if (checkAlerta('Diciembre')) m3[id].dic = 1;
+                }
+            });
+            
+            const extraColsNames = [
+                'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta) + Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+            ];
+            const limitsExtra = [
+                15, 5, 8.5, 1500, 1000, 250, 250, 500, 0.3, 0.4, 0.2, 2, 3, 200, 0.02, 0.01, 0.7, 1.5, 0.003, 0.07, 5, 0.05, 0.001, 0.02, 50, 0.2, 0.01, 0.01, 0.07, 0.015
+            ];
+
+            const fD = Object.values(m3).map(s => { 
+                const totA = s.jul + s.ago + s.set + s.oct + s.nov + s.dic;
+                const cumpA = totA >= 2 ? 1 : 0;
+                
+                const bcfNmp = s.m_bcfNmp !== -Infinity ? s.m_bcfNmp : '';
+                const bcfUfc = s.m_bcfUfc !== -Infinity ? s.m_bcfUfc : '';
+                const bctNmp = s.m_bctNmp !== -Infinity ? s.m_bctNmp : '';
+                const bctUfc = s.m_bctUfc !== -Infinity ? s.m_bctUfc : '';
+                const ecNmp = s.m_ecNmp !== -Infinity ? s.m_ecNmp : '';
+                const ecUfc = s.m_ecUfc !== -Infinity ? s.m_ecUfc : '';
+
+                const getR = (v, limit) => v === '' ? 0 : (v > limit ? 1 : 0);
+                
+                const r_bcfNmp = getR(bcfNmp, 1.8);
+                const r_bcfUfc = getR(bcfUfc, 0);
+                const r_bctNmp = getR(bctNmp, 1.8);
+                const r_bctUfc = getR(bctUfc, 0);
+                const r_ecNmp = getR(ecNmp, 1.8);
+                const r_ecUfc = getR(ecUfc, 0);
+
+                const totParam = r_bcfNmp + r_bcfUfc + r_bctNmp + r_bctUfc + r_ecNmp + r_ecUfc;
+                const tiene = totParam >= 1 ? 1 : 0;
+                
+                const getPVal = (p) => s.mMain && s.mMain[p] !== undefined && s.mMain[p] !== -Infinity ? s.mMain[p] : '';
+                const pValsArr = []; const rValsArr = [];
+                const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
+                for (let i = 0; i < pKeys.length; i++) {
+                    const v = getPVal(pKeys[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[i]));
+                }
+                const nitC = getPVal('Nitritos (Exposición Corta)'); const nitL = getPVal('Nitritos (Exposición Larga)');
+                let nitSum = '';
+                if (nitC !== '' || nitL !== '') { nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); nitSum = Math.round(nitSum * 100000) / 100000; }
+                pValsArr.push(nitSum); rValsArr.push(getR(nitSum, limitsExtra[pKeys.length]));
+                const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
+                for (let i = 0; i < pKeys2.length; i++) {
+                    const v = getPVal(pKeys2[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[pKeys.length + 1 + i]));
+                }
+                
+                const totParamMetales = rValsArr.reduce((a, b) => a + b, 0);
+                const tieneMetales = totParamMetales >= 1 ? 1 : 0;
+                const paso1 = (cumpA === 1 && tiene === 1 && tieneMetales === 0) ? 1 : 0;
+                
+                return [
+                    s.u, s.c, s.p, s.d, s.r, s.jul, s.ago, s.set, s.oct, s.nov, s.dic, totA, cumpA, 
+                    bcfNmp, bcfUfc, bctNmp, bctUfc, ecNmp, ecUfc,
+                    r_bcfNmp, r_bcfUfc, r_bctNmp, r_bctUfc, r_ecNmp, r_ecUfc,
+                    totParam, tiene, 
+                    ...pValsArr, ...rValsArr, totParamMetales, tieneMetales, paso1,
+                    APP_STATE.mefUbigeos.has(s.u) ? 1 : 0, APP_STATE.fedUbigeos.has(s.u) ? 1 : 0
+                ]; 
+            });
+            return { headers: [
+                'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Jul 2025', 'Ago 2025', 'Set 2025', 'Oct 2025', 'Nov 2025', 'Dic 2025', 'Total Alertas', 'Cumple Alerta', 
+                'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (NMP)', 'E. Coli (UFC)', 
+                'Bacterias Coliformes Fecales (NMP) Resultado', 'Bacterias Coliformes Fecales (UFC) Resultado', 'Bacterias Coliformes Totales (NMP) Resultado', 'Bacterias Coliformes Totales (UFC) Resultado', 'E. Coli (NMP) Resultado', 'E. Coli (UFC) Resultado', 
+                'Total parámetros con contaminación fecal', 'Tiene al menos una muestra con contaminación fecal', 
+                ...extraColsNames,
+                ...extraColsNames.map(n => n + ' Resultado'),
+                'Total parametros organolepticos y/o inorganicos (metales pesados) que exceden el LMP',
+                'Tiene al menos un parametro organolepticos y/o inorganicos (metales pesados) que excede el LMP',
+                'Cumple Paso 1', 'MEF', 'FED'
+            ], data: fD };
+        }
+
         const m = {}; const h1 = dO.main[0] || []; const r1 = dO.main.slice(1); const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
-        const iC = (r, h) => { const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]); const n = r[findHeaderIndex(h, 'Nombre CCPP')]; if (!u || !n) return null; const id = u + '_' + n; if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ca: { c: false, p: false }, i: 0, ri: { d: false, e: false, f: false } }; } return id; };
+        const iC = (r, h) => { const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]); const n = r[findHeaderIndex(h, 'Nombre CCPP')]; if (!u || !n) return null; const id = u + '_' + n; if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ma: { t:0, p5:0, cl:0, tu:0 }, ca: { c: false, p: false }, i: 0, ri: { d: false, e: false, f: false } }; } return id; };
         const gS = (r, h) => { const cI = findHeaderIndex(h, 'Cloro'); const tI = findHeaderIndex(h, 'Turbiedad'); return { is5p: classifyMonitoringStatus(h, r) === 1, c: cI !== -1 ? parseFloat(r[cI]) : NaN, t: tI !== -1 ? parseFloat(r[tI]) : NaN }; };
         const eC = (r, h, isCap) => { const s = isCap ? CARACT_CAPTACION_SINGLE : CARACT_PILETA_SINGLE; const o = isCap ? CARACT_CAPTACION_OR : CARACT_PILETA_OR; for(let p of s) { if(isCellEmpty(r[findHeaderIndex(h, p)])) return false; } for(let p of o) { if(isCellEmpty(r[findHeaderIndex(h, p[0])]) && isCellEmpty(r[findHeaderIndex(h, p[1])])) return false; } return true; };
 
         const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo');
-        r1.forEach(r => { const id = iC(r, h1); if(!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; if(me === 'diciembre') { const s = gS(r, h1); m[id].di.t++; if (s.is5p) m[id].di.p5++; if (!isNaN(s.c) && s.c >= 0.5 && s.c <= 5) m[id].di.cl++; if (!isNaN(s.t) && s.t <= 5) m[id].di.tu++; } if (ind === 'ind2' && iU1 !== -1) { const ub = r[iU1] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h1, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h1, false)) m[id].ca.p = true; } } });
+        r1.forEach(r => { const id = iC(r, h1); if(!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; if(me === 'diciembre') { const s = gS(r, h1); m[id].di.t++; if (s.is5p) m[id].di.p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk && tuOk) { m[id].di.cl++; m[id].di.tu++; } } if (ind === 'ind2' && iU1 !== -1) { const ub = r[iU1] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h1, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h1, false)) m[id].ca.p = true; } } });
         
         const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo');
-        r2.forEach(r => { const id = iC(r, h2); if(!id) return; const me = iM2 !== -1 ? normalizeHeader(r[iM2]) : ''; if (me === 'enero' || me === 'febrero') { const s = gS(r, h2); if (me === 'enero') { m[id].en.t++; if (s.is5p) m[id].en.p5++; if (!isNaN(s.c) && s.c >= 0.5 && s.c <= 5) m[id].en.cl++; if (!isNaN(s.t) && s.t <= 5) m[id].en.tu++; } else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) m[id].fe.p5++; if (!isNaN(s.c) && s.c >= 0.5 && s.c <= 2) m[id].fe.cl++; if (!isNaN(s.t) && s.t <= 5) m[id].fe.tu++; } } if (ind === 'ind2' && iU2 !== -1) { const ub = r[iU2] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h2, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h2, false)) m[id].ca.p = true; } } });
+        r2.forEach(r => { 
+            const id = iC(r, h2); if(!id) return; 
+            const me = iM2 !== -1 ? normalizeHeader(r[iM2]) : ''; 
+            if (me === 'enero' || me === 'febrero' || me === 'marzo') { 
+                const s = gS(r, h2); 
+                const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5;
+                if (me === 'enero') { m[id].en.t++; if (s.is5p) m[id].en.p5++; if (clOk && tuOk) { m[id].en.cl++; m[id].en.tu++; } } 
+                else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) m[id].fe.p5++; if (clOk && tuOk) { m[id].fe.cl++; m[id].fe.tu++; } } 
+                else if (me === 'marzo') { m[id].ma.t++; if (s.is5p) m[id].ma.p5++; if (clOk && tuOk) { m[id].ma.cl++; m[id].ma.tu++; } }
+            } 
+            if (ind === 'ind2' && iU2 !== -1) { const ub = r[iU2] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h2, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h2, false)) m[id].ca.p = true; } } 
+        });
 
         if (ind === 'ind2') {
             const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1); const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
@@ -387,8 +578,19 @@ const getEl = id => document.getElementById(id);
         }
 
         if (ind === 'ind1') {
-            const fD = Object.values(m).map(s => { const cE = (x) => (x.t === 0 ? 0 : ((x.p5 / x.t) >= 0.7 || x.p5 > 3 ? 1 : 0)); const e5d = cE(s.di); const ed = (e5d === 1 && s.di.cl > 0 && s.di.tu > 0) ? 1 : 0; const e5e = cE(s.en); const ee = (e5e === 1 && s.en.cl > 0 && s.en.tu > 0) ? 1 : 0; const e5f = cE(s.fe); const ef = (e5f === 1 && s.fe.cl > 0 && s.fe.tu > 0) ? 1 : 0; let sE = ed + ee + ef; let sg = sE >= 3 ? 'Verde' : (sE > 0 ? 'Naranja' : 'Rojo'); const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, s.di.t, s.di.p5, e5d, s.di.cl, s.di.tu, ed, s.en.t, s.en.p5, e5e, s.en.cl, s.en.tu, ee, s.fe.t, s.fe.p5, e5f, s.fe.cl, s.fe.tu, ef, sg, iM, iF ]; });
-            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Seguimiento', 'MEF', 'FED'], data: fD };
+            const fD = Object.values(m).map(s => { 
+                const eval5p = (x) => (x.p5 >= 3 ? 1 : 0);
+                const evalMes = (x, e5) => (e5 === 1 && x.cl >= 3 && x.tu >= 3 ? 1 : 0);
+                const e5d = eval5p(s.di); const ed = evalMes(s.di, e5d);
+                const e5e = eval5p(s.en); const ee = evalMes(s.en, e5e);
+                const e5f = eval5p(s.fe); const ef = evalMes(s.fe, e5f);
+                const e5m = eval5p(s.ma); const em = evalMes(s.ma, e5m);
+                let sE = ed + ee + ef + em; 
+                let sg = sE >= 3 ? 'Verde' : (sE > 0 ? 'Naranja' : 'Rojo'); 
+                const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; 
+                return [ s.u, s.c, s.p, s.d, s.r, s.di.t, s.di.p5, e5d, s.di.cl, s.di.tu, ed, s.en.t, s.en.p5, e5e, s.en.cl, s.en.tu, ee, s.fe.t, s.fe.p5, e5f, s.fe.cl, s.fe.tu, ef, s.ma.t, s.ma.p5, e5m, s.ma.cl, s.ma.tu, em, sg, iM, iF ]; 
+            });
+            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Tot Mon. Mar', 'Mon 5P Mar', 'EV_5p Mar', 'Mar(Cl>=0.5)', 'Mar(Turb<=5)', 'Ev_Mar', 'Seguimiento', 'MEF', 'FED'], data: fD };
         } else {
             const fD = Object.values(m).map(s => { const ei = s.i > 0 ? 1 : 0; const ec = (s.ca.c && s.ca.p) ? 1 : 0; const cM = (x) => x.p5 > 3 ? 1 : 0; const s5 = cM(s.di) + cM(s.en) + cM(s.fe); const em = s5 >= 2 ? 1 : 0; const sR = (s.ri.d?1:0) + (s.ri.e?1:0) + (s.ri.f?1:0); const er = sR >= 3 ? 1 : 0; const inF = (ei === 1 && ec === 1 && em === 1 && er === 1) ? 1 : 0; const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, ei, ec, em, er, inF, iM, iF ]; });
             return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Inspección', 'Cumple Caracterizacion', 'Cumple Monit. 5P', 'Cumple Rep. Riesgo', 'Cumplimiento Ind. 2', 'MEF', 'FED'], data: fD };
@@ -454,7 +656,7 @@ const getEl = id => document.getElementById(id);
                     let d = {status: 0, params: []}; try { d = JSON.parse(c); } catch(e){}
                     if (d.status === 1) ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner" title="Completo"><i data-lucide="check" class="w-4 h-4"></i></div>`; 
                     else if (d.status === 2) { const ps = safeEscape(d.params.join(', ')); ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 cursor-pointer shadow-inner hover:bg-amber-200 transition-colors" onclick="event.stopPropagation(); window.openParamsModal('${ps}')" title="Incompleto - Clic para ver"><i data-lucide="info" class="w-4 h-4"></i></div>`; } 
-                    else ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner" title="Sin Monitoreo"><i data-lucide="x" class="w-4 h-4"></i></div>`; tdA = tdA.replace('class="', 'class="text-center ');
+                    else ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner" title="No Cumple / Sin Dato"><i data-lucide="x" class="w-4 h-4"></i></div>`; tdA = tdA.replace('class="', 'class="text-center ');
                 } else if (result.type === 'boolean' && (h.includes('Visita') || MONITOR_MONTHS.includes(h))) {
                     if (v >= 1) ctt = `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-100 text-[10px]"><i data-lucide="check-circle-2" class="w-3 h-3"></i> ${v}</span>`; else ctt = `<span class="text-slate-300">-</span>`; tdA = tdA.replace('class="', 'class="text-center ');
                 } else if (result.type === 'analysis' && h.includes('Muestra')) {
@@ -575,48 +777,67 @@ const getEl = id => document.getElementById(id);
     }
 
     function renderFedConsolidatedAndChart(result) {
-        const sR = {}; const sP = {}; const sD = {}; let gTC = 0, gCI = 0, gD = 0, gE = 0, gF = 0, gI = 0, gC = 0, gM = 0, gRi = 0;
+        const sR = {}; const sP = {}; const sD = {}; let gTC = 0, gCI = 0, gD = 0, gE = 0, gF = 0, gMar = 0, gI = 0, gC = 0, gM = 0, gRi = 0;
+        let gJul = 0, gAgo = 0, gSet = 0, gOct = 0, gNov = 0, gDic = 0; 
         const isI1 = APP_STATE.fedActiveTab === 'ind1';
+        const isI3 = APP_STATE.fedActiveTab === 'ind3';
         let fD = result.data; if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
 
         fD.forEach(r => {
             const red = r[4] || 'Sin Red'; const pro = r[2] || 'Sin Provincia'; const dis = r[3] || 'Sin Distrito';
             [sR, sP, sD].forEach((obj, idx) => {
                 const k = idx === 0 ? red : (idx === 1 ? pro : dis);
-                if(!obj[k]) obj[k] = { cp:0, d:0, e:0, f:0, c:0, i:0, ca:0, m:0, ri:0 }; obj[k].cp++;
-                if (isI1) { const ed = r[10]; const ee = r[16]; const ef = r[22]; const sEv = ed + ee + ef; if(ed===1) obj[k].d++; if(ee===1) obj[k].e++; if(ef===1) obj[k].f++; if(sEv>=3) obj[k].c++; } 
+                if(!obj[k]) {
+                    if (isI1) obj[k] = { cp:0, d:0, e:0, f:0, m:0, c:0 };
+                    else if (isI3) obj[k] = { cp:0, jul:0, ago:0, set:0, oct:0, nov:0, dic:0, c:0 };
+                    else obj[k] = { cp:0, i:0, ca:0, m:0, ri:0, c:0 };
+                }
+                obj[k].cp++;
+                if (isI1) { const ed = r[10]; const ee = r[16]; const ef = r[22]; const em = r[28]; const sEv = ed + ee + ef + em; if(ed===1) obj[k].d++; if(ee===1) obj[k].e++; if(ef===1) obj[k].f++; if(em===1) obj[k].m++; if(sEv>=3) obj[k].c++; } 
+                else if (isI3) { if(r[5]===1) obj[k].jul++; if(r[6]===1) obj[k].ago++; if(r[7]===1) obj[k].set++; if(r[8]===1) obj[k].oct++; if(r[9]===1) obj[k].nov++; if(r[10]===1) obj[k].dic++; if(r[12]===1) obj[k].c++; }
                 else { const ei = r[5]; const ec = r[6]; const em = r[7]; const er = r[8]; const ef = r[9]; if(ei===1) obj[k].i++; if(ec===1) obj[k].ca++; if(em===1) obj[k].m++; if(er===1) obj[k].ri++; if(ef===1) obj[k].c++; }
             });
             gTC++;
-            if (isI1) { const sEv = r[10] + r[16] + r[22]; if(r[10]===1) gD++; if(r[16]===1) gE++; if(r[22]===1) gF++; if(sEv>=3) gCI++; } 
+            if (isI1) { const sEv = r[10] + r[16] + r[22] + r[28]; if(r[10]===1) gD++; if(r[16]===1) gE++; if(r[22]===1) gF++; if(r[28]===1) gMar++; if(sEv>=3) gCI++; } 
+            else if (isI3) { if(r[5]===1) gJul++; if(r[6]===1) gAgo++; if(r[7]===1) gSet++; if(r[8]===1) gOct++; if(r[9]===1) gNov++; if(r[10]===1) gDic++; if(r[12]===1) gCI++; }
             else { if(r[5]===1) gI++; if(r[6]===1) gC++; if(r[7]===1) gM++; if(r[8]===1) gRi++; if(r[9]===1) gCI++; }
         });
 
         const bHtml = (obj, lbl) => {
             let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${lbl}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${lbl}</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th>`;
-            if (isI1) { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>`; } 
+            if (isI1) { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Marzo</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>`; } 
+            else if (isI3) { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Jul 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Ago 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Set 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Oct 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Nov 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Dic 2025</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Alerta</th>`; }
             else { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`; }
             h += `</tr></thead><tbody class="divide-y divide-slate-100">`;
             Object.entries(obj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, v]) => {
                 h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td><td class="px-5 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${v.cp}</td>`;
-                if(isI1) { h += `<td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.d}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.e}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.f}</td>`; } 
-                else { h += `<td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.i}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ca}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.m}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ri}</td>`; }
-                h += `<td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td></tr>`;
+                if(isI1) { h += `<td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.d}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.e}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.f}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700 font-bold">${v.m}</td><td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td>`; } 
+                else if(isI3) { h += `<td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.jul}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.ago}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.set}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.oct}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.nov}</td><td class="px-4 py-2.5 text-xs text-center text-slate-700">${v.dic}</td><td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td>`; }
+                else { h += `<td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.i}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ca}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.m}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ri}</td><td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td>`; }
+                h += `</tr>`;
             });
             h += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-3 text-xs text-center text-white font-bold bg-slate-900">${gTC}</td>`;
-            if(isI1) { h += `<td class="px-4 py-3 text-xs text-center text-white font-bold">${gD}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gE}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gF}</td>`; } 
-            else { h += `<td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gI}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gC}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gM}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gRi}</td>`; }
-            h += `<td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td></tr></tbody></table></div></div>`; return h;
+            if(isI1) { h += `<td class="px-4 py-3 text-xs text-center text-white font-bold">${gD}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gE}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gF}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gMar}</td><td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td>`; } 
+            else if(isI3) { h += `<td class="px-4 py-3 text-xs text-center text-white font-bold">${gJul}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gAgo}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gSet}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gOct}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gNov}</td><td class="px-4 py-3 text-xs text-center text-white font-bold">${gDic}</td><td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td>`; }
+            else { h += `<td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gI}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gC}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gM}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gRi}</td><td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td>`; }
+            h += `</tr></tbody></table></div></div>`; return h;
         };
 
         let ht = '<div class="flex flex-col w-full p-4">' + bHtml(sR, "RED DE SALUD") + bHtml(sP, "PROVINCIA") + bHtml(sD, "DISTRITO");
-        if (isI1) { ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gD}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gE}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gF}</td><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-blue-700 bg-blue-50">200</td></tr></tbody></table></div></div>`; }
+        if (isI1) { ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Diciembre (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Enero (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Febrero (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Marzo (Eval. Completa)</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gD}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gE}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gF}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gMar}</td><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-blue-700 bg-blue-50">200</td></tr></tbody></table></div></div>`; }
         ht += '</div>'; getEl('fed-consolidated-container').innerHTML = ht;
 
-        let c = [0,0,0,0]; let l = [];
-        if(isI1) { fD.forEach(r => { const s = r[23]; if(s==='Verde') c[0]++; else if(s==='Naranja') c[1]++; else if(s==='Rojo') c[2]++; else c[3]++; }); l = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo']; } 
+        let c = [0,0,0,0]; let l = []; let colors = ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'];
+        if(isI1) { fD.forEach(r => { const s = r[23]; if(s==='Verde') c[0]++; else if(s==='Naranja') c[1]++; else if(s==='Rojo') c[2]++; else c[3]++; }); l = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo']; }
+        else if (isI3) {
+            let wA = 0, woA = 0;
+            fD.forEach(r => {
+                if (r[12] === 1) wA++; else woA++;
+            });
+            c = [wA, woA]; l = ['Cumple Alerta (>= 2)', 'No Cumple (< 2)']; colors = ['#10b981', '#ef4444']; 
+        }
         else { fD.forEach(r => { const f = r[9]; if(f===1) c[0]++; else c[2]++; }); l = ['SAPs Cumplen Ind 2', '', 'No Cumplen', '']; }
-        renderDoughnutChart(c, l, ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'], `FED - ${APP_STATE.fedActiveTab.toUpperCase()}`, 'fed-chart-container');
+        renderDoughnutChart(c, l, colors, `FED - ${APP_STATE.fedActiveTab.toUpperCase()}`, 'fed-chart-container');
     }
 
     window.exportToExcel = (prefix) => {
