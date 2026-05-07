@@ -11,7 +11,8 @@ const getEl = id => document.getElementById(id);
         USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv', 
         MEF_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=943272105&single=true&output=csv', 
         FED_UB: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=2002511486&single=true&output=csv', 
-        OBSERVACIONES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=579471984&single=true&output=csv' 
+        OBSERVACIONES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=579471984&single=true&output=csv',
+        SAP_REGULARES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=811630485&single=true&output=csv'
     };
 
     const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -39,21 +40,59 @@ const getEl = id => document.getElementById(id);
     const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
     const APP_STATE = { 
-        currentUser: null, usersList: [], rawData: { main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [] }, 
+        currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [] }, 
         main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia', 
         sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {}, 
-        fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null }, 
-        mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), uniqueRedes: new Set(), currentTableFilters: {}, 
-        globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false 
+        fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null },
+        mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), uniqueRedes: new Set(), currentTableFilters: {}, 
+        globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
+        metaMefPorRed: {}
     };
 
     const generateMonthsUpTo = (l) => { const m=[]; if(!l) return m; const [y, mx] = l.split('-').map(Number); for (let i=2024; i<=y; i++){ const k = (i===y)?mx:12; for (let j=1; j<=k; j++){ const ym = `${i}-${String(j).padStart(2, '0')}`; if(ym >= '2024-01') m.push(ym); } } return m; };
-    const normalizeHeader = h => h ? String(h).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ') : '';
-    const findHeaderIndex = (h, t) => h.findIndex(x => normalizeHeader(x) === normalizeHeader(t));
+    
+    const normalizeHeader = (() => {
+        const cache = new Map();
+        return (h) => {
+            if (!h) return '';
+            const s = String(h);
+            let r = cache.get(s);
+            if (r !== undefined) return r;
+            r = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+            cache.set(s, r);
+            return r;
+        };
+    })();
+
+    const findHeaderIndex = (() => {
+        const cache = new Map();
+        return (h, t) => {
+            if (!h || !t) return -1;
+            let hm = cache.get(h);
+            if (!hm) { hm = new Map(); for (let i = 0; i < h.length; i++) { const n = normalizeHeader(h[i]); if (!hm.has(n)) hm.set(n, i); } cache.set(h, hm); }
+            const nt = normalizeHeader(t);
+            return hm.has(nt) ? hm.get(nt) : -1;
+        };
+    })();
+
     const isCellEmpty = c => c === null || c === undefined || String(c).trim() === '';
     const formatUbigeo = u => u ? String(u).trim().padStart(10, '0') : '';
     const safeEscape = s => s === null || s === undefined ? '' : String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ").replace(/\r/g, "");
     const getMeta = (r, h) => CORE_HEADERS.map(x => { let v = r[findHeaderIndex(h, x)] || ''; return x === 'Ubigeo' ? formatUbigeo(v) : v; });
+    const populateMeta = (map, id, r, h) => {
+        if (!id) return;
+        if (!map.has(id)) {
+            map.set(id, [getMeta(r, h)]);
+        } else {
+            const mt = map.get(id)[0];
+            const iC = CORE_HEADERS.indexOf('Nombre CCPP');
+            const iU = CORE_HEADERS.indexOf('Ubigeo');
+            const nC = String(r[findHeaderIndex(h, 'Nombre CCPP')] || '').trim();
+            const nU = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+            if (nC && !mt[iC].includes(nC)) mt[iC] += ' | ' + nC;
+            if (nU && !mt[iU].includes(nU)) mt[iU] += ' | ' + nU;
+        }
+    };
 
     window.alignRows = (src, tgt, def) => {
         if (!src || src.length <= 1 || !tgt) return [];
@@ -100,15 +139,48 @@ const getEl = id => document.getElementById(id);
     function reRenderCurrentTable() { processActiveData(); }
 
     function init() {
-        lucide.createIcons(); syncUsers(); preloadSAPData(); 
-        getEl('login-form').addEventListener('submit', handleLogin);
-        getEl('sap-filter-red').addEventListener('change', e => { APP_STATE.sapFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        getEl('sap-filter-ambito').addEventListener('change', e => { APP_STATE.sapFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        getEl('res-filter-red').addEventListener('change', e => { APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        getEl('res-filter-ambito').addEventListener('change', e => { APP_STATE.resFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        getEl('fed-filter-red').addEventListener('change', e => { APP_STATE.fedFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        getEl('fed-filter-ambito').addEventListener('change', e => { APP_STATE.fedFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
-        initWhiteboard();
+        const initLucide = () => {
+            if (window.lucide) { lucide.createIcons(); } 
+            else { setTimeout(initLucide, 100); }
+        };
+        initLucide();
+
+        syncUsers(); 
+        preloadSAPData(); 
+        
+        const loginForm = getEl('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', window.handleLogin);
+        }
+
+        const sapFilterRed = getEl('sap-filter-red');
+        if (sapFilterRed) {
+            sapFilterRed.addEventListener('change', e => { APP_STATE.sapFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        const sapFilterAmbito = getEl('sap-filter-ambito');
+        if (sapFilterAmbito) {
+            sapFilterAmbito.addEventListener('change', e => { APP_STATE.sapFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        const resFilterRed = getEl('res-filter-red');
+        if (resFilterRed) {
+            resFilterRed.addEventListener('change', e => { APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        const resFilterAmbito = getEl('res-filter-ambito');
+        if (resFilterAmbito) {
+            resFilterAmbito.addEventListener('change', e => { APP_STATE.resFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        const fedFilterRed = getEl('fed-filter-red');
+        if (fedFilterRed) {
+            fedFilterRed.addEventListener('change', e => { APP_STATE.fedFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        const fedFilterAmbito = getEl('fed-filter-ambito');
+        if (fedFilterAmbito) {
+            fedFilterAmbito.addEventListener('change', e => { APP_STATE.fedFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
+        }
+        
+        if (typeof window.initWhiteboard === 'function') {
+            window.initWhiteboard();
+        }
     }
 
     async function syncUsers(ld = false) {
@@ -117,7 +189,15 @@ const getEl = id => document.getElementById(id);
             const t = await fetch(`${URLS.USUARIOS}&t=${Date.now()}`).then(r => r.text()); 
             APP_STATE.usersList = parseCSVFast(t).slice(1).map(r => ({ usuario: r[0]?.trim(), password: r[1]?.trim(), red: r[2]?.trim() || 'TODAS' })).filter(u => u.usuario && u.password); 
             if(ld) { renderUserTable(); lucide.createIcons(); } 
-        } catch (e) { console.error(e); } finally { if(ld && b) b.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; }
+        } catch (e) { 
+            console.error("Error al sincronizar usuarios", e); 
+        } finally { 
+            // Fallback de seguridad por si falla la conexión a Google Sheets
+            if (!APP_STATE.usersList || APP_STATE.usersList.length === 0) {
+                APP_STATE.usersList = [{ usuario: 'admin', password: '123', red: 'TODAS' }];
+            }
+            if(ld && b) b.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Sincronizar'; 
+        }
     }
 
     window.applyUserRoleUI = () => {
@@ -133,7 +213,7 @@ const getEl = id => document.getElementById(id);
             const lt = getEl('sap-loader-text'); if (lt) lt.textContent = "Descargando matrices (1/2)...";
             const [m, m2, s] = await Promise.all([ fw(URLS.MAIN), fw(URLS.MAIN2), fw(URLS.SANITARIA) ]);
             if (lt) lt.textContent = "Descargando complementos (2/2)...";
-            const [ri, me, fe, ob] = await Promise.all([ fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES) ]);
+            const [ri, me, fe, ob, sr] = await Promise.all([ fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES) ]);
             if (lt) lt.textContent = "Procesando...";
             
             const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
@@ -151,10 +231,21 @@ const getEl = id => document.getElementById(id);
             APP_STATE.availableMonitorMonths = generateMonthsUpTo(mx); 
             APP_STATE.globalDateFrom = '2025-12'; APP_STATE.globalDateTo = mx; 
             
-            APP_STATE.mefUbigeos = new Set(); APP_STATE.mefSapIds = new Set();
-            if(mD.length > 1) { let uI = findHeaderIndex(mD[0], 'Ubigeo'); let sI = findHeaderIndex(mD[0], 'Id. SAP'); mD.slice(1).forEach(r => { if(uI!==-1&&r[uI]) APP_STATE.mefUbigeos.add(formatUbigeo(r[uI])); if(sI!==-1&&r[sI]) APP_STATE.mefSapIds.add(String(r[sI]).trim()); }); }
+            APP_STATE.mefUbigeos = new Set(); APP_STATE.mefSapIds = new Set(); APP_STATE.metaMefPorRed = {};
+            if(mD.length > 1) { 
+                let uI = findHeaderIndex(mD[0], 'Ubigeo'); let sI = findHeaderIndex(mD[0], 'Id. SAP'); let rI = findHeaderIndex(mD[0], 'Red de Salud'); 
+                mD.slice(1).forEach(r => { 
+                    if(uI!==-1&&r[uI]) APP_STATE.mefUbigeos.add(formatUbigeo(r[uI])); 
+                    if(sI!==-1&&r[sI]) APP_STATE.mefSapIds.add(String(r[sI]).trim()); 
+                    if(rI!==-1&&r[rI]) { const red = String(r[rI]).trim(); APP_STATE.metaMefPorRed[red] = (APP_STATE.metaMefPorRed[red] || 0) + 1; }
+                }); 
+            }
             APP_STATE.fedUbigeos = new Set(); 
             if(fD.length > 1) { let uI = findHeaderIndex(fD[0], 'Ubigeo'); fD.slice(1).forEach(r => { if(uI!==-1&&r[uI]) APP_STATE.fedUbigeos.add(formatUbigeo(r[uI])); }); }
+            
+            APP_STATE.sapRegularesUbigeos = new Set(); APP_STATE.sapRegularesIds = new Set();
+            const srD = parseCSVFast(sr);
+            if(srD.length > 1) { let uI = findHeaderIndex(srD[0], 'Ubigeo'); let sI = findHeaderIndex(srD[0], 'Id. SAP'); srD.slice(1).forEach(r => { if(uI!==-1&&r[uI]) APP_STATE.sapRegularesUbigeos.add(formatUbigeo(r[uI])); if(sI!==-1&&r[sI]) APP_STATE.sapRegularesIds.add(String(r[sI]).trim()); }); }
             
             const rds = new Set(); 
             if(APP_STATE.rawData.main.length > 1) { const idx = findHeaderIndex(th, 'Red de Salud'); APP_STATE.rawData.main.slice(1).forEach(r => { if(r[idx]) rds.add(r[idx]); }); } 
@@ -171,7 +262,7 @@ const getEl = id => document.getElementById(id);
             }
         } catch (e) { 
             console.error("Error", e); const l = getEl('sap-loader'); 
-            if (l) { l.innerHTML = `<div class="bg-white p-8 rounded-3xl shadow-xl flex flex-col items-center text-center"><div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="wifi-off" class="w-8 h-8 text-red-500"></i></div><h2 class="text-xl font-black text-slate-800 mb-2">Error de Conexión</h2><button onclick="window.forceRefreshData()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold mt-4">Reintentar</button></div>`; lucide.createIcons(); }
+            if (l) { l.innerHTML = `<div class="bg-white p-8 rounded-3xl shadow-xl flex flex-col items-center text-center"><div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4"><svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><h2 class="text-xl font-black text-slate-800 mb-2">Error de Conexión</h2><button onclick="window.forceRefreshData()" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold mt-4">Reintentar</button></div>`; if (window.lucide) window.lucide.createIcons(); }
         }
     }
 
@@ -182,12 +273,24 @@ const getEl = id => document.getElementById(id);
     }
 
     window.handleLogin = e => { 
-        e.preventDefault(); const u = getEl('login-user').value; const p = getEl('login-pass').value; const er = getEl('login-error'); 
+        if (e) e.preventDefault(); 
+        const u = getEl('login-user').value.trim(); 
+        const p = getEl('login-pass').value.trim(); 
+        const er = getEl('login-error'); 
         getEl('btn-login-text').classList.add('hidden'); getEl('btn-login-loader').classList.remove('hidden'); 
         setTimeout(() => { 
-            const f = APP_STATE.usersList.find(x => x.usuario === u && x.password === p); 
-            if (f) { APP_STATE.currentUser = f; getEl('welcome-user').textContent = f.usuario; window.applyUserRoleUI(); APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; getEl('login-view').classList.add('hidden'); getEl('app-view').classList.remove('hidden'); renderUserTable(); processActiveData(); } 
-            else { er.classList.remove('hidden'); getEl('login-error-msg').textContent = "Credenciales incorrectas."; } 
+            const f = APP_STATE.usersList.find(x => x.usuario.toLowerCase() === u.toLowerCase() && x.password === p); 
+            if (f) { 
+                APP_STATE.currentUser = f; 
+                getEl('welcome-user').textContent = f.usuario; 
+                window.applyUserRoleUI(); 
+                APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; 
+                getEl('login-view').classList.add('hidden'); 
+                getEl('app-view').classList.remove('hidden'); 
+                if (typeof window.renderUserTable === 'function') window.renderUserTable(); 
+                window.switchTab('dashboard'); 
+            } 
+            else { er.classList.remove('hidden'); getEl('login-error-msg').textContent = "Credenciales incorrectas o error de red."; } 
             getEl('btn-login-text').classList.remove('hidden'); getEl('btn-login-loader').classList.add('hidden'); 
         }, 500); 
     }
@@ -209,11 +312,18 @@ const getEl = id => document.getElementById(id);
     function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{id: 'monitor', label: 'Monitoreo 5P'}, {id: 'sanitaria', label: 'Insp. Sanitaria'}, {id: 'caracterizacion', label: 'Caracterización'}, {id: 'metales', label: 'Metales Pesados'}, {id: 'fisico', label: 'Físico Químicos'}, {id: 'bacteriologico', label: 'Bacteriológico'}, {id: 'parasitologico', label: 'Parasitológico'}, {id: 'riesgos', label: 'Riesgos'}].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
     window.changeSapSubTab = id => { if(APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
     
-    function renderResTabs() { getEl('res-tabs-container').innerHTML = [{id: 'res_cloro', label: 'Cloro'}, {id: 'res_metales', label: 'Metales Pesados'}, {id: 'res_fisico', label: 'Físico Químicos'}, {id: 'res_bacteriologico', label: 'Bacteriológico'}, {id: 'res_parasitologico', label: 'Parasitológico'}].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+    function renderResTabs() { getEl('res-tabs-container').innerHTML = [{id: 'res_cloro', label: 'Cloro'}, {id: 'res_nivel_riesgo', label: 'Nivel Riesgo'}, {id: 'res_riesgo', label: 'Riesgo Sanitario'}, {id: 'res_metales', label: 'Metales Pesados'}, {id: 'res_fisico', label: 'Físico Químicos'}, {id: 'res_bacteriologico', label: 'Bacteriológico'}, {id: 'res_parasitologico', label: 'Parasitológico'}].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
     window.changeResSubTab = id => { if(APP_STATE.resActiveTab === id) return; APP_STATE.resActiveTab = id; APP_STATE.currentTableFilters = {}; renderResTabs(); updateGlobalDateDropdowns(); processActiveData(); }
 
     function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{id: 'ind1', label: 'AI-01.01'}, {id: 'ind2', label: 'AI-02.01'}, {id: 'ind3', label: 'AI-03.01'}].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
-    window.changeFedSubTab = id => { APP_STATE.fedActiveTab = id; APP_STATE.currentTableFilters = {}; renderFedTabs(); processActiveData(); }
+    window.changeFedSubTab = id => { 
+        APP_STATE.fedActiveTab = id; 
+        APP_STATE.currentTableFilters = {}; 
+        if (id === 'ind2') { APP_STATE.globalDateFrom = '2026-01'; } 
+        else if (id === 'ind1') { APP_STATE.globalDateFrom = '2025-12'; } 
+        updateGlobalDateDropdowns();
+        renderFedTabs(); processActiveData(); 
+    }
 
     function updateGlobalDateDropdowns() { 
         const fs = getEl('global-date-from'); const ts = getEl('global-date-to'); 
@@ -277,8 +387,10 @@ const getEl = id => document.getElementById(id);
                 // Filtrar por Ámbito
                 const mI = rawResult.headers.indexOf('MEF');
                 const fI = rawResult.headers.indexOf('FED');
+                const srI = rawResult.headers.indexOf('SAP REGULARES');
                 if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
                 if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
+                if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
                 
                 const finalFedRes = { headers: rawResult.headers, data: filteredData };
                 renderFedTable(finalFedRes);
@@ -318,88 +430,461 @@ const getEl = id => document.getElementById(id);
         const idxUbi = findHeaderIndex(h, 'Ubigeo'); const idxSap = findHeaderIndex(h, 'Id. SAP');
         if (ambitoFilter === 'MEF' && idxSap !== -1) rM = rM.filter(row => APP_STATE.mefSapIds.has(String(row[idxSap]).trim()));
         if (ambitoFilter === 'FED' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbi])));
+        if (ambitoFilter === 'SAP REGULARES' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbi])));
         const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año');
-        let dRows = rM.filter(row => { let m = row[idxMes]; if(!m) return true; let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if(!mm) return false; let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; if (subTab !== 'res_cloro' && ym < '2025-01') return false; return ym >= aF && ym <= aT; });
+        let dRows = rM.filter(row => { let m = row[idxMes]; if(!m) return true; let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if(!mm) return false; let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; if (subTab !== 'res_cloro' && subTab !== 'res_nivel_riesgo' && ym < '2025-01') return false; return ym >= aF && ym <= aT; });
         let fH = [], fD = [], pT = 'status'; const idxId = findHeaderIndex(h, 'Id. SAP');
 
         if (subTab === 'res_cloro') {
             fH = [...CORE_HEADERS, 'Total Monitoreo', 'Cloro < 0.5', 'Cloro > 5', 'Cloro Rango LMP 0.5 a 5', 'Total Meses Cumplen', 'Consume Agua Clorada'];
             const map = {}; const idxC = findHeaderIndex(h, 'Cloro'); 
             dRows.forEach(r => { const id = r[idxId]; if(!id) return; let mR = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mR).toUpperCase()]; if (!mm) return; let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`; if(!map[id]) map[id] = { meta: getMeta(r, h), tot: 0, low: 0, high: 0, ok: 0, m: {} }; if(!map[id].m[ym]) map[id].m[ym] = { tot: 0, ok: 0 }; if(idxC !== -1 && !isCellEmpty(r[idxC])) { const v = parseFloat(r[idxC]); if(!isNaN(v)) { map[id].tot++; map[id].m[ym].tot++; if(v < 0.5) map[id].low++; else if(v > 5) map[id].high++; else { map[id].ok++; map[id].m[ym].ok++; } } } });
-            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
-            fD = Array.from(aS.keys()).map(id => { const sap = map[id]; if (!sap || sap.tot === 0) return null; let mc = 0; Object.values(sap.m).forEach(m => { if (m.tot > 0 && (m.ok / m.tot) >= 0.7) mc++; }); return [...sap.meta, sap.tot, sap.low, sap.high, sap.ok, mc, mc >= 10 ? 1 : 0]; }).filter(Boolean); pT = 'cloro';
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { const sap = map[id]; if (!sap || sap.tot === 0) return []; let mc = 0; Object.values(sap.m).forEach(m => { if (m.tot > 0 && (m.ok / m.tot) >= 0.7) mc++; }); const mtx = [sap.tot, sap.low, sap.high, sap.ok, mc, mc >= 10 ? 1 : 0]; return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'cloro';
+        } else if (subTab === 'res_nivel_riesgo') {
+            const iUbi = findHeaderIndex(h, 'Ubigeo'); const iCCPP = findHeaderIndex(h, 'Nombre CCPP'); const iProv = findHeaderIndex(h, 'Provincia'); const iDist = findHeaderIndex(h, 'Distrito'); const iRed = findHeaderIndex(h, 'Red de Salud'); const iIdProv = findHeaderIndex(h, 'Id. Proveedor de Agua'); const iNomProv = findHeaderIndex(h, 'Nombre Proveedor de Agua'); const iFecha = findHeaderIndex(h, 'Fecha Muestreo'); const iLoc = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
+            const iCloro = findHeaderIndex(h, 'Cloro'); const iTurb = findHeaderIndex(h, 'Turbiedad'); const iCond = findHeaderIndex(h, 'Conductividad'); const iPh = findHeaderIndex(h, 'pH'); const iTemp = findHeaderIndex(h, 'Temperatura'); const iMue = findHeaderIndex(h, '# Muestra');
+            const iBcfNmp = findHeaderIndex(h, 'Bacterias Coliformes Fecales (NMP)'); const iBcfUfc = findHeaderIndex(h, 'Bacterias Coliformes Fecales (UFC)'); const iBctNmp = findHeaderIndex(h, 'Bacterias Coliformes Totales (NMP)'); const iBctUfc = findHeaderIndex(h, 'Bacterias Coliformes Totales (UFC)'); const iEcNmp = findHeaderIndex(h, 'E. Coli (NMP)'); const iEcUfc = findHeaderIndex(h, 'E. Coli (UFC)');
+            
+            const map = {};
+            dRows.forEach(r => {
+                const loc = r[iLoc] ? String(r[iLoc]).trim().toLowerCase() : '';
+                if (!loc.includes('red de distribu')) return;
+                const ubi = r[iUbi] ? String(r[iUbi]).trim() : ''; const ccpp = r[iCCPP] ? String(r[iCCPP]).trim() : '';
+                if (!ubi || !ccpp) return;
+                
+                let mesNorm = '', anoNorm = '';
+                const fecha = r[iFecha] ? String(r[iFecha]).trim() : '';
+                if (fecha) {
+                    const parts = fecha.split(/[-/]/);
+                    if (parts.length >= 3) {
+                        if (parts[0].length === 4) { anoNorm = parts[0]; mesNorm = MONITOR_MONTHS[parseInt(parts[1], 10) - 1] || ''; } 
+                        else { anoNorm = parts[2].substring(0, 4); mesNorm = MONITOR_MONTHS[parseInt(parts[1], 10) - 1] || ''; }
+                    }
+                }
+                if (!mesNorm) { const rawM = idxMes !== -1 ? (r[idxMes] || '').trim() : ''; const mm = MONTH_NUM[normalizeHeader(rawM).toUpperCase()]; if (mm) mesNorm = MONITOR_MONTHS[parseInt(mm, 10) - 1]; }
+                if (!anoNorm) anoNorm = idxAno !== -1 ? (r[idxAno] || '').trim() : '';
+                if (!mesNorm || !anoNorm) return;
+
+                const key = `${ubi}_${ccpp}_${mesNorm}_${anoNorm}`;
+                if (!map[key]) {
+                    map[key] = {
+                        ubi, ccpp, prov: r[iProv]||'', dist: r[iDist]||'', red: r[iRed]||'', idProv: iIdProv !== -1 ? r[iIdProv] : '', nomProv: iNomProv !== -1 ? r[iNomProv] : '', mes: mesNorm, ano: anoNorm,
+                        muestras: new Set(), cloroOk: 0, cloroTot: 0, turbOk: 0, turbTot: 0, condOk: 0, condTot: 0, phOk: 0, phTot: 0, tempOk: 0, tempTot: 0,
+                        bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity
+                    };
+                }
+                const mStr = iMue !== -1 ? String(r[iMue]).trim() : '';
+                if (mStr) map[key].muestras.add(mStr); else map[key].muestras.add(`row_${Math.random()}`);
+
+                const parseVal = (idx) => { if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN; return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim()); };
+                const vCl = parseVal(iCloro); if (!isNaN(vCl)) { map[key].cloroTot++; if (vCl >= 0.5 && vCl <= 5) map[key].cloroOk++; }
+                const vTu = parseVal(iTurb); if (!isNaN(vTu)) { map[key].turbTot++; if (vTu >= 0 && vTu <= 5) map[key].turbOk++; }
+                const vCo = parseVal(iCond); if (!isNaN(vCo)) { map[key].condTot++; if (vCo <= 1500) map[key].condOk++; }
+                const vPh = parseVal(iPh); if (!isNaN(vPh)) { map[key].phTot++; if (vPh >= 6.5 && vPh <= 8.5) map[key].phOk++; }
+                const vTe = parseVal(iTemp); if (!isNaN(vTe)) { map[key].tempTot++; if (vTe >= 0 && vTe <= 40) map[key].tempOk++; }
+                
+                const vBcfNmp = parseVal(iBcfNmp); if (!isNaN(vBcfNmp) && vBcfNmp > map[key].bcfNmp) map[key].bcfNmp = vBcfNmp;
+                const vBcfUfc = parseVal(iBcfUfc); if (!isNaN(vBcfUfc) && vBcfUfc > map[key].bcfUfc) map[key].bcfUfc = vBcfUfc;
+                const vBctNmp = parseVal(iBctNmp); if (!isNaN(vBctNmp) && vBctNmp > map[key].bctNmp) map[key].bctNmp = vBctNmp;
+                const vBctUfc = parseVal(iBctUfc); if (!isNaN(vBctUfc) && vBctUfc > map[key].bctUfc) map[key].bctUfc = vBctUfc;
+                const vEcNmp = parseVal(iEcNmp); if (!isNaN(vEcNmp) && vEcNmp > map[key].ecNmp) map[key].ecNmp = vEcNmp;
+                const vEcUfc = parseVal(iEcUfc); if (!isNaN(vEcUfc) && vEcUfc > map[key].ecUfc) map[key].ecUfc = vEcUfc;
+            });
+
+            const orderLet = ['a. ', 'b. ', 'c. ', 'd. ', 'e. ', 'f. ', 'g. ', 'h. ', 'i. ', 'j. ', 'k. ', 'l. '];
+            const getMesOrd = (m) => { const idx = MONITOR_MONTHS.findIndex(x => x.toLowerCase() === m.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")); if (idx !== -1) return orderLet[idx] + MONITOR_MONTHS[idx]; return m; };
+            const evalP = (ok, tot) => { if (tot === 0) return '-'; return ok >= 1 ? 'Cumple' : 'No Cumple'; };
+
+            fD = Object.values(map).map(o => {
+                const eCl = evalP(o.cloroOk, o.cloroTot); const eTu = evalP(o.turbOk, o.turbTot); const eCo = evalP(o.condOk, o.condTot); const ePh = evalP(o.phOk, o.phTot); const eTe = evalP(o.tempOk, o.tempTot);
+                
+                const hasFecal = o.bcfNmp !== -Infinity || o.bcfUfc !== -Infinity || o.bctNmp !== -Infinity || o.bctUfc !== -Infinity || o.ecNmp !== -Infinity || o.ecUfc !== -Infinity;
+                let eFecal = '-';
+                if (hasFecal) {
+                    let excede = false;
+                    if (o.bcfNmp !== -Infinity && o.bcfNmp > 1.8) excede = true;
+                    if (o.bcfUfc !== -Infinity && o.bcfUfc > 0) excede = true;
+                    if (o.bctNmp !== -Infinity && o.bctNmp > 1.8) excede = true;
+                    if (o.bctUfc !== -Infinity && o.bctUfc > 0) excede = true;
+                    if (o.ecNmp !== -Infinity && o.ecNmp > 1.8) excede = true;
+                    if (o.ecUfc !== -Infinity && o.ecUfc > 0) excede = true;
+                    eFecal = excede ? 'No Cumple' : 'Cumple';
+                }
+                
+                let riesgo = 'Bajo';
+                if (eCl === 'No Cumple' || eTu === 'No Cumple' || eFecal === 'No Cumple') riesgo = 'Alto';
+                else if (eCo === 'No Cumple' || ePh === 'No Cumple') riesgo = 'Medio';
+                else if (eCl === 'Cumple' || (eCl === '-' && eTu === 'Cumple' && eCo === 'Cumple' && ePh === 'Cumple' && eTe === 'Cumple')) riesgo = 'Bajo';
+                else riesgo = 'Sin Monitoreo';
+
+                return [ o.ubi, o.ccpp, o.prov, o.dist, o.red, o.idProv, o.nomProv, o.mes, o.muestras.size, eCl, eTu, eCo, ePh, eTe, eFecal, riesgo, getMesOrd(o.mes), o.ano ];
+            });
+
+            fD.sort((a, b) => {
+                if (a[17] !== b[17]) return String(a[17]).localeCompare(String(b[17]));
+                return String(a[16]).localeCompare(String(b[16]));
+            });
+            
+            fH = [
+                'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Id. Proveedor de Agua', 'Nombre Proveedor de Agua',
+                'Mes', 'Total_Moni', 'Ev_Cloro', 'Ev_Turb.', 'Ev_Cond.', 'Ev_Ph', 'Ev_Temp.', 'Ev_Contam_Fecal', 'Nivel de Riesgo', 'Mes_Orden_Texto', 'Año'
+            ];
+            pT = 'nivel_riesgo';
+        } else if (subTab === 'res_riesgo') {
+            const h1 = h; 
+            const iBcfNmp = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (NMP)');
+            const iBcfUfc = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (UFC)');
+            const iBctNmp = findHeaderIndex(h1, 'Bacterias Coliformes Totales (NMP)');
+            const iBctUfc = findHeaderIndex(h1, 'Bacterias Coliformes Totales (UFC)');
+            const iEcNmp = findHeaderIndex(h1, 'E. Coli (NMP)');
+            const iEcUfc = findHeaderIndex(h1, 'E. Coli (UFC)');
+            
+            const paramsToExtract = [
+                'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+            ];
+            const pIdx = {};
+            paramsToExtract.forEach(p => pIdx[p] = findHeaderIndex(h1, p));
+            
+            const map = {}; 
+            
+            dRows.forEach(r => {
+                const id = r[idxId];
+                if (!id) return;
+                
+                if (!map[id]) { 
+                    map[id] = { 
+                        meta: getMeta(r, h),
+                        bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity 
+                    }; 
+                    paramsToExtract.forEach(p => map[id][p] = -Infinity);
+                }
+                const parseVal = (idx) => {
+                    if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
+                    return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
+                };
+                const v1 = parseVal(iBcfNmp); if (!isNaN(v1) && v1 > map[id].bcfNmp) map[id].bcfNmp = v1;
+                const v2 = parseVal(iBcfUfc); if (!isNaN(v2) && v2 > map[id].bcfUfc) map[id].bcfUfc = v2;
+                const v3 = parseVal(iBctNmp); if (!isNaN(v3) && v3 > map[id].bctNmp) map[id].bctNmp = v3;
+                const v4 = parseVal(iBctUfc); if (!isNaN(v4) && v4 > map[id].bctUfc) map[id].bctUfc = v4;
+                const v5 = parseVal(iEcNmp); if (!isNaN(v5) && v5 > map[id].ecNmp) map[id].ecNmp = v5;
+                const v6 = parseVal(iEcUfc); if (!isNaN(v6) && v6 > map[id].ecUfc) map[id].ecUfc = v6;
+                
+                paramsToExtract.forEach(p => {
+                    const vx = parseVal(pIdx[p]);
+                    if (!isNaN(vx) && vx > map[id][p]) map[id][p] = vx;
+                });
+            });
+            
+            const extraColsNames = [
+                'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta) + Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+            ];
+            const limitsExtra = [
+                15, 5, 8.5, 1500, 1000, 250, 250, 500, 0.3, 0.4, 0.2, 2, 3, 200, 0.02, 0.01, 0.7, 1.5, 0.003, 0.07, 5, 0.05, 0.001, 0.02, 50, 0.2, 0.01, 0.01, 0.07, 0.015
+            ];
+            
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => {
+                const s = map[id];
+                if (!s) return [];
+                
+                let hasAnyData = false;
+                if (s.bcfNmp !== -Infinity || s.bcfUfc !== -Infinity || s.bctNmp !== -Infinity || s.bctUfc !== -Infinity || s.ecNmp !== -Infinity || s.ecUfc !== -Infinity) hasAnyData = true;
+                paramsToExtract.forEach(p => { if (s[p] !== -Infinity) hasAnyData = true; });
+                
+                if (!hasAnyData) return [];
+                
+                const bcfNmp = s.bcfNmp !== -Infinity ? s.bcfNmp : '';
+                const bcfUfc = s.bcfUfc !== -Infinity ? s.bcfUfc : '';
+                const bctNmp = s.bctNmp !== -Infinity ? s.bctNmp : '';
+                const bctUfc = s.bctUfc !== -Infinity ? s.bctUfc : '';
+                const ecNmp = s.ecNmp !== -Infinity ? s.ecNmp : '';
+                const ecUfc = s.ecUfc !== -Infinity ? s.ecUfc : '';
+
+                const getR = (v, limit) => v === '' ? 0 : (v > limit ? 1 : 0);
+                
+                const r_bcfNmp = getR(bcfNmp, 1.8);
+                const r_bcfUfc = getR(bcfUfc, 0);
+                const r_bctNmp = getR(bctNmp, 1.8);
+                const r_bctUfc = getR(bctUfc, 0);
+                const r_ecNmp = getR(ecNmp, 1.8);
+                const r_ecUfc = getR(ecUfc, 0);
+
+                const totParam = r_bcfNmp + r_bcfUfc + r_bctNmp + r_bctUfc + r_ecNmp + r_ecUfc;
+                const tiene = totParam >= 1 ? 1 : 0;
+                
+                const getPVal = (p) => s[p] !== undefined && s[p] !== -Infinity ? s[p] : '';
+                const pValsArr = []; const rValsArr = [];
+                const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
+                for (let i = 0; i < pKeys.length; i++) {
+                    const v = getPVal(pKeys[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[i]));
+                }
+                const nitC = getPVal('Nitritos (Exposición Corta)'); const nitL = getPVal('Nitritos (Exposición Larga)');
+                let nitSum = '';
+                if (nitC !== '' || nitL !== '') { nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); nitSum = Math.round(nitSum * 100000) / 100000; }
+                pValsArr.push(nitSum); rValsArr.push(getR(nitSum, limitsExtra[pKeys.length]));
+                const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
+                for (let i = 0; i < pKeys2.length; i++) {
+                    const v = getPVal(pKeys2[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[pKeys.length + 1 + i]));
+                }
+                
+                const isOrg = (i) => [0,1,2,3,4,5,6,7,13,20].includes(i);
+                let totOrg = 0; let totInorg = 0;
+                const totParamMetales = rValsArr.reduce((a, b) => a + b, 0);
+                for(let i=0; i<rValsArr.length; i++) { if(rValsArr[i] === 1) { if (isOrg(i)) totOrg++; else totInorg++; } }
+                const tieneOrg = totOrg >= 1 ? 1 : 0;
+                const tieneInorg = totInorg >= 1 ? 1 : 0;
+                
+                let detMetales = [];
+                for(let i=0; i<rValsArr.length; i++) {
+                    if(rValsArr[i] === 1) detMetales.push(`${extraColsNames[i]}: ${pValsArr[i]}`);
+                }
+                const detMetalesStr = detMetales.length > 0 ? detMetales.join(', ') : '-';
+                
+                const mtx = [
+                    bcfNmp, bcfUfc, bctNmp, bctUfc, ecNmp, ecUfc,
+                    r_bcfNmp, r_bcfUfc, r_bctNmp, r_bctUfc, r_ecNmp, r_ecUfc,
+                    totParam, tiene, 
+                    ...pValsArr, ...rValsArr, totParamMetales, tieneOrg, tieneInorg, detMetalesStr
+                ];
+                return aS.get(id).map(mt => [...mt, ...mtx]);
+            }); 
+            
+            fD.sort((a, b) => {
+                if (a[5] !== b[5]) return String(a[5]).localeCompare(String(b[5]));
+                return String(a[4]).localeCompare(String(b[4]));
+            });
+            
+            fH = [
+                ...CORE_HEADERS,
+                'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (NMP)', 'E. Coli (UFC)', 
+                'Bacterias Coliformes Fecales (NMP) Resultado', 'Bacterias Coliformes Fecales (UFC) Resultado', 'Bacterias Coliformes Totales (NMP) Resultado', 'Bacterias Coliformes Totales (UFC) Resultado', 'E. Coli (NMP) Resultado', 'E. Coli (UFC) Resultado', 
+                'Total parámetros con contaminación fecal', 'Tiene al menos una muestra con contaminación fecal', 
+                ...extraColsNames,
+                ...extraColsNames.map(n => n + ' Resultado'),
+                'Total parametros organolepticos y/o inorganicos (metales pesados) que exceden el LMP',
+                'Tiene al menos un parametro organolepticos que excede el LMP',
+                'Tiene al menos un parametro inorganicos (metales pesados) que excede el LMP',
+                'Detalle parametro que excede LMP'
+            ];
+            pT = 'res_riesgo';
         } else if (subTab === 'caracterizacion') {
-            fH = [...CORE_HEADERS, 'Caract. Fuente de Agua', 'Caract. Red de Distribución']; const map = {}; const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
-            dRows.forEach(r => { const id = r[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: getMeta(r, h), c: { status: 0, params: [] }, p: { status: 0, params: [] } }; const u = idxU !== -1 ? (r[idxU] || '').toLowerCase() : ''; const iC = u.includes('captación') || u.includes('captacion'); const iP = u.includes('red') || u.includes('pileta'); const ev = (sin, ors) => { let ct = 0; let exp = (sin ? sin.length : 0) + (ors ? ors.length : 0); let mis = []; let fnd = []; if(sin) sin.forEach(x => { const i = findHeaderIndex(h, x); if (i !== -1 && !isCellEmpty(r[i])) { ct++; fnd.push(x); } else mis.push(x); }); if(ors) ors.forEach(pair => { const i1 = findHeaderIndex(h, pair[0]); const i2 = findHeaderIndex(h, pair[1]); if ((i1 !== -1 && !isCellEmpty(r[i1])) || (i2 !== -1 && !isCellEmpty(r[i2]))) { ct++; fnd.push(pair[0]); } else mis.push(pair[0]); }); return { isC: exp > 0 && ct === exp, ct, exp, mis, fnd }; }; const up = (sl, e) => { if (e.ct > 0) { let st = e.isC ? 1 : 2; let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`); if (sl.status === 0 || (sl.status === 2 && st === 1) || (sl.status === st && sl.params.length > pm.length)) { sl.status = st; sl.params = pm; } } }; if (iC) up(map[id].c, ev(CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR)); if (iP) up(map[id].p, ev(CARACT_PILETA_SINGLE, CARACT_PILETA_OR)); });
-            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
-            fD = Array.from(aS.keys()).map(id => { const sap = map[id] || { c: {status:0, params:[]}, p: {status:0, params:[]} }; if (sap.c.status === 0 && sap.p.status === 0) return null; return [ ...(sap.meta || aS.get(id)), JSON.stringify(sap.c), JSON.stringify(sap.p) ]; }).filter(Boolean); pT = 'status_json';
+            const sS = new Set(); fM.forEach(m => { const [y, mm] = m.split('-'); sS.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`); }); 
+            const sK = Array.from(sS).sort();
+            const formatSem = (k) => { const [y, s] = k.split('-'); return s === 'S1' ? `1er Semestre ${y}` : `2do Semestre ${y}`; };
+            
+            fH = [...CORE_HEADERS];
+            sK.forEach(k => { fH.push(`Fuente (${formatSem(k)})`); fH.push(`Red (${formatSem(k)})`); });
+            
+            const map = {}; 
+            const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
+            const idxNomMues = findHeaderIndex(h, 'Nombre Lugar de Muestreo');
+            
+            dRows.forEach(r => { 
+                const id = r[idxId]; 
+                if(!id) return; 
+                
+                let ano = idxAno !== -1 && r[idxAno] ? String(r[idxAno]).trim() : ''; 
+                let mes = idxMes !== -1 ? r[idxMes] : ''; 
+                const mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()]; 
+                if (!mm) return;
+                if (!ano) { if (mes.toLowerCase() === 'diciembre') ano = '2025'; else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero') ano = '2026'; else ano = '2025'; } 
+                const skey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`; 
+                if (!sK.includes(skey)) return;
+
+                if(!map[id]) {
+                    map[id] = { sem: {} };
+                    sK.forEach(k => map[id].sem[k] = { c: { pts: {} }, p: { pts: {} } });
+                }
+                
+                const u = idxU !== -1 ? (r[idxU] || '').toLowerCase() : ''; 
+                const nomMues = idxNomMues !== -1 && !isCellEmpty(r[idxNomMues]) ? String(r[idxNomMues]).trim() : 'Punto S/N';
+                const iC = u.includes('captación') || u.includes('captacion'); 
+                const iP = u.includes('red') || u.includes('pileta'); 
+                
+                const ev = (sin, ors) => { 
+                    let ct = 0; let exp = (sin ? sin.length : 0) + (ors ? ors.length : 0); let mis = []; let fnd = []; 
+                    if(sin) sin.forEach(x => { const i = findHeaderIndex(h, x); if (i !== -1 && !isCellEmpty(r[i])) { ct++; fnd.push(x); } else mis.push(x); }); 
+                    if(ors) ors.forEach(pair => { const i1 = findHeaderIndex(h, pair[0]); const i2 = findHeaderIndex(h, pair[1]); if ((i1 !== -1 && !isCellEmpty(r[i1])) || (i2 !== -1 && !isCellEmpty(r[i2]))) { ct++; fnd.push(pair[0]); } else mis.push(pair[0]); }); 
+                    return { isC: exp > 0 && ct === exp, ct, exp, mis, fnd }; 
+                }; 
+                
+                const up = (type, e) => { 
+                    if (e.ct > 0) { 
+                        let st = e.isC ? 1 : 2; 
+                        let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`); 
+                        if (st === 2 && pm.length > 15) return; 
+                        if (!map[id].sem[skey][type].pts[nomMues]) { 
+                            map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct }; 
+                        } else { 
+                            const sl = map[id].sem[skey][type].pts[nomMues]; 
+                            if (sl.status === 2 && st === 1) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct }; 
+                            else if (sl.status === st && sl.params.length > pm.length) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct }; 
+                        } 
+                    } 
+                }; 
+                if (iC) up('c', ev(CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR)); 
+                if (iP) up('p', ev(CARACT_PILETA_SINGLE, CARACT_PILETA_OR)); 
+            });
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { 
+                const sap = map[id];
+                if (!sap) return []; 
+                let hasAny = false;
+                const rData = [];
+                sK.forEach(k => {
+                    const cKeys = Object.keys(sap.sem[k].c.pts); const pKeys = Object.keys(sap.sem[k].p.pts);
+                    if (cKeys.length > 0 || pKeys.length > 0) hasAny = true;
+                    rData.push(JSON.stringify(sap.sem[k].c.pts));
+                    rData.push(JSON.stringify(sap.sem[k].p.pts));
+                });
+                if (!hasAny) return []; 
+                return aS.get(id).map(mt => [...mt, ...rData]); 
+            }); pT = 'caract_points';
         } else if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
             fH = [...CORE_HEADERS, '1ra Insp. Pileta', '1ra Insp. Captación', '2da Insp. Pileta', '2da Insp. Captación']; const map = {}; const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
             dRows.forEach(r => { const id = r[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: getMeta(r, h), s1p: { status: 0, params: [] }, s1c: { status: 0, params: [] }, s2p: { status: 0, params: [] }, s2c: { status: 0, params: [] } }; let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if(!mm) return; let isS1 = parseInt(mm) >= 1 && parseInt(mm) <= 6; let isS2 = parseInt(mm) >= 7 && parseInt(mm) <= 12; const u = idxU !== -1 ? (r[idxU] || '').toLowerCase() : ''; const isCap = u.includes('captación') || u.includes('captacion'); const isPil = u.includes('red') || u.includes('pileta'); const ev = (pSet) => { let ct = 0; let exp = pSet ? pSet.length : 0; let mis = []; let fnd = []; if(pSet) { pSet.forEach(x => { let f = false; if (Array.isArray(x)) { let match = x.find(sub => { const i = findHeaderIndex(h, sub); return i !== -1 && !isCellEmpty(r[i]); }); if (match) { f = true; fnd.push(match); } } else { const i = findHeaderIndex(h, x); if (i !== -1 && !isCellEmpty(r[i])) { f = true; fnd.push(x); } } if (!f) mis.push(Array.isArray(x) ? x[0] : x); else ct++; }); } return { isC: exp > 0 && ct === exp, ct, exp, mis, fnd }; }; const cSet = ANALYSIS_SETS[subTab]; const eP = ev(cSet?.A); const eC = ev(cSet?.B); const up = (sl, e, isValid) => { if (isValid && e.ct > 0) { let st = e.isC ? 1 : 2; let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`); if (sl.status < st || (sl.status === st && sl.params.length > pm.length)) { sl.status = st; sl.params = pm; } } }; up(map[id].s1p, eP, isS1 && isPil); up(map[id].s1c, eC, isS1 && isCap); up(map[id].s2p, eP, isS2 && isPil); up(map[id].s2c, eC, isS2 && isCap); });
-            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
-            fD = Array.from(aS.keys()).map(id => { const s = map[id] || { s1p: {status:0, params:[]}, s1c: {status:0, params:[]}, s2p: {status:0, params:[]}, s2c: {status:0, params:[]} }; if (s.s1p.status === 0 && s.s1c.status === 0 && s.s2p.status === 0 && s.s2c.status === 0) return null; return [ ...(s.meta || aS.get(id)), JSON.stringify(s.s1p), JSON.stringify(s.s1c), JSON.stringify(s.s2p), JSON.stringify(s.s2c) ]; }).filter(Boolean); pT = 'status_json';
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { const s = map[id] || { s1p: {status:0, params:[]}, s1c: {status:0, params:[]}, s2p: {status:0, params:[]}, s2c: {status:0, params:[]} }; if (s.s1p.status === 0 && s.s1c.status === 0 && s.s2p.status === 0 && s.s2c.status === 0) return []; return aS.get(id).map(mt => [...mt, JSON.stringify(s.s1p), JSON.stringify(s.s1c), JSON.stringify(s.s2p), JSON.stringify(s.s2c)]); }); pT = 'status_json';
         } else if (subTab.startsWith('res_')) {
             const bT = subTab.replace('res_', ''); fH = [...CORE_HEADERS, '1ra Muestra', '2da Muestra', 'Excede LMP', 'Cumple', 'Detalles']; const map = {}; const sLMP = LMP_SCOPES[bT]; const cSet = ANALYSIS_SETS[bT];
             dRows.forEach(r => { const id = r[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: getMeta(r, h), tS: 0, cS: 0, exc: [], ubi: [] }; const hasD = checkComplianceSet(h, cSet?.A, r) || checkComplianceSet(h, cSet?.B, r); if(hasD) { map[id].tS++; map[id].ubi.push(classifyAnalysisByLoc(h, r, cSet?.A, cSet?.B)); const issues = sLMP ? checkParamLMPExceeded(h, r, sLMP) : []; if (issues.length > 0) { let mName = "Sin Mes"; if(idxMes !== -1 && r[idxMes]) { mName = r[idxMes]; } map[id].exc.push(...issues.map(i => ({...i, month: mName}))); } else { map[id].cS++; } } });
-            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
-            fD = Array.from(aS.keys()).map(id => { const sap = map[id]; if (!sap || sap.tS === 0) return null; let cp = (sap.cS / sap.tS) > 0.7 ? 1 : 0; const eF = sap.exc.length > 0 ? 1 : 0; return [...sap.meta, sap.ubi[0] || 0, sap.ubi[1] || 0, eF, cp, JSON.stringify(sap.exc)]; }).filter(Boolean); pT = 'analysis';
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { const sap = map[id]; if (!sap || sap.tS === 0) return []; let cp = (sap.cS / sap.tS) > 0.7 ? 1 : 0; const eF = sap.exc.length > 0 ? 1 : 0; const mtx = [sap.ubi[0] || 0, sap.ubi[1] || 0, eF, cp, JSON.stringify(sap.exc)]; return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'analysis';
         } else if (subTab === 'monitor' || subTab === 'bacteriologico') {
             fH = [...CORE_HEADERS, ...fM.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)]; const map = {}; const cSet = ANALYSIS_SETS[subTab]; const obsH = dO.observaciones[0] || []; const obsR = dO.observaciones.slice(1); const oMap = {}; let iOId = findHeaderIndex(obsH, 'Id. SAP'); let iOTxt = findHeaderIndex(obsH, 'Observacion');
             if (subTab === 'monitor') { if (iOId === -1 && obsH.length > 0) iOId = 0; if (iOTxt === -1 && obsH.length > 4) iOTxt = 4; if (iOId !== -1 && iOTxt !== -1) { obsR.forEach(r => { const id = r[iOId]; if (id) oMap[String(id).trim()] = String(r[iOTxt] || '').trim(); }); } fH.push('Observación'); fH.push('Ver Detalle'); }
             dRows.forEach(r => { const id = r[idxId]; if(!id) return; let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return; let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`; if(!map[id]) { map[id] = { meta: getMeta(r, h), dM: {} }; if (subTab === 'monitor') map[id].history = []; } let st = 0; let pCnt = []; if (subTab === 'monitor') { MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) pCnt.push(p); }); if (pCnt.length === 5) st = 1; else if (pCnt.length > 0) st = 2; const nMue = r[findHeaderIndex(h, '# Muestreo')] || ''; const fMue = r[findHeaderIndex(h, 'Fecha Muestreo')] || r[findHeaderIndex(h, 'Fecha')] || ''; const uMue = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || ''; const vCl = r[findHeaderIndex(h, 'Cloro')] || ''; const vCo = r[findHeaderIndex(h, 'Conductividad')] || ''; const vPh = r[findHeaderIndex(h, 'pH')] || ''; const vTe = r[findHeaderIndex(h, 'Temperatura')] || ''; const vTu = r[findHeaderIndex(h, 'Turbiedad')] || ''; map[id].history.push([nMue, fMue, mRaw || '', uMue, vCl, vCo, vPh, vTe, vTu]); if (!map[id].dM[ym]) map[id].dM[ym] = { status: 0, params: [], _m: {} }; let mKey = nMue || fMue || 'UNKNOWN'; if (st > 0) { if (!map[id].dM[ym]._m[mKey]) map[id].dM[ym]._m[mKey] = []; const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0; map[id].dM[ym]._m[mKey].push({ st: st, id: nMueId }); let anyC = false; for (let k in map[id].dM[ym]._m) { const pts = map[id].dM[ym]._m[k].slice().sort((a,b) => a.id - b.id); let blks = [], cB = []; pts.forEach(p => { if(cB.length === 0) cB.push(p); else if(p.id === 0 && cB[cB.length-1].id === 0) cB.push(p); else if(p.id !== 0 && cB[cB.length-1].id !== 0 && Math.abs(p.id - cB[cB.length-1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } }); if(cB.length > 0) blks.push(cB); blks.forEach(b => { let bSt = 1; b.forEach(p => { if(p.st === 2) bSt = 2; }); if(bSt === 1) anyC = true; }); } map[id].dM[ym].status = anyC ? 1 : 2; if (st === 2 && map[id].dM[ym].status === 2) map[id].dM[ym].params = pCnt; } } else { let eA = cSet?.A?.length || 0; let eB = cSet?.B?.length || 0; let cA = 0; let cB = 0; const cItm = (p) => { if (Array.isArray(p)) { let fnd = p.find(sub => { const i = findHeaderIndex(h, sub); return i !== -1 && !isCellEmpty(r[i]); }); if (fnd) return fnd; } else { const i = findHeaderIndex(h, p); if (i !== -1 && !isCellEmpty(r[i])) return p; } return null; }; if (cSet?.A) cSet.A.forEach(p => { const res = cItm(p); if(res) { cA++; pCnt.push(res); } }); if (cSet?.B) cSet.B.forEach(p => { const res = cItm(p); if(res && !pCnt.includes(res)) { cB++; pCnt.push(res); } }); if (cA > 0 || cB > 0) { let isC = false; if (eA > 0 && cA === eA) isC = true; if (eB > 0 && cB === eB) isC = true; st = isC ? 1 : 2; } let oldSt = map[id].dM[ym] ? map[id].dM[ym].status : 999; let shouldUpdate = false; if (!map[id].dM[ym]) shouldUpdate = true; else if (st === 1 && oldSt === 2) shouldUpdate = true; else if (st === 2 && oldSt === 2 && pCnt.length > map[id].dM[ym].params.length) shouldUpdate = true; else if (st === 1 && oldSt === 1 && pCnt.length > map[id].dM[ym].params.length) shouldUpdate = true; if (shouldUpdate) { map[id].dM[ym] = { status: st, params: pCnt }; } } });
-            const aS = new Map(); dRows.forEach(r => { const id = r[idxId]; if(id && !aS.has(id)) aS.set(id, getMeta(r, h)); });
-            fD = Array.from(aS.keys()).map(id => { const obj = map[id] || { dM: {} }; let hasD = false; const mC = fM.map(m => { if (obj.dM[m] && obj.dM[m].status > 0) hasD = true; return obj.dM[m] ? JSON.stringify(obj.dM[m]) : JSON.stringify({status: 0, params: []}); }); const oTx = subTab === 'monitor' ? (oMap[String(id).trim()] || '') : ''; if (!hasD && !oTx) return null; let rr = [...(obj.meta || aS.get(id)), ...mC]; if (subTab === 'monitor') { rr.push(oTx); rr.push(JSON.stringify(obj.history || [])); } return rr; }).filter(Boolean); pT = 'status_json';
+            const aS = new Map(); dRows.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { const obj = map[id] || { dM: {} }; let hasD = false; const mC = fM.map(m => { if (obj.dM[m] && obj.dM[m].status > 0) hasD = true; return obj.dM[m] ? JSON.stringify(obj.dM[m]) : JSON.stringify({status: 0, params: []}); }); const oTx = subTab === 'monitor' ? (oMap[String(id).trim()] || '') : ''; if (!hasD && !oTx) return []; let mtx = [...mC]; if (subTab === 'monitor') { mtx.push(oTx); mtx.push(JSON.stringify(obj.history || [])); } return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'status_json';
         } else if (subTab === 'riesgos') {
             let lR = dO.riesgos.slice(1); let lH = dO.riesgos[0] || []; 
-            if (redFilter !== 'Todos') lR = lR.filter(r => r[findHeaderIndex(lH, 'Red de Salud')] === redFilter); 
-            if (ambitoFilter === 'MEF') { const sI = findHeaderIndex(lH, 'Id. SAP'); if(sI!==-1) lR = lR.filter(r => APP_STATE.mefSapIds.has(String(r[sI]).trim())); } 
-            if (ambitoFilter === 'FED') { const uI = findHeaderIndex(lH, 'Ubigeo'); if(uI!==-1) lR = lR.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uI]))); }
             
-            const fixedMonths = ['2025-12', '2026-01', '2026-02', '2026-03'];
-            fH = [...CORE_HEADERS, 'Dic 2025', 'Ene 2026', 'Feb 2026', 'Mar 2026']; 
-            const map = {}; const lId = findHeaderIndex(lH, 'Id. SAP'); const iAR = findHeaderIndex(lH, 'Año');
+            const mNameMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Setiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+            fH = [...CORE_HEADERS, ...fM.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)]; 
+            const map = {}; const iAR = findHeaderIndex(lH, 'Año');
+            const lUbi = findHeaderIndex(lH, 'Ubigeo'); const lNomSAP = findHeaderIndex(lH, 'Nombre SAP'); const lNomCCPP = findHeaderIndex(lH, 'Nombre CCPP');
             
             lR.forEach(r => { 
-                const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(!id) return; 
-                if(!map[id]) map[id] = { meta: getMeta(r, lH), vM: {} }; 
+                const ubi = lUbi !== -1 ? formatUbigeo(r[lUbi]) : '';
+                let nom = lNomSAP !== -1 ? normalizeHeader(r[lNomSAP]) : '';
+                if (!nom) nom = lNomCCPP !== -1 ? normalizeHeader(r[lNomCCPP]) : '';
+                if (!ubi || !nom) return;
+                const key = `${ubi}_${nom}`;
+                if(!map[key]) map[key] = { vM: {} }; 
                 let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : ''; 
                 
-                fixedMonths.forEach(ym => {
+                fM.forEach(ym => {
                     const [y, m] = ym.split('-');
-                    const mNameMap = { '12': 'Diciembre', '01': 'Enero', '02': 'Febrero', '03': 'Marzo' };
                     const mC = mNameMap[m];
-                    if (ano && ano !== y) return;
+                    let curAno = ano;
+                    if (!curAno) {
+                        if (mC === 'Diciembre') curAno = '2025';
+                        else if (['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'].includes(mC)) curAno = '2026';
+                        else curAno = '2025';
+                    }
+                    if (curAno !== y) return;
                     
-                    const iC = findHeaderIndex(lH, `Cargo ${mC}`); 
-                    const cV = iC !== -1 ? normalizeHeader(r[iC]) : ''; 
+                    const iInf = findHeaderIndex(lH, `Informe ${mC}`);
+                    const iCar = findHeaderIndex(lH, `Cargo ${mC}`);
+                    const vInf = iInf !== -1 ? normalizeHeader(r[iInf]) : '';
+                    const vCar = iCar !== -1 ? normalizeHeader(r[iCar]) : '';
                     
-                    let cS = map[id].vM[ym]?.status || 0; 
+                    let cS = map[key].vM[ym]?.status || 0; 
                     let nS = 3; 
-                    if (cV === 'aprobado') { nS = 1; }
+                    let params = [];
+                    const isRevInf = ['cargado', 'en revision'].includes(vInf);
+                    const isRevCar = ['cargado', 'en revision'].includes(vCar);
                     
-                    if (nS < cS || cS === 0) { map[id].vM[ym] = { status: nS, params: [] }; } 
+                    if (vInf === 'aprobado' && vCar === 'aprobado') { 
+                        nS = 1; 
+                    } else if (isRevInf) { 
+                        nS = 2; params.push(`Inf: ${vInf}`); 
+                    } else if (vInf === 'aprobado' && (isRevCar || vCar === '')) { 
+                        nS = 2; params.push(`Car: ${vCar||'Falta'}`); 
+                    } else if (vInf !== '' || vCar !== '') { 
+                        nS = 2; 
+                        if (vInf !== 'aprobado') params.push(`Inf: ${vInf||'Falta'}`);
+                        if (vCar !== 'aprobado') params.push(`Car: ${vCar||'Falta'}`);
+                    }
+                    
+                    if (nS < cS || cS === 0) { map[key].vM[ym] = { status: nS, params: params }; } 
                 }); 
             });
-            const aS = new Map(); lR.forEach(r => { const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(id && !aS.has(id)) aS.set(id, getMeta(r, lH)); });
-            fD = Array.from(aS.keys()).map(id => { 
-                const o = map[id] || { vM: {} }; 
-                const mC = fixedMonths.map(m => { return o.vM[m] ? JSON.stringify(o.vM[m]) : JSON.stringify({status: 3, params: []}); }); 
-                return [...(o.meta || aS.get(id)), ...mC]; 
-            }).filter(Boolean); 
+            const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => { 
+                return aS.get(id).map(mt => {
+                    const ubis = mt[2].split('|').map(x=>x.trim());
+                    const nomSAP = normalizeHeader(mt[1]);
+                    const nomCCPPs = mt[3].split('|').map(x=>normalizeHeader(x.trim()));
+                    let o = { vM: {} }; 
+                    for(const ubi of ubis) {
+                        const fUbi = formatUbigeo(ubi);
+                        if (map[`${fUbi}_${nomSAP}`]) { o = map[`${fUbi}_${nomSAP}`]; break; }
+                        let found = false;
+                        for(const nCCPP of nomCCPPs) {
+                            if (map[`${fUbi}_${nCCPP}`]) { o = map[`${fUbi}_${nCCPP}`]; found = true; break; }
+                        }
+                        if (found) break;
+                    }
+                    const mC = fM.map(m => { return o.vM[m] ? JSON.stringify(o.vM[m]) : JSON.stringify({status: 3, params: []}); }); 
+                    return [...mt, ...mC]; 
+                });
+            }); 
             pT = 'status_json';
         } else if (subTab === 'sanitaria') {
-            let lR = dO.sanitaria.slice(1); let lH = dO.sanitaria[0] || []; if (redFilter !== 'Todos') lR = lR.filter(r => r[findHeaderIndex(lH, 'Red de Salud')] === redFilter); if (ambitoFilter === 'MEF') { const sI = findHeaderIndex(lH, 'Id. SAP'); if(sI!==-1) lR = lR.filter(r => APP_STATE.mefSapIds.has(String(r[sI]).trim())); } if (ambitoFilter === 'FED') { const uI = findHeaderIndex(lH, 'Ubigeo'); if(uI!==-1) lR = lR.filter(r => APP_STATE.fedUbigeos.has(formatUbigeo(r[uI]))); }
+            let lR = dO.sanitaria.slice(1); let lH = dO.sanitaria[0] || []; 
             const sS = new Set(); fM.forEach(m => { const [y, mm] = m.split('-'); sS.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`); }); const sK = Array.from(sS).sort(); const sL = sK.map(k => { const [y, s] = k.split('-'); return s === 'S1' ? `1ra Inspección ${y}` : `2da Inspección ${y}`; });
-            fH = [...CORE_HEADERS, ...sL]; const map = {}; const lId = findHeaderIndex(lH, 'Id. SAP'); const iA = findHeaderIndex(lH, 'Año'); const iM = findHeaderIndex(lH, 'Mes'); const iF = findHeaderIndex(lH, 'Fecha de inspección');
-            lR.forEach(r => { const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(!id) return; if(!map[id]) { map[id] = { meta: getMeta(r, lH), s: {} }; sK.forEach(k => map[id].s[k] = 0); } let ano = iA !== -1 && r[iA] ? String(r[iA]).trim() : ''; let mes = iM !== -1 ? r[iM] : ''; const mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()]; if (mm) { if (!ano) { if (mes.toLowerCase() === 'diciembre') ano = '2025'; else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero') ano = '2026'; else ano = '2025'; } const skey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`; if (sK.includes(skey) && !isCellEmpty(r[iF])) { map[id].s[skey] = 1; } } });
-            const aS = new Map(); lR.forEach(r => { const id = r[lId] || r[findHeaderIndex(lH, 'Nombre SAP')]; if(id && !aS.has(id)) aS.set(id, getMeta(r, lH)); });
-            fD = Array.from(aS.keys()).map(id => { const o = map[id] || { s: {} }; let hD = false; const sC = sK.map(k => { let st = o.s[k] === 1 ? 1 : 0; if (st === 1) hD = true; return JSON.stringify({status: st === 1 ? 1 : 3, params: []}); }); if (!hD) return null; return [...(o.meta || aS.get(id)), ...sC]; }).filter(Boolean); pT = 'status_json';
+            fH = [...CORE_HEADERS, ...sL]; const map = {}; const iA = findHeaderIndex(lH, 'Año'); const iM = findHeaderIndex(lH, 'Mes'); const iF = findHeaderIndex(lH, 'Fecha de inspección');
+            const lId = findHeaderIndex(lH, 'Id. SAP');
+            lR.forEach(r => { 
+                const key = lId !== -1 ? String(r[lId]).trim() : '';
+                if (!key) return;
+                if(!map[key]) { map[key] = { s: {} }; sK.forEach(k => map[key].s[k] = 0); } 
+                let ano = iA !== -1 && r[iA] ? String(r[iA]).trim() : ''; let mes = iM !== -1 ? r[iM] : ''; const mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()]; if (mm) { if (!ano) { if (mes.toLowerCase() === 'diciembre') ano = '2025'; else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero') ano = '2026'; else ano = '2025'; } const skey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`; if (sK.includes(skey) && !isCellEmpty(r[iF])) { map[key].s[skey] = 1; } } 
+            });
+            
+            const riesgosUbigeos = new Set();
+            const rH = dO.riesgos[0] || [];
+            const idxRiesgoUbi = findHeaderIndex(rH, 'Ubigeo');
+            if (idxRiesgoUbi !== -1) {
+                dO.riesgos.slice(1).forEach(r => {
+                    const ubi = formatUbigeo(r[idxRiesgoUbi]);
+                    if (ubi) riesgosUbigeos.add(ubi);
+                });
+            }
+
+            const aS = new Map(); 
+            rM.forEach(r => { const id = r[idxId]; const ubi = formatUbigeo(r[idxUbi]); if (riesgosUbigeos.has(ubi)) { populateMeta(aS, id, r, h); } });
+            
+            fD = Array.from(aS.keys()).flatMap(id => { 
+                const res = [];
+                aS.get(id).forEach(mt => {
+                    let o = map[id] || { s: {} }; 
+                    const sC = sK.map(k => { let st = o.s[k] === 1 ? 1 : 0; return JSON.stringify({status: st === 1 ? 1 : 3, params: []}); }); 
+                    res.push([...mt, ...sC]); 
+                });
+                return res;
+            }); pT = 'status_json';
         } else { fH = [...CORE_HEADERS]; fD = []; pT = 'status'; }
         
         return { headers: fH, data: fD, type: pT };
     }
 
     function runFedLogic(dO, ind) {
+        const from = APP_STATE.globalDateFrom; const to = APP_STATE.globalDateTo; 
+        const aF = from <= to ? from : to; const aT = from <= to ? to : from;
+        const fM = APP_STATE.availableMonitorMonths.filter(m => m >= aF && m <= aT);
+        
+        const _nCache = new Map();
+        const nFst = (t) => {
+            if (!t) return '';
+            let r = _nCache.get(t);
+            if (r !== undefined) return r;
+            r = String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+            _nCache.set(t, r); return r;
+        };
+
         if (ind === 'ind3') {
             const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
             
@@ -411,7 +896,9 @@ const getEl = id => document.getElementById(id);
             const iEcNmp = findHeaderIndex(h1, 'E. Coli (NMP)');
             const iEcUfc = findHeaderIndex(h1, 'E. Coli (UFC)');
             const iU1 = findHeaderIndex(h1, 'Ubigeo');
-            const iC1 = findHeaderIndex(h1, 'Nombre CCPP');
+            let iN1 = findHeaderIndex(h1, 'Nombre SAP'); if (iN1 === -1) iN1 = findHeaderIndex(h1, 'Nombre CCPP');
+            const iM1 = findHeaderIndex(h1, 'Mes');
+            const iA1 = findHeaderIndex(h1, 'Año');
             
             const paramsToExtract = [
                 'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
@@ -421,7 +908,13 @@ const getEl = id => document.getElementById(id);
 
             const mMain = {};
             r1.forEach(r => {
-                const u = formatUbigeo(r[iU1]); const n = r[iC1];
+                const a = iA1 !== -1 ? String(r[iA1]).trim() : '2025';
+                if (a !== '2025') return;
+                const mesRaw = iM1 !== -1 ? nFst(r[iM1]) : '';
+                const mm = MONTH_NUM[mesRaw.toUpperCase()];
+                if (!mm || parseInt(mm, 10) < 7 || parseInt(mm, 10) > 12) return;
+
+                const u = formatUbigeo(r[iU1]); const n = normalizeHeader(r[iN1]);
                 if (!u || !n) return;
                 const id = u + '_' + n;
                 if (!mMain[id]) { 
@@ -429,8 +922,8 @@ const getEl = id => document.getElementById(id);
                     paramsToExtract.forEach(p => mMain[id][p] = -Infinity);
                 }
                 const parseVal = (idx) => {
-                    if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
-                    return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
+                    if (idx === -1) return NaN; const v = r[idx]; if (!v) return NaN;
+                    return parseFloat(v.replace(/[<>]/g, ''));
                 };
                 const v1 = parseVal(iBcfNmp); if (!isNaN(v1) && v1 > mMain[id].bcfNmp) mMain[id].bcfNmp = v1;
                 const v2 = parseVal(iBcfUfc); if (!isNaN(v2) && v2 > mMain[id].bcfUfc) mMain[id].bcfUfc = v2;
@@ -446,13 +939,20 @@ const getEl = id => document.getElementById(id);
             });
 
             const m3 = {};
+            let iNR = findHeaderIndex(rH, 'Nombre SAP'); if (iNR === -1) iNR = findHeaderIndex(rH, 'Nombre CCPP');
+            const iU_R = findHeaderIndex(rH, 'Ubigeo'), iProv_R = findHeaderIndex(rH, 'Provincia');
+            const iDist_R = findHeaderIndex(rH, 'Distrito'), iRed_R = findHeaderIndex(rH, 'Red de Salud');
+            const iA_Jul = findHeaderIndex(rH, 'Alerta Julio'), iA_Ago = findHeaderIndex(rH, 'Alerta Agosto');
+            let iA_Set = findHeaderIndex(rH, 'Alerta Setiembre'); if (iA_Set === -1) iA_Set = findHeaderIndex(rH, 'Alerta Septiembre');
+            const iA_Oct = findHeaderIndex(rH, 'Alerta Octubre'), iA_Nov = findHeaderIndex(rH, 'Alerta Noviembre'), iA_Dic = findHeaderIndex(rH, 'Alerta Diciembre');
+            
             rR.forEach(r => {
-                const u = formatUbigeo(r[findHeaderIndex(rH, 'Ubigeo')]); const n = r[findHeaderIndex(rH, 'Nombre CCPP')];
+                const u = iU_R !== -1 ? formatUbigeo(r[iU_R]) : ''; const n = iNR !== -1 ? nFst(r[iNR]) : '';
                 if (!u || !n) return;
                 const id = u + '_' + n;
                 if (!m3[id]) {
                     m3[id] = {
-                        u: u || '', c: n || '', p: r[findHeaderIndex(rH, 'Provincia')] || '', d: r[findHeaderIndex(rH, 'Distrito')] || '', r: r[findHeaderIndex(rH, 'Red de Salud')] || '', jul: 0, ago: 0, set: 0, oct: 0, nov: 0, dic: 0,
+                        u: u || '', c: n || '', p: iProv_R !== -1 ? r[iProv_R] : '', d: iDist_R !== -1 ? r[iDist_R] : '', r: iRed_R !== -1 ? r[iRed_R] : '', jul: 0, ago: 0, set: 0, oct: 0, nov: 0, dic: 0,
                         m_bcfNmp: mMain[id] ? mMain[id].bcfNmp : -Infinity,
                         m_bcfUfc: mMain[id] ? mMain[id].bcfUfc : -Infinity,
                         m_bctNmp: mMain[id] ? mMain[id].bctNmp : -Infinity,
@@ -464,16 +964,12 @@ const getEl = id => document.getElementById(id);
                 }
                 const a = iA !== -1 ? String(r[iA]).trim() : '';
                 if (a === '2025' || a === '') {
-                    const checkAlerta = (mes) => {
-                        const idx = findHeaderIndex(rH, `Alerta ${mes}`);
-                        return idx !== -1 && normalizeHeader(r[idx]) === 'si' ? 1 : 0;
-                    };
-                    if (checkAlerta('Julio')) m3[id].jul = 1;
-                    if (checkAlerta('Agosto')) m3[id].ago = 1;
-                    if (checkAlerta('Setiembre') || checkAlerta('Septiembre')) m3[id].set = 1;
-                    if (checkAlerta('Octubre')) m3[id].oct = 1;
-                    if (checkAlerta('Noviembre')) m3[id].nov = 1;
-                    if (checkAlerta('Diciembre')) m3[id].dic = 1;
+                    if (iA_Jul !== -1 && nFst(r[iA_Jul]) === 'si') m3[id].jul = 1;
+                    if (iA_Ago !== -1 && nFst(r[iA_Ago]) === 'si') m3[id].ago = 1;
+                    if (iA_Set !== -1 && nFst(r[iA_Set]) === 'si') m3[id].set = 1;
+                    if (iA_Oct !== -1 && nFst(r[iA_Oct]) === 'si') m3[id].oct = 1;
+                    if (iA_Nov !== -1 && nFst(r[iA_Nov]) === 'si') m3[id].nov = 1;
+                    if (iA_Dic !== -1 && nFst(r[iA_Dic]) === 'si') m3[id].dic = 1;
                 }
             });
             
@@ -494,6 +990,9 @@ const getEl = id => document.getElementById(id);
                 const bctUfc = s.m_bctUfc !== -Infinity ? s.m_bctUfc : '';
                 const ecNmp = s.m_ecNmp !== -Infinity ? s.m_ecNmp : '';
                 const ecUfc = s.m_ecUfc !== -Infinity ? s.m_ecUfc : '';
+                
+                let hasAnyParam = false;
+                if (bcfNmp !== '' || bcfUfc !== '' || bctNmp !== '' || bctUfc !== '' || ecNmp !== '' || ecUfc !== '') hasAnyParam = true;
 
                 const getR = (v, limit) => v === '' ? 0 : (v > limit ? 1 : 0);
                 
@@ -511,30 +1010,42 @@ const getEl = id => document.getElementById(id);
                 const pValsArr = []; const rValsArr = [];
                 const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
                 for (let i = 0; i < pKeys.length; i++) {
-                    const v = getPVal(pKeys[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[i]));
+                    const v = getPVal(pKeys[i]); if (v !== '') hasAnyParam = true;
+                    pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[i]));
                 }
                 const nitC = getPVal('Nitritos (Exposición Corta)'); const nitL = getPVal('Nitritos (Exposición Larga)');
                 let nitSum = '';
-                if (nitC !== '' || nitL !== '') { nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); nitSum = Math.round(nitSum * 100000) / 100000; }
+                if (nitC !== '' || nitL !== '') { hasAnyParam = true; nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); nitSum = Math.round(nitSum * 100000) / 100000; }
                 pValsArr.push(nitSum); rValsArr.push(getR(nitSum, limitsExtra[pKeys.length]));
                 const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
                 for (let i = 0; i < pKeys2.length; i++) {
-                    const v = getPVal(pKeys2[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[pKeys.length + 1 + i]));
+                    const v = getPVal(pKeys2[i]); if (v !== '') hasAnyParam = true;
+                    pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[pKeys.length + 1 + i]));
                 }
                 
                 const totParamMetales = rValsArr.reduce((a, b) => a + b, 0);
                 const tieneMetales = totParamMetales >= 1 ? 1 : 0;
+                
+                let detMetales = [];
+                for(let i=0; i<rValsArr.length; i++) {
+                    if(rValsArr[i] === 1) detMetales.push(`${extraColsNames[i]}: ${pValsArr[i]}`);
+                }
+                const detMetalesStr = detMetales.length > 0 ? detMetales.join(', ') : '-';
+                
                 const paso1 = (cumpA === 1 && tiene === 1 && tieneMetales === 0) ? 1 : 0;
+                const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0;
+                
+                if (totA === 0 && !hasAnyParam) return null;
                 
                 return [
                     s.u, s.c, s.p, s.d, s.r, s.jul, s.ago, s.set, s.oct, s.nov, s.dic, totA, cumpA, 
                     bcfNmp, bcfUfc, bctNmp, bctUfc, ecNmp, ecUfc,
                     r_bcfNmp, r_bcfUfc, r_bctNmp, r_bctUfc, r_ecNmp, r_ecUfc,
                     totParam, tiene, 
-                    ...pValsArr, ...rValsArr, totParamMetales, tieneMetales, paso1,
-                    APP_STATE.mefUbigeos.has(s.u) ? 1 : 0, APP_STATE.fedUbigeos.has(s.u) ? 1 : 0
+                    ...pValsArr, ...rValsArr, totParamMetales, tieneMetales, detMetalesStr, paso1,
+                    APP_STATE.mefUbigeos.has(s.u) ? 1 : 0, APP_STATE.fedUbigeos.has(s.u) ? 1 : 0, iSR
                 ]; 
-            });
+            }).filter(Boolean);
             return { headers: [
                 'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Jul 2025', 'Ago 2025', 'Set 2025', 'Oct 2025', 'Nov 2025', 'Dic 2025', 'Total Alertas', 'Cumple Alerta', 
                 'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (NMP)', 'E. Coli (UFC)', 
@@ -544,37 +1055,106 @@ const getEl = id => document.getElementById(id);
                 ...extraColsNames.map(n => n + ' Resultado'),
                 'Total parametros organolepticos y/o inorganicos (metales pesados) que exceden el LMP',
                 'Tiene al menos un parametro organolepticos y/o inorganicos (metales pesados) que excede el LMP',
-                'Cumple Paso 1', 'MEF', 'FED'
+                'Detalle parametro que excede LMP',
+                'Cumple Paso 1', 'MEF', 'FED', 'SAP REGULARES'
             ], data: fD };
         }
 
-        const m = {}; const h1 = dO.main[0] || []; const r1 = dO.main.slice(1); const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
-        const iC = (r, h) => { const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]); const n = r[findHeaderIndex(h, 'Nombre CCPP')]; if (!u || !n) return null; const id = u + '_' + n; if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ma: { t:0, p5:0, cl:0, tu:0 }, ca: { c: false, p: false }, i: 0, ri: { d: false, e: false, f: false } }; } return id; };
-        const gS = (r, h) => { const cI = findHeaderIndex(h, 'Cloro'); const tI = findHeaderIndex(h, 'Turbiedad'); return { is5p: classifyMonitoringStatus(h, r) === 1, c: cI !== -1 ? parseFloat(r[cI]) : NaN, t: tI !== -1 ? parseFloat(r[tI]) : NaN }; };
-        const eC = (r, h, isCap) => { const s = isCap ? CARACT_CAPTACION_SINGLE : CARACT_PILETA_SINGLE; const o = isCap ? CARACT_CAPTACION_OR : CARACT_PILETA_OR; for(let p of s) { if(isCellEmpty(r[findHeaderIndex(h, p)])) return false; } for(let p of o) { if(isCellEmpty(r[findHeaderIndex(h, p[0])]) && isCellEmpty(r[findHeaderIndex(h, p[1])])) return false; } return true; };
+        const m = {};
+        const h1 = dO.main[0] || []; const r1 = dO.main.slice(1);
+        const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
 
-        const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo');
-        r1.forEach(r => { const id = iC(r, h1); if(!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; if(me === 'diciembre') { const s = gS(r, h1); m[id].di.t++; if (s.is5p) m[id].di.p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk && tuOk) { m[id].di.cl++; m[id].di.tu++; } } if (ind === 'ind2' && iU1 !== -1) { const ub = r[iU1] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h1, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h1, false)) m[id].ca.p = true; } } });
-        
-        const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo');
-        r2.forEach(r => { 
-            const id = iC(r, h2); if(!id) return; 
-            const me = iM2 !== -1 ? normalizeHeader(r[iM2]) : ''; 
-            if (me === 'enero' || me === 'febrero' || me === 'marzo') { 
-                const s = gS(r, h2); 
+        const getIdx = (h) => ({
+            u: findHeaderIndex(h, 'Ubigeo'), n: findHeaderIndex(h, 'Nombre SAP'), nc: findHeaderIndex(h, 'Nombre CCPP'),
+            p: findHeaderIndex(h, 'Provincia'), d: findHeaderIndex(h, 'Distrito'), r: findHeaderIndex(h, 'Red de Salud'),
+            mes: findHeaderIndex(h, 'Mes'), ubiLoc: findHeaderIndex(h, 'Ubicación Lugar de Muestreo'),
+            cl: findHeaderIndex(h, 'Cloro'), tu: findHeaderIndex(h, 'Turbiedad'),
+            p5: MONITOR_5P_PARAMS.map(p => findHeaderIndex(h, p)),
+            capS: CARACT_CAPTACION_SINGLE.map(p => findHeaderIndex(h, p)),
+            capO: CARACT_CAPTACION_OR.map(p => [findHeaderIndex(h, p[0]), findHeaderIndex(h, p[1])]),
+            pilS: CARACT_PILETA_SINGLE.map(p => findHeaderIndex(h, p)),
+            pilO: CARACT_PILETA_OR.map(p => [findHeaderIndex(h, p[0]), findHeaderIndex(h, p[1])])
+        });
+        const idxh1 = getIdx(h1); const idxh2 = getIdx(h2);
+
+        const iC = (row, idxs) => {
+            const u = formatUbigeo(row[idxs.u]); let n = row[idxs.n]; if(!n) n = row[idxs.nc];
+            if (!u || !n) return null;
+            const id = u + '_' + normalizeHeader(n);
+            if (!m[id]) {
+                m[id] = {
+                    u: u || '', c: n || '', p: row[idxs.p] || '', d: row[idxs.d] || '', r: row[idxs.r] || '',
+                    di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ma: { t:0, p5:0, cl:0, tu:0 },
+                    ca: { c: false, p: false }, i: 0, p5_months: new Set(), ri_months: new Set()
+                };
+            }
+            return id;
+        };
+
+        const gS = (row, idxs) => {
+            let c5 = 0; idxs.p5.forEach(i => { if (i !== -1 && !isCellEmpty(row[i])) c5++; });
+            const cI = idxs.cl; const tI = idxs.tu;
+            return { is5p: c5 === 5, c: cI !== -1 && !isCellEmpty(row[cI]) ? parseFloat(row[cI]) : NaN, t: tI !== -1 && !isCellEmpty(row[tI]) ? parseFloat(row[tI]) : NaN };
+        };
+
+        const eC = (row, idxs, isCap) => {
+            const s = isCap ? idxs.capS : idxs.pilS; const o = isCap ? idxs.capO : idxs.pilO;
+            for(let i of s) { if(i === -1 || isCellEmpty(row[i])) return false; }
+            for(let pair of o) { if((pair[0] === -1 || isCellEmpty(row[pair[0]])) && (pair[1] === -1 || isCellEmpty(row[pair[1]]))) return false; }
+            return true;
+        };
+
+        r1.forEach(row => {
+            const id = iC(row, idxh1); if(!id) return;
+            const me = idxh1.mes !== -1 ? normalizeHeader(row[idxh1.mes]) : '';
+            if(me === 'diciembre') {
+                const s = gS(row, idxh1); m[id].di.t++;
+                if (s.is5p) { m[id].di.p5++; m[id].p5_months.add('dic'); }
                 const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5;
-                if (me === 'enero') { m[id].en.t++; if (s.is5p) m[id].en.p5++; if (clOk && tuOk) { m[id].en.cl++; m[id].en.tu++; } } 
-                else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) m[id].fe.p5++; if (clOk && tuOk) { m[id].fe.cl++; m[id].fe.tu++; } } 
-                else if (me === 'marzo') { m[id].ma.t++; if (s.is5p) m[id].ma.p5++; if (clOk && tuOk) { m[id].ma.cl++; m[id].ma.tu++; } }
-            } 
-            if (ind === 'ind2' && iU2 !== -1) { const ub = r[iU2] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h2, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h2, false)) m[id].ca.p = true; } } 
+                if (clOk && tuOk) { m[id].di.cl++; m[id].di.tu++; }
+            }
+            if (ind === 'ind2' && idxh1.ubiLoc !== -1) {
+                const ub = row[idxh1.ubiLoc] || '';
+                if (ub.includes('Fuente de Captación')) { if(eC(row, idxh1, true)) m[id].ca.c = true; }
+                if (ub.includes('Red de distribución')) { if(eC(row, idxh1, false)) m[id].ca.p = true; }
+            }
+        });
+
+        r2.forEach(row => {
+            const id = iC(row, idxh2); if(!id) return;
+            const me = idxh2.mes !== -1 ? normalizeHeader(row[idxh2.mes]) : '';
+            if (me === 'enero' || me === 'febrero' || me === 'marzo') {
+                const s = gS(row, idxh2);
+                const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5;
+                if (me === 'enero') { m[id].en.t++; if (s.is5p) { m[id].en.p5++; m[id].p5_months.add('ene'); } if (clOk && tuOk) { m[id].en.cl++; m[id].en.tu++; } }
+                else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) { m[id].fe.p5++; m[id].p5_months.add('feb'); } if (clOk && tuOk) { m[id].fe.cl++; m[id].fe.tu++; } }
+                else if (me === 'marzo') { m[id].ma.t++; if (s.is5p) { m[id].ma.p5++; m[id].p5_months.add('mar'); } if (clOk && tuOk) { m[id].ma.cl++; m[id].ma.tu++; } }
+            }
+            if (ind === 'ind2' && idxh2.ubiLoc !== -1) {
+                const ub = row[idxh2.ubiLoc] || '';
+                if (ub.includes('Fuente de Captación')) { if(eC(row, idxh2, true)) m[id].ca.c = true; }
+                if (ub.includes('Red de distribución')) { if(eC(row, idxh2, false)) m[id].ca.p = true; }
+            }
         });
 
         if (ind === 'ind2') {
-            const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1); const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
-            sR.forEach(r => { const id = iC(r, sH); if(!id) return; let me = iMS !== -1 ? normalizeHeader(r[iMS]) : ''; let a = iAS !== -1 ? String(r[iAS]).trim() : ''; if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; } const iD25 = (me === 'diciembre' && a === '2025'); const iE26 = (me === 'enero' && a === '2026'); const iF26 = (me === 'febrero' && a === '2026'); if ((iD25 || iE26 || iF26) && !isCellEmpty(r[iFS])) { m[id].i++; } });
-            const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
-            rR.forEach(r => { const id = iC(r, rH); if(!id) return; const a = iA !== -1 ? String(r[iA]).trim() : ''; if (a === '2025' || a === '') { const cD = r[findHeaderIndex(rH, 'Cargo Diciembre')]; if (normalizeHeader(cD) === 'aprobado') m[id].ri.d = true; } if (a === '2026' || a === '') { const cE = r[findHeaderIndex(rH, 'Cargo Enero')]; if (normalizeHeader(cE) === 'aprobado') m[id].ri.e = true; const cF = r[findHeaderIndex(rH, 'Cargo Febrero')]; if (normalizeHeader(cF) === 'aprobado') m[id].ri.f = true; } });
+            const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1);
+            const idxsS = getIdx(sH); const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
+            sR.forEach(row => {
+                const id = iC(row, idxsS); if(!id) return;
+                let me = iMS !== -1 ? normalizeHeader(row[iMS]) : ''; let a = iAS !== -1 ? String(row[iAS]).trim() : '';
+                if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; }
+                const iD25 = (me === 'diciembre' && a === '2025'); const iE26 = (me === 'enero' && a === '2026'); const iF26 = (me === 'febrero' && a === '2026');
+                if ((iD25 || iE26 || iF26) && !isCellEmpty(row[iFS])) { m[id].i++; }
+            });
+            const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1);
+            const idxsR = getIdx(rH); const iA = findHeaderIndex(rH, 'Año');
+            rR.forEach(row => {
+                const id = iC(row, idxsR); if(!id) return;
+                const a = iA !== -1 ? String(row[iA]).trim() : '';
+                if (a === '2025' || a === '') { const cD = row[findHeaderIndex(rH, 'Cargo Diciembre')]; if (normalizeHeader(cD) === 'aprobado') m[id].ri_months.add('dic'); }
+                if (a === '2026' || a === '') { const cE = row[findHeaderIndex(rH, 'Cargo Enero')]; if (normalizeHeader(cE) === 'aprobado') m[id].ri_months.add('ene'); const cF = row[findHeaderIndex(rH, 'Cargo Febrero')]; if (normalizeHeader(cF) === 'aprobado') m[id].ri_months.add('feb'); }
+            });
         }
 
         if (ind === 'ind1') {
@@ -587,13 +1167,13 @@ const getEl = id => document.getElementById(id);
                 const e5m = eval5p(s.ma); const em = evalMes(s.ma, e5m);
                 let sE = ed + ee + ef + em; 
                 let sg = sE >= 3 ? 'Verde' : (sE > 0 ? 'Naranja' : 'Rojo'); 
-                const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; 
-                return [ s.u, s.c, s.p, s.d, s.r, s.di.t, s.di.p5, e5d, s.di.cl, s.di.tu, ed, s.en.t, s.en.p5, e5e, s.en.cl, s.en.tu, ee, s.fe.t, s.fe.p5, e5f, s.fe.cl, s.fe.tu, ef, s.ma.t, s.ma.p5, e5m, s.ma.cl, s.ma.tu, em, sg, iM, iF ]; 
+                const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; 
+                return [ s.u, s.c, s.p, s.d, s.r, s.di.t, s.di.p5, e5d, s.di.cl, s.di.tu, ed, s.en.t, s.en.p5, e5e, s.en.cl, s.en.tu, ee, s.fe.t, s.fe.p5, e5f, s.fe.cl, s.fe.tu, ef, s.ma.t, s.ma.p5, e5m, s.ma.cl, s.ma.tu, em, sg, iM, iF, iSR ]; 
             });
-            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Tot Mon. Mar', 'Mon 5P Mar', 'EV_5p Mar', 'Mar(Cl>=0.5)', 'Mar(Turb<=5)', 'Ev_Mar', 'Seguimiento', 'MEF', 'FED'], data: fD };
+            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Tot Mon. Mar', 'Mon 5P Mar', 'EV_5p Mar', 'Mar(Cl>=0.5)', 'Mar(Turb<=5)', 'Ev_Mar', 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES'], data: fD };
         } else {
-            const fD = Object.values(m).map(s => { const ei = s.i > 0 ? 1 : 0; const ec = (s.ca.c && s.ca.p) ? 1 : 0; const cM = (x) => x.p5 > 3 ? 1 : 0; const s5 = cM(s.di) + cM(s.en) + cM(s.fe); const em = s5 >= 2 ? 1 : 0; const sR = (s.ri.d?1:0) + (s.ri.e?1:0) + (s.ri.f?1:0); const er = sR >= 3 ? 1 : 0; const inF = (ei === 1 && ec === 1 && em === 1 && er === 1) ? 1 : 0; const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, ei, ec, em, er, inF, iM, iF ]; });
-            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Inspección', 'Cumple Caracterizacion', 'Cumple Monit. 5P', 'Cumple Rep. Riesgo', 'Cumplimiento Ind. 2', 'MEF', 'FED'], data: fD };
+            const fD = Object.values(m).map(s => { const ei = s.i > 0 ? 1 : 0; const ec = (s.ca.c && s.ca.p) ? 1 : 0; const em = s.p5_months.size >= 4 ? 1 : 0; const er = s.ri_months.size >= 3 ? 1 : 0; const inF = (ei === 1 && ec === 1 && em === 1 && er === 1) ? 1 : 0; const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, ei, ec, em, er, inF, iM, iF, iSR ]; });
+            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Inspección', 'Cumple Caracterizacion', 'Cumple Monit. 5P', 'Cumple Rep. Riesgo', 'Cumplimiento Ind. 2', 'MEF', 'FED', 'SAP REGULARES'], data: fD };
         }
     }
 
@@ -605,20 +1185,63 @@ const getEl = id => document.getElementById(id);
         let headerHtml = '';
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
             headerHtml = `<div class="bg-indigo-50/80 px-4 py-2.5 border-b border-indigo-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full"><span class="text-[10px] font-black text-indigo-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
-            Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { let dV = val; if(result.headers[i] === 'Cumple') dV = val === '1' ? 'CUMPLE' : (val === '0' ? 'NO CUMPLE' : 'SIN DATOS'); else if(result.headers[i] === 'Consume Agua Clorada') dV = val === '1' ? 'SÍ' : 'NO'; else if(result.headers[i].includes('Muestra')) dV = val === '1' ? 'CAPTACIÓN' : (val === '2' ? 'PILETA' : (val === '3' ? 'AMBOS' : '-')); else if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); } headerHtml += `<span class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; });
+            Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { 
+                let dV = val; 
+                if(result.headers[i] === 'Cumple') dV = val === '1' ? 'CUMPLE' : (val === '0' ? 'NO CUMPLE' : 'SIN DATOS'); 
+                else if(result.headers[i] === 'Consume Agua Clorada') dV = val === '1' ? 'SÍ' : 'NO'; 
+                else if(result.headers[i].includes('Muestra')) dV = val === '1' ? 'CAPTACIÓN' : (val === '2' ? 'PILETA' : (val === '3' ? 'AMBOS' : '-')); 
+                else if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); } 
+                else if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length) { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); } 
+                headerHtml += `<span class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; 
+            });
             headerHtml += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`; fB.innerHTML = headerHtml; fB.classList.remove('hidden');
         } else { fB.innerHTML = ''; fB.classList.add('hidden'); }
 
         let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
-        const fmtV = (h, v, isJ) => { if(h === 'Cumple' || h === 'Consume Agua Clorada') return v == 1 || v === '1' ? 'SÍ' : (v == 0 || v === '0' ? 'NO' : '-'); if(h.includes('Muestra') && !isNaN(parseInt(v))) return v == 1 ? 'CAPTACIÓN' : (v == 2 ? 'PILETA' : (v == 3 ? 'AMBOS' : '-')); if(h === 'Excede LMP') return v == 1 ? 'SÍ' : '-'; if(isJ && h !== 'Observación' && h !== 'Ver Detalle') return v == 1 ? 'COMPLETO' : (v == 2 ? 'INCOMPLETO' : 'SIN MONITOREO'); return String(v).substring(0, 30); };
+        const fmtV = (h, v, isJ, isC) => { 
+            if(h === 'Cumple' || h === 'Consume Agua Clorada') return v == 1 || v === '1' ? 'SÍ' : (v == 0 || v === '0' ? 'NO' : '-'); 
+            if(h.includes('Muestra') && !isNaN(parseInt(v))) return v == 1 ? 'CAPTACIÓN' : (v == 2 ? 'PILETA' : (v == 3 ? 'AMBOS' : '-')); 
+            if(h === 'Excede LMP') return v == 1 ? 'SÍ' : '-'; 
+            if(isJ && h !== 'Observación' && h !== 'Ver Detalle' && h !== 'Nivel de Riesgo' && !h.includes('Ev_')) return v == 1 ? 'COMPLETO' : (v == 2 ? 'INCOMPLETO' : 'SIN MONITOREO'); 
+            if(isC) return v == 1 ? 'COMPLETO' : (v == 2 ? 'INCOMPLETO' : 'SIN MONITOREO');
+            return String(v).substring(0, 30); 
+        };
 
         dH.forEach((h, idx) => { 
             let stC = ""; let lS = ""; if (h === 'Ubigeo') { stC = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; lS = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { stC = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; lS = "left: 80px; min-width: 150px; max-width: 150px;"; }
+            
             let dCol = result.data;
-            if (Object.keys(APP_STATE.currentTableFilters).length > 0) { dCol = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([fI, fV]) => { if (parseInt(fI) === idx) return true; let cV = String(r[fI] ?? '').trim(); if (result.type === 'status_json' && parseInt(fI) >= CORE_HEADERS.length && result.headers[fI] !== 'Observación' && result.headers[fI] !== 'Ver Detalle') { try { const d = JSON.parse(cV); return String(d.status) === String(fV); } catch(e) { return false; } } return cV === String(fV); }); }); }
-            const uVals = [...new Set(dCol.map(r => { let v = String(r[idx] ?? '').trim(); if (result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle') { try { const d = JSON.parse(v); return String(d.status); } catch(e) { return '0'; } } return v; }))].filter(Boolean).sort();
-            const cF = APP_STATE.currentTableFilters[idx] || ""; const isJ = result.type === 'status_json' && idx >= CORE_HEADERS.length;
-            let sH = `<div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()"><button onclick="window.toggleFilterDropdown(event, '${prefix}', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${cF ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : ''}"><span class="truncate">${cF ? safeEscape(fmtV(h, cF, isJ)) : 'Todos'}</span><i data-lucide="filter" class="w-3 h-3 ${cF ? 'text-indigo-500' : 'text-slate-400'}"></i></button><div id="dropdown-${prefix}-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left"><div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg"><input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-indigo-500" onkeyup="window.filterDropdownOptions(event, '${prefix}', ${idx})"></div><div class="max-h-48 overflow-y-auto custom-scroll py-1"><div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${!cF ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '')">[ Todos ]</div>${uVals.map(v => { let dV = fmtV(h, v, isJ); return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${cF === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${safeEscape(v)}')" title="${safeEscape(dV)}">${safeEscape(dV)}</div>`; }).join('')}${uVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}</div></div></div>`;
+            if (Object.keys(APP_STATE.currentTableFilters).length > 0) { dCol = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([fI, fV]) => { 
+                if (parseInt(fI) === idx) return true; 
+                let cV = String(r[fI] ?? '').trim(); 
+                if (result.type === 'status_json' && parseInt(fI) >= CORE_HEADERS.length && result.headers[fI] !== 'Observación' && result.headers[fI] !== 'Ver Detalle') { try { const d = JSON.parse(cV); return String(d.status) === String(fV); } catch(e) { return false; } } 
+                if (result.type === 'caract_points' && parseInt(fI) >= CORE_HEADERS.length) {
+                    try { 
+                        const pts = JSON.parse(cV); const keys = Object.keys(pts);
+                        if (keys.length === 0) return String(fV) === '0';
+                        let hasInc = false; keys.forEach(k => { if(pts[k].status === 2) hasInc = true; });
+                        return (hasInc ? '2' : '1') === String(fV);
+                    } catch(e) { return false; }
+                }
+                return cV === String(fV); 
+            }); }); }
+            
+            const uVals = [...new Set(dCol.map(r => { 
+                let v = String(r[idx] ?? '').trim(); 
+                if (result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle') { try { const d = JSON.parse(v); return String(d.status); } catch(e) { return '0'; } } 
+                if (result.type === 'caract_points' && idx >= CORE_HEADERS.length) {
+                    try { 
+                        const pts = JSON.parse(v); const keys = Object.keys(pts);
+                        if (keys.length === 0) return '0';
+                        let hasInc = false; keys.forEach(k => { if(pts[k].status === 2) hasInc = true; });
+                        return hasInc ? '2' : '1';
+                    } catch(e) { return '0'; }
+                }
+                return v; 
+            }))].filter(Boolean).sort();
+            
+            const cF = APP_STATE.currentTableFilters[idx] || ""; const isJ = result.type === 'status_json' && idx >= CORE_HEADERS.length; const isC = result.type === 'caract_points' && idx >= CORE_HEADERS.length;
+            let sH = `<div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()"><button onclick="window.toggleFilterDropdown(event, '${prefix}', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${cF ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : ''}"><span class="truncate">${cF ? safeEscape(fmtV(h, cF, isJ, isC)) : 'Todos'}</span><i data-lucide="filter" class="w-3 h-3 ${cF ? 'text-indigo-500' : 'text-slate-400'}"></i></button><div id="dropdown-${prefix}-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left"><div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg"><input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-indigo-500" onkeyup="window.filterDropdownOptions(event, '${prefix}', ${idx})"></div><div class="max-h-48 overflow-y-auto custom-scroll py-1"><div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${!cF ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '')">[ Todos ]</div>${uVals.map(v => { let dV = fmtV(h, v, isJ, isC); return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${cF === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${safeEscape(v)}')" title="${safeEscape(dV)}">${safeEscape(dV)}</div>`; }).join('')}${uVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}</div></div></div>`;
             html += `<th class="px-4 py-3 text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-widest align-top ${stC}" style="${lS}"><div class="flex flex-col h-full justify-between"><span>${h}</span>${sH}</div></th>`; 
         });
         html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
@@ -640,6 +1263,15 @@ const getEl = id => document.getElementById(id);
                     if (v === 1) { const dt = r[result.headers.indexOf('Detalles')]; ctt = `<button onclick="event.stopPropagation(); window.openLMPModal(decodeURIComponent('${encodeURIComponent(dt)}'))" class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`; } else { ctt = "<span class='text-slate-300'>-</span>"; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`; }
                 } else if (h === 'Ver Detalle') {
                     const metaJson = encodeURIComponent(JSON.stringify(r.slice(0, 9))); const histJson = encodeURIComponent(c); ctt = `<button onclick="event.stopPropagation(); window.openMonitorDetailModal(decodeURIComponent('${metaJson}'), decodeURIComponent('${histJson}'))" class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] hover:bg-indigo-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-indigo-200 transition-colors"><i data-lucide="list" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
+                } else if (h.includes('Ev_') || h === 'Nivel de Riesgo') {
+                    if (c === 'Cumple') ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
+                    else if (c === 'No Cumple') ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
+                    else if (c === 'Alto') ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><i data-lucide='alert-triangle' class='w-3 h-3 text-red-500'></i>ALTO</span>";
+                    else if (c === 'Medio') ctt = "<span class='inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full font-bold border border-amber-200 text-[10px] tracking-wide'><i data-lucide='alert-circle' class='w-3 h-3 text-amber-500'></i>MEDIO</span>";
+                    else if (c === 'Bajo') ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><i data-lucide='check' class='w-3 h-3 text-emerald-500'></i>BAJO</span>";
+                    else if (c === '-') ctt = "<span class='text-slate-300 font-black text-base'>-</span>";
+                    else ctt = "<span class='text-slate-400 font-bold text-[10px] tracking-widest'>SIN MONITOREO</span>";
+                    tdA = tdA.replace('class="', 'class="text-center ');
                 } else if (h === 'Cumple') {
                     if (v === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; 
                     else if (v === 0) ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; 
@@ -649,6 +1281,30 @@ const getEl = id => document.getElementById(id);
                     if (tot === 0) ctt = "<span class='text-slate-300'>-</span>"; 
                     else if (v === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-bold border border-blue-200 text-[10px] tracking-wide'><i data-lucide='droplets' class='w-3 h-3 text-blue-500'></i> SÍ</span>"; 
                     else ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><i data-lucide='x-circle' class='w-3 h-3 text-red-500'></i> NO</span>"; tdA = tdA.replace('class="', 'class="text-center ');
+                } else if (result.type === 'caract_points' && idxO >= CORE_HEADERS.length) {
+                    let pts = {};
+                    try { pts = JSON.parse(c); } catch(e) {}
+                    const keys = Object.keys(pts);
+                    const count = keys.length;
+                    if (count === 0) {
+                        ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shadow-inner" title="Sin Monitoreo"><i data-lucide="minus" class="w-4 h-4"></i></div>`;
+                    } else {
+                        let hasIncomplete = false;
+                        let htmlStr = '';
+                        keys.forEach(pt => {
+                            const d = pts[pt];
+                            if (d.status === 2) hasIncomplete = true;
+                            const stLabel = d.status === 1 ? '<span class="text-emerald-600 font-bold">[Completo]</span>' : '<span class="text-amber-600 font-bold">[Incompleto]</span>';
+                            const paramsHtml = d.params.map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold">${p}</span>`).join('');
+                            htmlStr += `<div class="mb-4 border-b border-slate-100 pb-3 last:border-0"><h4 class="font-black text-slate-800 text-xs mb-2">${pt} ${stLabel}</h4><div class="flex flex-wrap gap-1">${paramsHtml}</div></div>`;
+                        });
+                        
+                        const colorClass = hasIncomplete ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+                        const icon = hasIncomplete ? 'info' : 'check';
+                        
+                        ctt = `<div class="mx-auto px-3 py-1 rounded-full ${colorClass} inline-flex items-center justify-center cursor-pointer shadow-inner transition-colors border ${hasIncomplete ? 'border-amber-300' : 'border-emerald-300'}" onclick="event.stopPropagation(); window.openCaractDetailModal(decodeURIComponent('${encodeURIComponent(htmlStr)}'))" title="Clic para ver detalles"><span class="font-black text-[13px] mr-1.5">${count}</span><i data-lucide="${icon}" class="w-3.5 h-3.5"></i></div>`;
+                    }
+                    tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
                 } else if (result.type === 'cloro' && idxO >= CORE_HEADERS.length && h !== 'Consume Agua Clorada') {
                     const vn = parseFloat(c); 
                     if (!isNaN(vn)) { ctt = `<span class="font-medium text-slate-700">${vn}</span>`; if(h.includes('<') && vn > 0) ctt = `<span class="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">${vn}</span>`; if(h.includes('>') && vn > 0) ctt = `<span class="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">${vn}</span>`; if(h.includes('Rango') && vn > 0) ctt = `<span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">${vn}</span>`; if(h.includes('Meses') && vn >= 10) ctt = `<span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">${vn}</span>`; if(h.includes('Meses') && vn < 10) ctt = `<span class="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">${vn}</span>`; tdA = tdA.replace('class="', 'class="text-center '); } else ctt = c;
@@ -670,8 +1326,53 @@ const getEl = id => document.getElementById(id);
         dH.forEach((h, idx) => {
             let stC = ""; let lS = ""; if (h === 'Ubigeo') { stC = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`; lS = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { stC = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`; lS = "left: 80px; min-width: 150px; max-width: 150px;"; }
             let ctt = "";
-            if (idx === 0) ctt = "TOTALES:"; else if (idx === 1) ctt = `<span class="text-indigo-600 text-sm">${fD.length}</span> reg.`; else if (h === 'Observación' || h === 'Ver Detalle') ctt = "-"; else if (idx >= CORE_HEADERS.length) {
+            if (idx === 0) ctt = "TOTALES:"; else if (idx === 1) ctt = `<span class="text-indigo-600 text-sm">${fD.length}</span> reg.`; else if (h === 'Observación' || h === 'Ver Detalle') ctt = "-"; 
+            else if (result.type === 'nivel_riesgo') {
+                if (h === 'Nivel de Riesgo') {
+                    let a=0, m=0, b=0, s=0; fD.forEach(r => { if(r[idx] === 'Alto') a++; else if(r[idx] === 'Medio') m++; else if(r[idx] === 'Bajo') b++; else s++; });
+                    ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-red-500 flex items-center" title="Alto"><i data-lucide="alert-triangle" class="w-3 h-3 mr-0.5"></i>${a}</span> <span class="text-amber-600 flex items-center" title="Medio"><i data-lucide="alert-circle" class="w-3 h-3 mr-0.5"></i>${m}</span> <span class="text-emerald-600 flex items-center" title="Bajo"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${b}</span></div>`;
+                } else if (h.includes('Ev_')) {
+                    let c=0, nc=0; fD.forEach(r => { if(r[idx] === 'Cumple') c++; else if(r[idx] === 'No Cumple') nc++; });
+                    ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center" title="Cumple"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${c}</span> <span class="text-red-500 flex items-center" title="No Cumple"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${nc}</span></div>`;
+                } else if (h === 'Total_Moni') { let sum=0; fD.forEach(r => { sum += parseInt(r[idx]) || 0; }); ctt = `<span class="text-slate-600">${sum}</span>`; } 
+                else ctt = "-";
+            } else if (result.type === 'res_riesgo' && idx >= CORE_HEADERS.length) {
+                if (h === 'Detalle parametro que excede LMP') {
+                    ctt = "-";
+                } else {
+                    let sum = 0;
+                    fD.forEach(r => { let val = parseFloat(r[idx]); if(!isNaN(val)) sum += val; });
+                    sum = Math.round(sum * 1000) / 1000;
+                    const highlightCols = [
+                        'Tiene al menos una muestra con contaminación fecal',
+                        'Tiene al menos un parametro organolepticos que excede el LMP',
+                        'Tiene al menos un parametro inorganicos (metales pesados) que excede el LMP'
+                    ];
+                    if (highlightCols.includes(h)) {
+                        ctt = `<span class="inline-flex items-center justify-center bg-red-500 text-white px-2.5 py-1 rounded shadow-sm text-xs">${sum}</span>`;
+                    } else {
+                        ctt = `<span class="text-indigo-700 font-bold">${sum}</span>`;
+                    }
+                }
+            } else if (idx >= CORE_HEADERS.length) {
                 if (result.type === 'status_json') { let c=0, inc=0, s=0; fD.forEach(r => { try { const d = JSON.parse(r[idx]); if (d.status === 1) c++; else if (d.status === 2) inc++; else s++; } catch(e){} }); ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center" title="Completos"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${c}</span> <span class="text-amber-600 flex items-center" title="Incompletos"><i data-lucide="info" class="w-3 h-3 mr-0.5"></i>${inc}</span> <span class="text-red-500 flex items-center" title="Sin Monitoreo"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${s}</span></div>`; }
+                else if (result.type === 'caract_points') { 
+                    let c=0, inc=0, s=0; 
+                    fD.forEach(r => { 
+                        try {
+                            const pts = JSON.parse(r[idx]);
+                            const keys = Object.keys(pts);
+                            if (keys.length === 0) s++;
+                            else {
+                                keys.forEach(k => {
+                                    if (pts[k].status === 1) c++;
+                                    else if (pts[k].status === 2) inc++;
+                                });
+                            }
+                        } catch(e) {}
+                    }); 
+                    ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center" title="Completos"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${c}</span> <span class="text-amber-600 flex items-center" title="Incompletos"><i data-lucide="info" class="w-3 h-3 mr-0.5"></i>${inc}</span> <span class="text-slate-400 flex items-center" title="Sin Monitoreo"><i data-lucide="minus" class="w-3 h-3 mr-0.5"></i>${s}</span></div>`; 
+                }
                 else if (result.type === 'boolean') { let sum=0; fD.forEach(r => { let val = parseInt(r[idx]) || 0; if(val >= 1) sum++; }); ctt = `<span class="text-emerald-600 flex items-center justify-center"><i data-lucide="check-circle-2" class="w-3 h-3 mr-1"></i>${sum}</span>`; }
                 else if (result.type === 'cloro') { let sum=0; fD.forEach(r => { let val = parseInt(r[idx]) || 0; sum += val; }); if (h === 'Consume Agua Clorada') ctt = `<span class="text-blue-600 flex items-center justify-center"><i data-lucide="droplets" class="w-3 h-3 mr-1"></i>${sum}</span>`; else ctt = `<span class="text-slate-600 flex items-center justify-center">${sum}</span>`; }
                 else if (result.type === 'analysis') { let sum=0; fD.forEach(r => { let val = parseInt(r[idx]) || 0; if(val >= 1) sum++; }); if (h === 'Excede LMP') ctt = `<span class="text-red-600 flex items-center justify-center"><i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i>${sum}</span>`; else ctt = `<span class="text-indigo-600 flex items-center justify-center">${sum}</span>`; }
@@ -682,29 +1383,103 @@ const getEl = id => document.getElementById(id);
 
     function renderConsolidatedAndChart(result, prefix, currentTab) {
         if (currentTab === 'res_cloro') { renderCloroConsolidatedAndChart(result, prefix); return; }
+        if (currentTab === 'res_riesgo') { renderRiesgoConsolidatedAndChart(result, prefix); return; }
+        if (currentTab === 'res_nivel_riesgo') { renderNivelRiesgoConsolidated(result, prefix); return; }
         const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud'); const sum = {}; const sapsR = {}; 
-        const isA = result.type === 'analysis'; const isJ = result.type === 'status_json';
+        const isA = result.type === 'analysis'; const isJ = result.type === 'status_json'; const isC = result.type === 'caract_points';
         let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle');
-        const colC = sumH.length; const grTot = Array(colC).fill(null).map(() => isJ ? {c:0, i:0, s:0} : 0); let gTSap = 0;
-        
+        const colC = sumH.length; const grTot = Array(colC).fill(null).map(() => (isJ || isC) ? {c:0, i:0, s:0} : 0); let gTSap = 0;
+        const isSapPrefix = prefix === 'sap';
         let fD = result.data;
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); if (isJ && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch(e) { return false; } } return cV === String(v); }); }); }
 
         fD.forEach(r => {
-            const red = r[idxR] || 'Sin Red'; if(!sum[red]) sum[red] = Array(colC).fill(null).map(() => isJ ? {c:0, i:0, s:0} : 0); if(!sapsR[red]) sapsR[red] = 0; sapsR[red]++; gTSap++;
+            const red = r[idxR] || 'Sin Red'; if(!sum[red]) sum[red] = Array(colC).fill(null).map(() => (isJ || isC) ? {c:0, i:0, s:0} : 0); if(!sapsR[red]) sapsR[red] = 0; sapsR[red]++; gTSap++;
             if (isA) { const u1 = parseInt(r[vIdx]) || 0; const u2 = parseInt(r[vIdx + 1]) || 0; const eF = parseInt(r[vIdx + 2]) || 0; const cm = parseInt(r[vIdx + 3]); const dS = r[vIdx + 4]; let det = []; try { det = dS ? JSON.parse(dS) : []; } catch(e) {} if (!Array.isArray(det)) det = []; const hasD = u1 > 0 || u2 > 0 || eF > 0; if (hasD) { sum[red][0] += 1; grTot[0] += 1; sum[red][1] += det.length; grTot[1] += det.length; if (cm === 1) { sum[red][2]++; grTot[2]++; } } } 
-            else { let cIdx = 0; for(let i = vIdx; i < r.length; i++) { if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i] === 'Ver Detalle') continue; if(isJ) { try { const d = JSON.parse(r[i]); if(d.status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; } else if(d.status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; } else { sum[red][cIdx].s++; grTot[cIdx].s++; } } catch(e){} } else { let val = parseInt(r[i]) || 0; if(val>=1) { sum[red][cIdx]++; grTot[cIdx]++; } } cIdx++; } }
+            else { 
+                let cIdx = 0; 
+                for(let i = vIdx; i < r.length; i++) { 
+                    if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i] === 'Ver Detalle') continue; 
+                    if(isJ) { try { const d = JSON.parse(r[i]); if(d.status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; } else if(d.status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; } else { sum[red][cIdx].s++; grTot[cIdx].s++; } } catch(e){} } 
+                    else if (isC) { 
+                        try { 
+                            const pts = JSON.parse(r[i]); const keys = Object.keys(pts);
+                            if(keys.length === 0) { sum[red][cIdx].s++; grTot[cIdx].s++; }
+                            else {
+                                keys.forEach(k => {
+                                    if (pts[k].status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; }
+                                    else if (pts[k].status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; }
+                                });
+                            }
+                        } catch(e) { sum[red][cIdx].s++; grTot[cIdx].s++; } 
+                    } 
+                    else { let val = parseInt(r[i]) || 0; if(val>=1) { sum[red][cIdx]++; grTot[cIdx]++; } } 
+                    cIdx++; 
+                } 
+            }
         });
 
-        let html = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-xs font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-xs font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th>`;
-        sumH.forEach(h => html += `<th class="px-5 py-4 text-center text-xs font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`); html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-        Object.entries(sum).forEach(([red, vals]) => { html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${sapsR[red]}</td>`; vals.forEach((v, i) => { if(isJ) { html += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-red-600 font-bold bg-red-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="x" class="w-3 h-3"></i> ${v.s}</span></td>`; } else { let st = "text-slate-600 font-medium"; if(isA) { if(i===1 && v>0) st="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) st="text-emerald-600 font-bold"; } html += `<td class="px-5 py-3.5 text-xs text-center ${st}">${v}</td>` } }); html += `</tr>`; });
-        html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-xs text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td>`;
-        grTot.forEach(v => { if(isJ) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-red-400 font-black"><i data-lucide="x" class="w-3 h-3"></i> ${v.s}</span></td>`; } else { html += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`; } }); html += `</tr></tbody></table>`; getEl(`${prefix}-consolidated-container`).innerHTML = html;
+        const semesterGroups = {};
+        let totalMetaMef = 0;
+        let hasSemesters = false;
+        sumH.forEach((h, i) => {
+            let sem = 'General';
+            if (currentTab === 'sanitaria') {
+                if (h.includes('1ra Inspección')) sem = '1er Semestre ' + h.split(' ').pop();
+                else if (h.includes('2da Inspección')) sem = '2do Semestre ' + h.split(' ').pop();
+            }
+            // Only for 'sap' prefix, and only if it's 'caracterizacion'
+            else if (isSapPrefix && currentTab === 'caracterizacion') {
+                const match = h.match(/\((.*?)\)/);
+                if (match) sem = match[1];
+            }
+            if (sem !== 'General') hasSemesters = true;
+            if (!semesterGroups[sem]) semesterGroups[sem] = [];
+            semesterGroups[sem].push({ header: h, colIdx: i });
+        });
+
+        let html = '';
+        totalMetaMef = 0; // Reiniciamos contador para asegurar total global limpio
+        Object.keys(sum).forEach(red => { totalMetaMef += (APP_STATE.metaMefPorRed[red] || 0); });
+
+        if (hasSemesters) {
+            Object.entries(semesterGroups).forEach(([semName, cols]) => {
+                html += `<div class="mb-6 last:mb-0 border border-slate-200 rounded-xl overflow-hidden shadow-sm"><div class="bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-indigo-500"></i><h5 class="font-black text-[11px] text-indigo-800 uppercase tracking-widest">${semName}</h5></div>`;
+                html += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th><th class="px-5 py-4 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
+                cols.forEach(c => html += `<th class="px-5 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${c.header.replace(/\(.*?\)/g, '').trim()}</th>`);
+                html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+                Object.entries(sum).forEach(([red, vals]) => { 
+                    const metaMef = APP_STATE.metaMefPorRed[red] || 0;
+                    html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${sapsR[red]}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${metaMef}</td>`; 
+                    cols.forEach(c => { 
+                        const v = vals[c.colIdx];
+                        if(isJ || isC) { html += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; } 
+                        else { html += `<td class="px-5 py-3.5 text-xs text-center text-slate-600 font-medium">${v}</td>`; } 
+                    }); html += `</tr>`; 
+                });
+                html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td><td class="px-5 py-4 text-xs text-center text-blue-300 font-black bg-blue-900/50">${totalMetaMef}</td>`;
+                cols.forEach(c => { 
+                    const v = grTot[c.colIdx];
+                    if(isJ || isC) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-black"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; } 
+                    else { html += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`; } 
+                }); html += `</tr></tbody></table></div></div>`;
+            });
+        } else {
+            html = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th><th class="px-5 py-4 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
+            sumH.forEach(h => html += `<th class="px-5 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${h.substring(0,15)}</th>`); html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+            Object.entries(sum).forEach(([red, vals]) => { 
+                const metaMef = APP_STATE.metaMefPorRed[red] || 0;
+                html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${sapsR[red]}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${metaMef}</td>`; 
+                vals.forEach((v, i) => { if(isJ || isC) { html += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; } else { let st = "text-slate-600 font-medium"; if(isA) { if(i===1 && v>0) st="text-red-600 font-bold bg-red-50/50 rounded-lg"; if(i===2) st="text-emerald-600 font-bold"; } html += `<td class="px-5 py-3.5 text-xs text-center ${st}">${v}</td>` } }); html += `</tr>`; 
+            });
+            html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td><td class="px-5 py-4 text-xs text-center text-blue-300 font-black bg-blue-900/50">${totalMetaMef}</td>`;
+            grTot.forEach(v => { if(isJ || isC) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-black"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; } else { html += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`; } }); html += `</tr></tbody></table>`;
+        }
+        getEl(`${prefix}-consolidated-container`).innerHTML = html;
 
         const cnt = [0,0,0,0]; let lbl=[], col=[];
         if (isA) { cnt[0] = grTot[2]; cnt[1] = gTSap - grTot[2]; lbl = ['SAPs Cumplen', 'No Cumplen / Sin Info']; col = ['#10b981', '#ef4444']; } 
-        else { if(isJ) { cnt[0] = grTot.reduce((a, c) => a + c.c, 0); cnt[1] = grTot.reduce((a, c) => a + c.i, 0); cnt[2] = grTot.reduce((a, c) => a + c.s, 0); lbl=['Completo', 'Incompleto', 'Sin Monitoreo']; col=['#10b981', '#f59e0b', '#ef4444']; } else if (result.type === 'boolean') { fD.forEach(r => { for(let i=vIdx; i<r.length; i++) { const v = parseInt(r[i])||0; if(v>=0 && v<=3) cnt[v]++; } }); lbl=['No Cumple','Cumple']; col=['#fca5a5','#10b981']; const temp = cnt[0]; cnt[0] = cnt[1] || 0; cnt[1] = temp || 0; } }
+        else { if(isJ || isC) { cnt[0] = grTot.reduce((a, c) => a + c.c, 0); cnt[1] = grTot.reduce((a, c) => a + c.i, 0); cnt[2] = grTot.reduce((a, c) => a + c.s, 0); lbl=['Completo', 'Incompleto', 'Sin Monitoreo']; col=['#10b981', '#f59e0b', '#cbd5e1']; } else if (result.type === 'boolean') { fD.forEach(r => { for(let i=vIdx; i<r.length; i++) { const v = parseInt(r[i])||0; if(v>=0 && v<=3) cnt[v]++; } }); lbl=['No Cumple','Cumple']; col=['#fca5a5','#10b981']; const temp = cnt[0]; cnt[0] = cnt[1] || 0; cnt[1] = temp || 0; } }
         renderDoughnutChart(cnt.slice(0, lbl.length), lbl, col, currentTab.replace('res_', '').toUpperCase(), `${prefix}-chart-container`);
     }
 
@@ -726,18 +1501,82 @@ const getEl = id => document.getElementById(id);
         renderDoughnutChart([gCons, gTS - gCons], ['SAPs Consumen (>= 10 Meses)', 'SAPs No Consumen / S.D.'], ['#3b82f6', '#ef4444'], 'CONSUMO CLORO (ANUAL)', `${prefix}-chart-container`);
     }
 
+    function renderNivelRiesgoConsolidated(result, prefix) {
+        let fD = result.data;
+        if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
+        const sR = {}; const sP = {}; const sD = {}; 
+        let gT = 0, gAlto = 0, gMedio = 0, gBajo = 0, gSin = 0;
+        const iRiesgo = result.headers.indexOf('Nivel de Riesgo');
+        
+        fD.forEach(r => {
+            const red = r[4] || 'Sin Red'; const pr = r[2] || 'Sin Provincia'; const dt = r[3] || 'Sin Distrito';
+            [sR, sP, sD].forEach((obj, idx) => {
+                const k = idx === 0 ? red : (idx === 1 ? pr : dt);
+                if(!obj[k]) obj[k] = { ccpp:0, alto:0, medio:0, bajo:0, sin:0 };
+                obj[k].ccpp++;
+                const rr = r[iRiesgo];
+                if (rr === 'Alto') obj[k].alto++; else if (rr === 'Medio') obj[k].medio++; else if (rr === 'Bajo') obj[k].bajo++; else obj[k].sin++;
+            });
+            gT++; 
+            const rr = r[iRiesgo];
+            if (rr === 'Alto') gAlto++; else if (rr === 'Medio') gMedio++; else if (rr === 'Bajo') gBajo++; else gSin++;
+        });
+
+        const bHtml = (obj, fCol) => {
+            let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${fCol}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${fCol}</th><th class="px-4 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th><th class="px-4 py-3 text-center text-[10px] font-bold text-red-500 uppercase">Riesgo Alto</th><th class="px-4 py-3 text-center text-[10px] font-bold text-amber-500 uppercase">Riesgo Medio</th><th class="px-4 py-3 text-center text-[10px] font-bold text-emerald-600 uppercase">Riesgo Bajo</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+            Object.entries(obj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, v]) => { h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td><td class="px-4 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${v.ccpp}</td><td class="px-4 py-2.5 text-xs text-center font-medium text-red-600">${v.alto}</td><td class="px-4 py-2.5 text-xs text-center font-medium text-amber-600">${v.medio}</td><td class="px-4 py-2.5 text-xs text-center font-medium text-emerald-600">${v.bajo}</td></tr>`; });
+            h += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-4 py-3 text-xs text-center text-white font-bold bg-slate-900">${gT}</td><td class="px-4 py-3 text-xs text-center text-red-400 font-bold">${gAlto}</td><td class="px-4 py-3 text-xs text-center text-amber-400 font-bold">${gMedio}</td><td class="px-4 py-3 text-xs text-center text-emerald-400 font-bold">${gBajo}</td></tr></tbody></table></div></div>`; return h;
+        };
+        getEl(`${prefix}-consolidated-container`).innerHTML = '<div class="flex flex-col w-full p-4">' + bHtml(sR, "RED DE SALUD") + bHtml(sP, "PROVINCIA") + bHtml(sD, "DISTRITO") + '</div>';
+        renderDoughnutChart([gAlto, gMedio, gBajo, gSin], ['Alto', 'Medio', 'Bajo', 'Sin Monitoreo'], ['#ef4444', '#f59e0b', '#10b981', '#e2e8f0'], 'NIVEL DE RIESGO', `${prefix}-chart-container`);
+    }
+
+    function renderRiesgoConsolidatedAndChart(result, prefix) {
+        let fD = result.data;
+        if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
+        const sR = {}; const sP = {}; const sD = {}; let gTS = 0, gFecal = 0, gMetales = 0;
+        
+        const iFecal = result.headers.indexOf('Tiene al menos una muestra con contaminación fecal');
+        const iOrg = result.headers.indexOf('Tiene al menos un parametro organolepticos que excede el LMP');
+        const iMetales = result.headers.indexOf('Tiene al menos un parametro inorganicos (metales pesados) que excede el LMP');
+        
+        fD.forEach(r => {
+            const red = r[8] || 'Sin Red'; const pr = r[5] || 'Sin Provincia'; const dt = r[4] || 'Sin Distrito';
+            [sR, sP, sD].forEach((obj, idx) => { 
+                const k = idx === 0 ? red : (idx === 1 ? pr : dt); 
+                if(!obj[k]) obj[k] = { sap:0, fecal:0, metales:0 }; 
+                obj[k].sap++; 
+                if (r[iFecal] === 1) obj[k].fecal++;
+                if (r[iMetales] === 1 || r[iOrg] === 1) obj[k].metales++;
+            });
+            gTS++; 
+            if (r[iFecal] === 1) gFecal++;
+            if (r[iMetales] === 1 || r[iOrg] === 1) gMetales++;
+        });
+        const bHtml = (obj, fCol) => {
+            let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${fCol}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${fCol}</th><th class="px-4 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total SAP</th><th class="px-4 py-3 text-center text-[10px] font-bold text-red-500 uppercase">Con Contam. Fecal</th><th class="px-4 py-3 text-center text-[10px] font-bold text-amber-500 uppercase">Con Exc. Metales/Org.</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+            Object.entries(obj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, v]) => { h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td><td class="px-4 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${v.sap}</td><td class="px-4 py-2.5 text-xs text-center font-medium text-red-600">${v.fecal}</td><td class="px-4 py-2.5 text-xs text-center font-medium text-amber-600">${v.metales}</td></tr>`; });
+            h += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-4 py-3 text-xs text-center text-white font-bold bg-slate-900">${gTS}</td><td class="px-4 py-3 text-xs text-center text-red-400 font-bold">${gFecal}</td><td class="px-4 py-3 text-xs text-center text-amber-400 font-bold">${gMetales}</td></tr></tbody></table></div></div>`; return h;
+        };
+        getEl(`${prefix}-consolidated-container`).innerHTML = '<div class="flex flex-col w-full p-4">' + bHtml(sR, "RED DE SALUD") + bHtml(sP, "PROVINCIA") + bHtml(sD, "DISTRITO") + '</div>';
+        
+        let gAny = 0;
+        fD.forEach(r => { if (r[iFecal] === 1 || r[iMetales] === 1 || r[iOrg] === 1) gAny++; });
+        renderDoughnutChart([gAny, gTS - gAny], ['Con Riesgo (Fecal o Metales)', 'Sin Riesgo'], ['#ef4444', '#10b981'], 'RIESGO SANITARIO', `${prefix}-chart-container`);
+    }
+
     function renderFedTable(result) {
         const cont = getEl('fed-main-table-container'); let fD = result.data; 
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { return String(r[i] ?? '').trim() === String(v); }); }); }
         const fB = getEl('fed-active-filters');
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
             let html = `<div class="bg-amber-50/80 px-4 py-2.5 border-b border-amber-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full"><span class="text-[10px] font-black text-amber-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
-            Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { let dV = val; if(result.headers[i] === 'Seguimiento') { if(val === 'Verde') dV = 'CUMPLE (>=3)'; else if(val === 'Naranja') dV = 'CUMPLE PARCIAL'; else if(val === 'Rojo') dV = 'NO CUMPLE'; else dV = 'SIN MONITOREO'; } else if(result.headers[i] === 'MEF' || result.headers[i] === 'FED') { dV = val === '1' ? 'SÍ' : '-'; } else if(result.headers[i].includes('Cumple') || result.headers[i].includes('Ev_') || result.headers[i].includes('EV_5p')) { dV = val === '1' ? 'CUMPLE' : 'NO CUMPLE'; } html += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; });
+            Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { let dV = val; if(result.headers[i] === 'Seguimiento') { if(val === 'Verde') dV = 'CUMPLE (>=3)'; else if(val === 'Naranja') dV = 'CUMPLE PARCIAL'; else if(val === 'Rojo') dV = 'NO CUMPLE'; else dV = 'SIN MONITOREO'; } else if(result.headers[i] === 'MEF' || result.headers[i] === 'FED' || result.headers[i] === 'SAP REGULARES') { dV = val === '1' ? 'SÍ' : '-'; } else if(result.headers[i].includes('Cumple') || result.headers[i].includes('Ev_') || result.headers[i].includes('EV_5p')) { dV = val === '1' ? 'CUMPLE' : 'NO CUMPLE'; } html += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; });
             html += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`; fB.innerHTML = html; fB.classList.remove('hidden');
         } else { fB.innerHTML = ''; fB.classList.add('hidden'); }
 
         let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
-        const fmt = (h, v) => { if (h === 'Seguimiento') { if(v === 'Verde') return 'CUMPLE (>=3)'; if(v === 'Naranja') return 'CUMPLE PARCIAL'; if(v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO'; } if (h === 'MEF' || h === 'FED') return v === '1' ? 'SÍ' : '-'; if (h.includes('Cumple') || h.includes('Ev_') || h.includes('EV_5p')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
+        const fmt = (h, v) => { if (h === 'Seguimiento') { if(v === 'Verde') return 'CUMPLE (>=3)'; if(v === 'Naranja') return 'CUMPLE PARCIAL'; if(v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO'; } if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES') return v === '1' ? 'SÍ' : '-'; if (h.includes('Cumple') || h.includes('Ev_') || h.includes('EV_5p')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
 
         result.headers.forEach((h, idx) => {
             let st = ""; let ls = ""; if (h === 'Ubigeo') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
@@ -754,7 +1593,7 @@ const getEl = id => document.getElementById(id);
                 let tA = `class="px-4 py-2.5 text-xs ${st} transition-colors" style="${ls}"`; let ctt = c;
 
                 if (h === 'Seguimiento') { if(c === 'Verde') ctt = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>CUMPLE (>=3)</span>"; else if(c === 'Naranja') ctt = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE PARCIAL</span>"; else if(c === 'Rojo') ctt = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>"; else ctt = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>"; } 
-                else if (h === 'MEF' || h === 'FED') { ctt = c === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`; tA = tA.replace('class="', 'class="text-center '); } 
+                else if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES') { ctt = c === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`; tA = tA.replace('class="', 'class="text-center '); } 
                 else if (h === 'Cumplimiento Ind. 2' || h.includes('Ev_') || h.includes('EV_5p')) { if (c === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; else ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; tA = tA.replace('class="', 'class="text-center '); } 
                 else if (h.includes('Cumple')) { ctt = c === 1 ? `<div class="mx-auto w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i data-lucide="check" class="w-3 h-3"></i></div>` : `<div class="mx-auto w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i data-lucide="x" class="w-3 h-3"></i></div>`; tA = tA.replace('class="', 'class="text-center '); } 
                 else if (typeof c === 'number') { tA = tA.replace('class="', 'class="text-center text-slate-600 font-mono '); } 
@@ -769,7 +1608,7 @@ const getEl = id => document.getElementById(id);
             let ctt = "";
             if (idx === 0) ctt = "TOTALES:"; else if (idx === 1) ctt = `<span class="text-amber-600 text-sm">${fD.length}</span> reg.`; else if (idx > 4) {
                 if (h === 'Seguimiento') { let v=0, n=0, r=0; fD.forEach(row => { if(row[idx] === 'Verde') v++; else if(row[idx] === 'Naranja') n++; else if(row[idx] === 'Rojo') r++; }); ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${v}</span> <span class="text-amber-600 flex items-center"><i data-lucide="minus" class="w-3 h-3 mr-0.5"></i>${n}</span> <span class="text-red-500 flex items-center"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${r}</span></div>`; } 
-                else if (h === 'MEF' || h === 'FED' || h.includes('Cumple') || h.includes('Ev_') || h.includes('EV_5p')) { let s = 0; fD.forEach(row => { if (parseInt(row[idx]) === 1) s++; }); ctt = `<span class="text-indigo-600">${s}</span>`; } 
+                else if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES' || h.includes('Cumple') || h.includes('Ev_') || h.includes('EV_5p')) { let s = 0; fD.forEach(row => { if (parseInt(row[idx]) === 1) s++; }); ctt = `<span class="text-indigo-600">${s}</span>`; } 
                 else { let c = 0; fD.forEach(row => { let val = parseFloat(row[idx]); if(!isNaN(val) && val > 0) c++; }); ctt = `<span class="text-amber-700">${c}</span>`; }
             }
             html += `<td class="px-4 py-2 text-xs uppercase tracking-widest text-center ${st}" style="${ls}">${ctt}</td>`;
@@ -883,7 +1722,8 @@ const getEl = id => document.getElementById(id);
     window.openLMPModal = (json) => { const dt = JSON.parse(json); getEl('modal-lmp-content').innerHTML = dt.map(d => `<div class="bg-white p-5 rounded-2xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300"><div><span class="font-black text-slate-800 text-sm block mb-1.5">${d.metal}</span><span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">${d.month}</span></div><div class="text-right"><span class="text-red-600 font-black text-xl block mb-1.5">${d.value}</span><span class="text-[10px] font-bold text-slate-400">LMP: ${d.lmp}</span></div></div>`).join(''); getEl('modal-lmp').classList.remove('hidden'); };
     window.closeModal = () => { getEl('modal-lmp').classList.add('hidden'); };
     
-    window.openParamsModal = (str) => { getEl('modal-params-content').innerHTML = str.split(',').filter(p=>p.trim()!=='').map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim()}</span>`).join(''); getEl('modal-params').classList.remove('hidden'); };
+    window.openParamsModal = (str) => { getEl('modal-params-desc').textContent = "Detalles del registro:"; getEl('modal-params-content').innerHTML = str.split(',').filter(p=>p.trim()!=='').map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim()}</span>`).join(''); getEl('modal-params').classList.remove('hidden'); };
+    window.openCaractDetailModal = (html) => { getEl('modal-params-desc').textContent = "Puntos de muestreo evaluados:"; getEl('modal-params-content').innerHTML = html; getEl('modal-params').classList.remove('hidden'); };
     window.closeParamsModal = () => { getEl('modal-params').classList.add('hidden'); };
 
     window.openObsModal = (i, n, u, c, txt) => { getEl('obs-meta-idsap').innerText = i; getEl('obs-input-idsap').value = i; getEl('obs-meta-nomsap').innerText = n; getEl('obs-input-nomsap').value = n; getEl('obs-input-ubi').value = u; getEl('obs-meta-ccpp').innerText = c; getEl('obs-input-ccpp').value = c; getEl('obs-input-text').value = txt; getEl('btn-save-obs-text').innerText = txt ? 'Actualizar' : 'Guardar'; getEl('modal-obs').classList.remove('hidden'); };
@@ -953,19 +1793,59 @@ const getEl = id => document.getElementById(id);
 
     window.closeMonitorDetailModal = () => { getEl('modal-monitor-detail').classList.add('hidden'); };
 
-    function renderDoughnutChart(d, l, c, t, id) {
-        const tot = d.reduce((a,b) => a+b, 0); if(tot === 0) { getEl(id).innerHTML = '<div class="flex flex-col items-center justify-center text-slate-400 h-full"><span class="text-sm font-medium">Sin datos</span></div>'; return; }
-        let svg = `<h4 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-6 text-center border-b border-slate-200 pb-4">${t}</h4><div class="relative w-40 h-40 flex-shrink-0"><svg viewBox="0 0 100 100" class="transform -rotate-90 w-full h-full drop-shadow-xl">`;
-        let a = 0; d.forEach((v, i) => { if(v === 0) return; const p = v / tot; const ang = p * 360; const lg = p > 0.5 ? 1 : 0; const x1 = 50 + 40 * Math.cos(Math.PI * a / 180); const y1 = 50 + 40 * Math.sin(Math.PI * a / 180); const x2 = 50 + 40 * Math.cos(Math.PI * (a + ang) / 180); const y2 = 50 + 40 * Math.sin(Math.PI * (a + ang) / 180); const path = tot === v ? "M 50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" : `M 50 50 L ${x1} ${y1} A 40 40 0 ${lg} 1 ${x2} ${y2} Z`; svg += `<path d="${path}" fill="${c[i]}" stroke="#ffffff" stroke-width="2"></path>`; a += ang; });
-        svg += `<circle cx="50" cy="50" r="28" fill="#ffffff"></circle></svg><div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none"><span class="text-2xl font-black text-slate-800">${tot}</span><span class="text-[8px] font-bold text-slate-400 uppercase">Total</span></div></div><div class="mt-8 w-full space-y-2.5">`;
-        l.forEach((lbl, i) => { if(!lbl) return; svg += `<div class="flex items-center justify-between text-xs bg-white/50 px-3 py-2 rounded-xl shadow-sm"><div class="flex items-center"><span class="w-3 h-3 rounded-full mr-2.5" style="background-color:${c[i]}"></span><span class="text-slate-600 font-bold">${lbl}</span></div><span class="font-black text-slate-900 bg-white px-2 py-0.5 rounded shadow-sm">${d[i]}</span></div>`; });
-        getEl(id).innerHTML = svg + `</div>`;
+    window.renderUserTable = () => {
+        const tb = getEl('users-table-body'); if(!tb) return;
+        if(APP_STATE.usersList.length === 0) { tb.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-sm text-slate-400">No hay usuarios</td></tr>'; return; }
+        const lbl = getEl('users-count-label'); if (lbl) lbl.textContent = `${APP_STATE.usersList.length} Accesos Activos`;
+        tb.innerHTML = APP_STATE.usersList.map((u, i) => `<tr class="${i%2===0?'bg-white':'bg-slate-50'} hover:bg-indigo-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold mr-3">${u.usuario.charAt(0).toUpperCase()}</div><span class="text-sm font-bold text-slate-700">${u.usuario}</span></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded">••••••••</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs font-bold ${u.red === 'TODAS' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'} px-2.5 py-1 rounded-full">${u.red}</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Activo</span></td></tr>`).join('');
+    };
+
+    window.initWhiteboard = () => {
+        const cv = getEl('wb-canvas'); if (!cv) return; const ctx = cv.getContext('2d'); APP_STATE.canvas = cv; APP_STATE.isDrawing = false;
+        const resize = () => { const r = cv.parentElement.getBoundingClientRect(); cv.width = r.width; cv.height = r.height; ctx.fillStyle = 'white'; ctx.fillRect(0,0, cv.width, cv.height); };
+        window.addEventListener('resize', resize); setTimeout(resize, 100);
+        const start = (e) => { APP_STATE.isDrawing = true; draw(e); };
+        const end = () => { APP_STATE.isDrawing = false; ctx.beginPath(); };
+        const draw = (e) => {
+            if(!APP_STATE.isDrawing) return; const r = cv.getBoundingClientRect(); const x = (e.clientX || e.touches?.[0].clientX) - r.left; const y = (e.clientY || e.touches?.[0].clientY) - r.top;
+            ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#4f46e5'; ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
+        };
+        cv.addEventListener('mousedown', start); cv.addEventListener('mousemove', draw); cv.addEventListener('mouseup', end);
+        cv.addEventListener('touchstart', start, {passive: true}); cv.addEventListener('touchmove', draw, {passive: true}); cv.addEventListener('touchend', end);
+        window.clearCanvas = () => { ctx.clearRect(0,0, cv.width, cv.height); ctx.fillStyle = 'white'; ctx.fillRect(0,0, cv.width, cv.height); };
+    };
+
+    function renderDoughnutChart(data, labels, colors, title, containerId) {
+        const container = getEl(containerId);
+        if (!container) return;
+        if (typeof Chart === 'undefined') {
+            container.innerHTML = '<div class="flex items-center justify-center h-full text-slate-400 text-xs text-center p-4">Gráfico no disponible</div>';
+            return;
+        }
+        container.innerHTML = '<div class="w-full h-full relative" style="min-height: 200px;"><canvas id="' + containerId + '-canvas"></canvas></div>';
+        const ctx = document.getElementById(containerId + '-canvas').getContext('2d');
+        if (window.currentCharts && window.currentCharts[containerId]) {
+            window.currentCharts[containerId].destroy();
+        }
+        if (!window.currentCharts) window.currentCharts = {};
+        
+        window.currentCharts[containerId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 15, boxWidth: 10, font: { size: 10 } } },
+                    title: { display: true, text: title, padding: { bottom: 15 }, font: { size: 12, weight: 'bold' }, color: '#334155' }
+                }
+            }
+        });
     }
 
-    function renderUserTable() { const tb = getEl('users-table-body'); if(!tb) return; getEl('users-count-label').textContent = `Accesos Activos (${APP_STATE.usersList.length})`; tb.innerHTML = APP_STATE.usersList.map(u => `<tr class="hover:bg-slate-50"><td class="px-6 py-4 font-bold text-slate-700 flex items-center gap-4"><div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs">${u.usuario.charAt(0).toUpperCase()}</div>${u.usuario}</td><td class="px-6 py-4 text-slate-400 text-sm tracking-widest">••••••••</td><td class="px-6 py-4 text-slate-600 text-xs font-bold uppercase">${u.red}</td><td class="px-6 py-4"><span class="text-emerald-700 text-[10px] font-black uppercase bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">Activo</span></td></tr>`).join(''); }
-
-    function initWhiteboard() { const cv = getEl('wb-canvas'); if(!cv) return; const cx = cv.getContext('2d'); let draw = false; const rz = () => { cv.width = cv.offsetWidth; cv.height = cv.offsetHeight; cx.fillStyle = "white"; cx.fillRect(0,0,cv.width, cv.height); }; window.addEventListener('resize', rz); new MutationObserver((m) => { m.forEach((mu) => { if (mu.target.id === 'view-whiteboard' && !mu.target.classList.contains('hidden')) { rz(); } }); }).observe(getEl('view-whiteboard'), { attributes: true, attributeFilter: ['class'] }); const st = (e) => { draw = true; cx.beginPath(); cx.moveTo(e.offsetX, e.offsetY); }; const dr = (e) => { if(!draw) return; cx.strokeStyle = "#4f46e5"; cx.lineWidth = 2; cx.lineTo(e.offsetX, e.offsetY); cx.stroke(); }; const sp = () => { draw = false; }; cv.addEventListener('mousedown', st); cv.addEventListener('mousemove', dr); cv.addEventListener('mouseup', sp); cv.addEventListener('mouseleave', sp); }
-
-    window.clearCanvas = () => { const c = getEl('wb-canvas'); if(!c) return; const x = c.getContext('2d'); x.fillStyle = "white"; x.fillRect(0,0,c.width,c.height); };
-
-    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+    // Inicializar la aplicación de manera segura
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+        
