@@ -5,7 +5,7 @@ const getEl = id => document.getElementById(id);
     const URLS = { 
         MAIN0: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=43168494&single=true&output=csv', 
         MAIN: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1863124962&single=true&output=csv', 
-        MAIN2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1862181922&single=true&output=csv', 
+        MAIN2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=0&single=true&output=csv', 
         SANITARIA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=284188568&single=true&output=csv', 
         RIESGOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1175942303&single=true&output=csv', 
         USUARIOS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1074724221&single=true&output=csv', 
@@ -31,7 +31,7 @@ const getEl = id => document.getElementById(id);
         metales: { A: ['Aluminio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cobre', 'Cromo total', 'Hierro', 'Manganeso', 'Mercurio', 'Molibdeno', 'Niquel', 'Plomo', 'Selenio', 'Uranio', 'Zinc'], B: ['Aluminio_', 'Antimonio_', 'Arsénico_', 'Bario_', ['Cianuro libre_', 'Cianuro total_'], 'Cobre_', 'Cromo total_', 'Hierro_', 'Manganeso _', 'Mercurio_', 'Molibdeno_', 'Niquel_', 'Plomo_', 'Selenio_', 'Uranio_', 'Zinc_'] }, 
         fisico: { A: [['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)'], 'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Nitratos'], B: [['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Nitritos_'], ['Color (después de filtración simple)_', 'Color (después de filtración simple) aguas claras_'], 'Turbiedad_', 'Ph_', 'Conductividad_', 'Sólidos Totales disueltos_', 'Cloruros_', 'Sulfatos_', 'Dureza_', 'Fluoruros_', 'Nitratos_'] }, 
         parasitologico: { A: ['Huevos Larvas Helmintos'], B: ['Formas parasitarias_'] }, 
-        bacteriologico: { A: [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], 'BACTERIAS HETEROTRÓFICAS', ['E. Coli (NMP)', 'E. Coli (UFC)'], 'Organismos de vida libre'], B: ['Coliformes Termotolerantes _', 'Coliformes Totales _', 'Escherichia Coli _', 'Organismos de vida libre_'] } 
+        bacteriologico: { A: [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], 'BACTERIAS HETEROTRÓFICAS', ['E. Coli (NMP)', 'E. Coli (UFC)']], B: ['Coliformes Termotolerantes _', 'Coliformes Totales _', 'Escherichia Coli _', 'Organismos de vida libre_'] } 
     };
 
     const CARACT_CAPTACION_SINGLE = ['Aluminio_', 'Antimonio_', 'Arsénico_', 'Bario_', 'Boro_', 'Cadmio_', 'Cianuro total_', 'Cloruros_', 'Cobre_', 'Coliformes Termotolerantes _', 'Coliformes Totales _', 'Conductividad_', 'Cromo total_', 'Dureza_', 'Escherichia Coli _', 'Fluoruros_', 'Formas parasitarias_', 'Hierro_', 'Manganeso _', 'Mercurio_', 'Molibdeno_', 'Niquel_', 'Nitratos_', 'Nitritos_', 'Organismos de vida libre_', 'pH_', 'Plomo_', 'Selenio_', 'Sólidos Totales disueltos_', 'Sulfatos_', 'Turbiedad_', 'Uranio_', 'Zinc_'];
@@ -232,14 +232,7 @@ const getEl = id => document.getElementById(id);
             APP_STATE.globalDateFrom = '2025-12'; APP_STATE.globalDateTo = mx; 
             
             APP_STATE.mefUbigeos = new Set(); APP_STATE.mefSapIds = new Set(); APP_STATE.metaMefPorRed = {};
-            if(mD.length > 1) { 
-                let uI = findHeaderIndex(mD[0], 'Ubigeo'); let sI = findHeaderIndex(mD[0], 'Id. SAP'); let rI = findHeaderIndex(mD[0], 'Red de Salud'); 
-                mD.slice(1).forEach(r => { 
-                    if(uI!==-1&&r[uI]) APP_STATE.mefUbigeos.add(formatUbigeo(r[uI])); 
-                    if(sI!==-1&&r[sI]) APP_STATE.mefSapIds.add(String(r[sI]).trim()); 
-                    if(rI!==-1&&r[rI]) { const red = String(r[rI]).trim(); APP_STATE.metaMefPorRed[red] = (APP_STATE.metaMefPorRed[red] || 0) + 1; }
-                }); 
-            }
+            if(mD.length > 1) { let uI = findHeaderIndex(mD[0], 'Ubigeo'); let sI = findHeaderIndex(mD[0], 'Id. SAP'); let rI = findHeaderIndex(mD[0], 'Red de Salud'); mD.slice(1).forEach(r => { if(uI!==-1&&r[uI]) APP_STATE.mefUbigeos.add(formatUbigeo(r[uI])); if(sI!==-1&&r[sI]) APP_STATE.mefSapIds.add(String(r[sI]).trim()); if(rI!==-1&&r[rI]) { const redName = String(r[rI]).trim(); if(redName) APP_STATE.metaMefPorRed[redName] = (APP_STATE.metaMefPorRed[redName] || 0) + 1; } }); }
             APP_STATE.fedUbigeos = new Set(); 
             if(fD.length > 1) { let uI = findHeaderIndex(fD[0], 'Ubigeo'); fD.slice(1).forEach(r => { if(uI!==-1&&r[uI]) APP_STATE.fedUbigeos.add(formatUbigeo(r[uI])); }); }
             
@@ -376,27 +369,32 @@ const getEl = id => document.getElementById(id);
         if(iF) {
             getEl(`${prefix}-processing`).classList.remove('hidden');
             setTimeout(() => {
-                if(!APP_STATE.fedCache[t]) APP_STATE.fedCache[t] = runFedLogic(APP_STATE.rawData, t);
-                
-                const rawResult = APP_STATE.fedCache[t];
-                let filteredData = rawResult.data;
-                
-                // Filtrar por Red
-                if (r !== 'Todos') filteredData = filteredData.filter(x => x[4] === r);
-                
-                // Filtrar por Ámbito
-                const mI = rawResult.headers.indexOf('MEF');
-                const fI = rawResult.headers.indexOf('FED');
-                const srI = rawResult.headers.indexOf('SAP REGULARES');
-                if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
-                if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
-                if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
-                
-                const finalFedRes = { headers: rawResult.headers, data: filteredData };
-                renderFedTable(finalFedRes);
-                renderFedConsolidatedAndChart(finalFedRes);
-                updateGlobalDateDropdowns();
-                getEl(`${prefix}-processing`).classList.add('hidden');
+                try {
+                    if(!APP_STATE.fedCache[t]) APP_STATE.fedCache[t] = runFedLogic(APP_STATE.rawData, t);
+                    
+                    const rawResult = APP_STATE.fedCache[t];
+                    let filteredData = rawResult.data;
+                    
+                    // Filtrar por Red
+                    if (r !== 'Todos') filteredData = filteredData.filter(x => x[4] === r);
+                    
+                    // Filtrar por Ámbito
+                    const mI = rawResult.headers.indexOf('MEF');
+                    const fI = rawResult.headers.indexOf('FED');
+                    const srI = rawResult.headers.indexOf('SAP REGULARES');
+                    if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
+                    if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
+                    if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
+                    
+                    const finalFedRes = { headers: rawResult.headers, data: filteredData };
+                    renderFedTable(finalFedRes);
+                    renderFedConsolidatedAndChart(finalFedRes);
+                    updateGlobalDateDropdowns();
+                } catch(error) {
+                    console.error("Error al calcular FED:", error);
+                } finally {
+                    getEl(`${prefix}-processing`).classList.add('hidden');
+                }
             }, 10);
             return;
         }
@@ -751,12 +749,56 @@ const getEl = id => document.getElementById(id);
             dRows.forEach(r => { const id = r[idxId]; if(!id) return; if(!map[id]) map[id] = { meta: getMeta(r, h), tS: 0, cS: 0, exc: [], ubi: [] }; const hasD = checkComplianceSet(h, cSet?.A, r) || checkComplianceSet(h, cSet?.B, r); if(hasD) { map[id].tS++; map[id].ubi.push(classifyAnalysisByLoc(h, r, cSet?.A, cSet?.B)); const issues = sLMP ? checkParamLMPExceeded(h, r, sLMP) : []; if (issues.length > 0) { let mName = "Sin Mes"; if(idxMes !== -1 && r[idxMes]) { mName = r[idxMes]; } map[id].exc.push(...issues.map(i => ({...i, month: mName}))); } else { map[id].cS++; } } });
             const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
             fD = Array.from(aS.keys()).flatMap(id => { const sap = map[id]; if (!sap || sap.tS === 0) return []; let cp = (sap.cS / sap.tS) > 0.7 ? 1 : 0; const eF = sap.exc.length > 0 ? 1 : 0; const mtx = [sap.ubi[0] || 0, sap.ubi[1] || 0, eF, cp, JSON.stringify(sap.exc)]; return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'analysis';
-        } else if (subTab === 'monitor' || subTab === 'bacteriologico') {
+        } else if (subTab === 'monitor') {
             fH = [...CORE_HEADERS, ...fM.map(m => `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`)]; const map = {}; const cSet = ANALYSIS_SETS[subTab]; const obsH = dO.observaciones[0] || []; const obsR = dO.observaciones.slice(1); const oMap = {}; let iOId = findHeaderIndex(obsH, 'Id. SAP'); let iOTxt = findHeaderIndex(obsH, 'Observacion');
-            if (subTab === 'monitor') { if (iOId === -1 && obsH.length > 0) iOId = 0; if (iOTxt === -1 && obsH.length > 4) iOTxt = 4; if (iOId !== -1 && iOTxt !== -1) { obsR.forEach(r => { const id = r[iOId]; if (id) oMap[String(id).trim()] = String(r[iOTxt] || '').trim(); }); } fH.push('Observación'); fH.push('Ver Detalle'); }
-            dRows.forEach(r => { const id = r[idxId]; if(!id) return; let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return; let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`; if(!map[id]) { map[id] = { meta: getMeta(r, h), dM: {} }; if (subTab === 'monitor') map[id].history = []; } let st = 0; let pCnt = []; if (subTab === 'monitor') { MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) pCnt.push(p); }); if (pCnt.length === 5) st = 1; else if (pCnt.length > 0) st = 2; const nMue = r[findHeaderIndex(h, '# Muestreo')] || ''; const fMue = r[findHeaderIndex(h, 'Fecha Muestreo')] || r[findHeaderIndex(h, 'Fecha')] || ''; const uMue = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || ''; const vCl = r[findHeaderIndex(h, 'Cloro')] || ''; const vCo = r[findHeaderIndex(h, 'Conductividad')] || ''; const vPh = r[findHeaderIndex(h, 'pH')] || ''; const vTe = r[findHeaderIndex(h, 'Temperatura')] || ''; const vTu = r[findHeaderIndex(h, 'Turbiedad')] || ''; map[id].history.push([nMue, fMue, mRaw || '', uMue, vCl, vCo, vPh, vTe, vTu]); if (!map[id].dM[ym]) map[id].dM[ym] = { status: 0, params: [], _m: {} }; let mKey = nMue || fMue || 'UNKNOWN'; if (st > 0) { if (!map[id].dM[ym]._m[mKey]) map[id].dM[ym]._m[mKey] = []; const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0; map[id].dM[ym]._m[mKey].push({ st: st, id: nMueId }); let anyC = false; for (let k in map[id].dM[ym]._m) { const pts = map[id].dM[ym]._m[k].slice().sort((a,b) => a.id - b.id); let blks = [], cB = []; pts.forEach(p => { if(cB.length === 0) cB.push(p); else if(p.id === 0 && cB[cB.length-1].id === 0) cB.push(p); else if(p.id !== 0 && cB[cB.length-1].id !== 0 && Math.abs(p.id - cB[cB.length-1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } }); if(cB.length > 0) blks.push(cB); blks.forEach(b => { let bSt = 1; b.forEach(p => { if(p.st === 2) bSt = 2; }); if(bSt === 1) anyC = true; }); } map[id].dM[ym].status = anyC ? 1 : 2; if (st === 2 && map[id].dM[ym].status === 2) map[id].dM[ym].params = pCnt; } } else { let eA = cSet?.A?.length || 0; let eB = cSet?.B?.length || 0; let cA = 0; let cB = 0; const cItm = (p) => { if (Array.isArray(p)) { let fnd = p.find(sub => { const i = findHeaderIndex(h, sub); return i !== -1 && !isCellEmpty(r[i]); }); if (fnd) return fnd; } else { const i = findHeaderIndex(h, p); if (i !== -1 && !isCellEmpty(r[i])) return p; } return null; }; if (cSet?.A) cSet.A.forEach(p => { const res = cItm(p); if(res) { cA++; pCnt.push(res); } }); if (cSet?.B) cSet.B.forEach(p => { const res = cItm(p); if(res && !pCnt.includes(res)) { cB++; pCnt.push(res); } }); if (cA > 0 || cB > 0) { let isC = false; if (eA > 0 && cA === eA) isC = true; if (eB > 0 && cB === eB) isC = true; st = isC ? 1 : 2; } let oldSt = map[id].dM[ym] ? map[id].dM[ym].status : 999; let shouldUpdate = false; if (!map[id].dM[ym]) shouldUpdate = true; else if (st === 1 && oldSt === 2) shouldUpdate = true; else if (st === 2 && oldSt === 2 && pCnt.length > map[id].dM[ym].params.length) shouldUpdate = true; else if (st === 1 && oldSt === 1 && pCnt.length > map[id].dM[ym].params.length) shouldUpdate = true; if (shouldUpdate) { map[id].dM[ym] = { status: st, params: pCnt }; } } });
+            if (iOId === -1 && obsH.length > 0) iOId = 0; if (iOTxt === -1 && obsH.length > 4) iOTxt = 4; if (iOId !== -1 && iOTxt !== -1) { obsR.forEach(r => { const id = r[iOId]; if (id) oMap[String(id).trim()] = String(r[iOTxt] || '').trim(); }); } fH.push('Observación'); fH.push('Ver Detalle');
+            dRows.forEach(r => { const id = r[idxId]; if(!id) return; let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return; let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`; if(!map[id]) { map[id] = { meta: getMeta(r, h), dM: {}, history: [] }; } let st = 0; let pCnt = []; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) pCnt.push(p); }); if (pCnt.length === 5) st = 1; else if (pCnt.length > 0) st = 2; const nMue = r[findHeaderIndex(h, '# Muestreo')] || ''; const fMue = r[findHeaderIndex(h, 'Fecha Muestreo')] || r[findHeaderIndex(h, 'Fecha')] || ''; const uMue = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || ''; const vCl = r[findHeaderIndex(h, 'Cloro')] || ''; const vCo = r[findHeaderIndex(h, 'Conductividad')] || ''; const vPh = r[findHeaderIndex(h, 'pH')] || ''; const vTe = r[findHeaderIndex(h, 'Temperatura')] || ''; const vTu = r[findHeaderIndex(h, 'Turbiedad')] || ''; map[id].history.push([nMue, fMue, mRaw || '', uMue, vCl, vCo, vPh, vTe, vTu]); if (!map[id].dM[ym]) map[id].dM[ym] = { status: 0, params: [], _m: {} }; let mKey = nMue || fMue || 'UNKNOWN'; if (st > 0) { if (!map[id].dM[ym]._m[mKey]) map[id].dM[ym]._m[mKey] = []; const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0; map[id].dM[ym]._m[mKey].push({ st: st, id: nMueId }); let anyC = false; for (let k in map[id].dM[ym]._m) { const pts = map[id].dM[ym]._m[k].slice().sort((a,b) => a.id - b.id); let blks = [], cB = []; pts.forEach(p => { if(cB.length === 0) cB.push(p); else if(p.id === 0 && cB[cB.length-1].id === 0) cB.push(p); else if(p.id !== 0 && cB[cB.length-1].id !== 0 && Math.abs(p.id - cB[cB.length-1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } }); if(cB.length > 0) blks.push(cB); blks.forEach(b => { let bSt = 1; b.forEach(p => { if(p.st === 2) bSt = 2; }); if(bSt === 1) anyC = true; }); } map[id].dM[ym].status = anyC ? 1 : 2; if (st === 2 && map[id].dM[ym].status === 2) map[id].dM[ym].params = pCnt; } });
             const aS = new Map(); dRows.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
-            fD = Array.from(aS.keys()).flatMap(id => { const obj = map[id] || { dM: {} }; let hasD = false; const mC = fM.map(m => { if (obj.dM[m] && obj.dM[m].status > 0) hasD = true; return obj.dM[m] ? JSON.stringify(obj.dM[m]) : JSON.stringify({status: 0, params: []}); }); const oTx = subTab === 'monitor' ? (oMap[String(id).trim()] || '') : ''; if (!hasD && !oTx) return []; let mtx = [...mC]; if (subTab === 'monitor') { mtx.push(oTx); mtx.push(JSON.stringify(obj.history || [])); } return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'status_json';
+            fD = Array.from(aS.keys()).flatMap(id => { const obj = map[id] || { dM: {} }; let hasD = false; const mC = fM.map(m => { if (obj.dM[m] && obj.dM[m].status > 0) hasD = true; return obj.dM[m] ? JSON.stringify(obj.dM[m]) : JSON.stringify({status: 0, params: []}); }); const oTx = (oMap[String(id).trim()] || ''); if (!hasD && !oTx) return []; let mtx = [...mC]; mtx.push(oTx); mtx.push(JSON.stringify(obj.history || [])); return aS.get(id).map(mt => [...mt, ...mtx]); }); pT = 'status_json';
+        } else if (subTab === 'bacteriologico') {
+            fH = [...CORE_HEADERS];
+            fM.forEach(m => { const mN = NUM_MONTH[m.split('-')[1]]; const yN = m.split('-')[0]; fH.push(`${mN} Red`); fH.push(`${mN} Captacion`); fH.push(`${mN} ${yN} (Total)`); });
+            const map = {};
+            dRows.forEach(r => {
+                const id = r[idxId]; if(!id) return;
+                let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return;
+                let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`;
+                if(!map[id]) map[id] = { dM: {} }; if (!map[id].dM[ym]) map[id].dM[ym] = { red: {st: 0, p: []}, cap: {st: 0, p: []} };
+                const check = (keys) => { for(let k of keys) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) return k; } return null; };
+                
+                const f_fec = check(['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)']); 
+                const f_tot = check(['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)']); 
+                const f_eco = check(['E. Coli (NMP)', 'E. Coli (UFC)']); 
+                const pR_pres = [f_fec, f_tot, f_eco].filter(Boolean);
+                let r_st = pR_pres.length === 3 ? 1 : (pR_pres.length > 0 ? 2 : 0);
+                let pR = []; if (r_st === 1) pR = pR_pres; else if (r_st === 2) { if (!f_fec) pR.push('Falta: Coliformes Fecales'); if (!f_tot) pR.push('Falta: Coliformes Totales'); if (!f_eco) pR.push('Falta: E. Coli'); }
+                const cR = map[id].dM[ym].red;
+                if (r_st === 1 && cR.st !== 1) map[id].dM[ym].red = {st: 1, p: pR, ct: pR_pres.length};
+                else if (r_st === 2 && cR.st !== 1 && pR_pres.length > (cR.ct || 0)) map[id].dM[ym].red = {st: 2, p: pR, ct: pR_pres.length};
+                
+                const c_ter = check(['Coliformes Termotolerantes _']); 
+                const c_tot_c = check(['Coliformes Totales _']); 
+                const c_eco_c = check(['Escherichia Coli _']); 
+                const pC_pres = [c_ter, c_tot_c, c_eco_c].filter(Boolean);
+                let c_st = pC_pres.length === 3 ? 1 : (pC_pres.length > 0 ? 2 : 0);
+                let pC = []; if (c_st === 1) pC = pC_pres; else if (c_st === 2) { if (!c_ter) pC.push('Falta: Coliformes Termotolerantes'); if (!c_tot_c) pC.push('Falta: Coliformes Totales'); if (!c_eco_c) pC.push('Falta: E. Coli'); }
+                const cC = map[id].dM[ym].cap;
+                if (c_st === 1 && cC.st !== 1) map[id].dM[ym].cap = {st: 1, p: pC, ct: pC_pres.length};
+                else if (c_st === 2 && cC.st !== 1 && pC_pres.length > (cC.ct || 0)) map[id].dM[ym].cap = {st: 2, p: pC, ct: pC_pres.length};
+            });
+            const aS = new Map(); dRows.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+            fD = Array.from(aS.keys()).flatMap(id => {
+                const obj = map[id] || { dM: {} }; let hasD = false; const mC = [];
+                fM.forEach(m => {
+                    const dm = obj.dM[m]; const r_st = dm ? dm.red.st : 0; const r_p = dm ? dm.red.p : []; const c_st = dm ? dm.cap.st : 0; const c_p = dm ? dm.cap.p : [];
+                    let t_st = 0; if (r_st === 1 || c_st === 1) t_st = 1; else if (r_st === 2 || c_st === 2) t_st = 2;
+                    if (t_st !== 0) hasD = true;
+                    let t_p = []; if (t_st === 2) { if (r_st === 2) t_p.push(...r_p); if (c_st === 2) t_p.push(...c_p); }
+                    mC.push(JSON.stringify({status: r_st, params: r_p})); mC.push(JSON.stringify({status: c_st, params: c_p})); mC.push(JSON.stringify({status: t_st, params: [...new Set(t_p)]}));
+                });
+                if (!hasD) return []; return aS.get(id).map(mt => [...mt, ...mC]);
+            });
+            pT = 'status_json';
         } else if (subTab === 'riesgos') {
             let lR = dO.riesgos.slice(1); let lH = dO.riesgos[0] || []; 
             
@@ -1060,101 +1102,33 @@ const getEl = id => document.getElementById(id);
             ], data: fD };
         }
 
-        const m = {};
-        const h1 = dO.main[0] || []; const r1 = dO.main.slice(1);
-        const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
+        const m = {}; const h1 = dO.main[0] || []; const r1 = dO.main.slice(1); const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
+        const iC = (r, h) => { const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]); let n = r[findHeaderIndex(h, 'Nombre SAP')]; if(!n) n = r[findHeaderIndex(h, 'Nombre CCPP')]; if (!u || !n) return null; const id = u + '_' + normalizeHeader(n); if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ma: { t:0, p5:0, cl:0, tu:0 }, ca: { c: false, p: false }, i: 0, ri: { d: false, e: false, f: false } }; } return id; };
+        const gS = (r, h) => { const cI = findHeaderIndex(h, 'Cloro'); const tI = findHeaderIndex(h, 'Turbiedad'); return { is5p: classifyMonitoringStatus(h, r) === 1, c: cI !== -1 ? parseFloat(r[cI]) : NaN, t: tI !== -1 ? parseFloat(r[tI]) : NaN }; };
+        const eC = (r, h, isCap) => { const s = isCap ? CARACT_CAPTACION_SINGLE : CARACT_PILETA_SINGLE; const o = isCap ? CARACT_CAPTACION_OR : CARACT_PILETA_OR; for(let p of s) { if(isCellEmpty(r[findHeaderIndex(h, p)])) return false; } for(let p of o) { if(isCellEmpty(r[findHeaderIndex(h, p[0])]) && isCellEmpty(r[findHeaderIndex(h, p[1])])) return false; } return true; };
 
-        const getIdx = (h) => ({
-            u: findHeaderIndex(h, 'Ubigeo'), n: findHeaderIndex(h, 'Nombre SAP'), nc: findHeaderIndex(h, 'Nombre CCPP'),
-            p: findHeaderIndex(h, 'Provincia'), d: findHeaderIndex(h, 'Distrito'), r: findHeaderIndex(h, 'Red de Salud'),
-            mes: findHeaderIndex(h, 'Mes'), ubiLoc: findHeaderIndex(h, 'Ubicación Lugar de Muestreo'),
-            cl: findHeaderIndex(h, 'Cloro'), tu: findHeaderIndex(h, 'Turbiedad'),
-            p5: MONITOR_5P_PARAMS.map(p => findHeaderIndex(h, p)),
-            capS: CARACT_CAPTACION_SINGLE.map(p => findHeaderIndex(h, p)),
-            capO: CARACT_CAPTACION_OR.map(p => [findHeaderIndex(h, p[0]), findHeaderIndex(h, p[1])]),
-            pilS: CARACT_PILETA_SINGLE.map(p => findHeaderIndex(h, p)),
-            pilO: CARACT_PILETA_OR.map(p => [findHeaderIndex(h, p[0]), findHeaderIndex(h, p[1])])
-        });
-        const idxh1 = getIdx(h1); const idxh2 = getIdx(h2);
-
-        const iC = (row, idxs) => {
-            const u = formatUbigeo(row[idxs.u]); let n = row[idxs.n]; if(!n) n = row[idxs.nc];
-            if (!u || !n) return null;
-            const id = u + '_' + normalizeHeader(n);
-            if (!m[id]) {
-                m[id] = {
-                    u: u || '', c: n || '', p: row[idxs.p] || '', d: row[idxs.d] || '', r: row[idxs.r] || '',
-                    di: { t:0, p5:0, cl:0, tu:0 }, en: { t:0, p5:0, cl:0, tu:0 }, fe: { t:0, p5:0, cl:0, tu:0 }, ma: { t:0, p5:0, cl:0, tu:0 },
-                    ca: { c: false, p: false }, i: 0, p5_months: new Set(), ri_months: new Set()
-                };
-            }
-            return id;
-        };
-
-        const gS = (row, idxs) => {
-            let c5 = 0; idxs.p5.forEach(i => { if (i !== -1 && !isCellEmpty(row[i])) c5++; });
-            const cI = idxs.cl; const tI = idxs.tu;
-            return { is5p: c5 === 5, c: cI !== -1 && !isCellEmpty(row[cI]) ? parseFloat(row[cI]) : NaN, t: tI !== -1 && !isCellEmpty(row[tI]) ? parseFloat(row[tI]) : NaN };
-        };
-
-        const eC = (row, idxs, isCap) => {
-            const s = isCap ? idxs.capS : idxs.pilS; const o = isCap ? idxs.capO : idxs.pilO;
-            for(let i of s) { if(i === -1 || isCellEmpty(row[i])) return false; }
-            for(let pair of o) { if((pair[0] === -1 || isCellEmpty(row[pair[0]])) && (pair[1] === -1 || isCellEmpty(row[pair[1]]))) return false; }
-            return true;
-        };
-
-        r1.forEach(row => {
-            const id = iC(row, idxh1); if(!id) return;
-            const me = idxh1.mes !== -1 ? normalizeHeader(row[idxh1.mes]) : '';
-            if(me === 'diciembre') {
-                const s = gS(row, idxh1); m[id].di.t++;
-                if (s.is5p) { m[id].di.p5++; m[id].p5_months.add('dic'); }
+        const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo');
+        r1.forEach(r => { const id = iC(r, h1); if(!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; if(me === 'diciembre') { const s = gS(r, h1); m[id].di.t++; if (s.is5p) m[id].di.p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk && tuOk) { m[id].di.cl++; m[id].di.tu++; } } if (ind === 'ind2' && iU1 !== -1) { const ub = r[iU1] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h1, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h1, false)) m[id].ca.p = true; } } });
+        
+        const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo');
+        r2.forEach(r => { 
+            const id = iC(r, h2); if(!id) return; 
+            const me = iM2 !== -1 ? normalizeHeader(r[iM2]) : ''; 
+            if (me === 'enero' || me === 'febrero' || me === 'marzo') { 
+                const s = gS(r, h2); 
                 const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5;
-                if (clOk && tuOk) { m[id].di.cl++; m[id].di.tu++; }
-            }
-            if (ind === 'ind2' && idxh1.ubiLoc !== -1) {
-                const ub = row[idxh1.ubiLoc] || '';
-                if (ub.includes('Fuente de Captación')) { if(eC(row, idxh1, true)) m[id].ca.c = true; }
-                if (ub.includes('Red de distribución')) { if(eC(row, idxh1, false)) m[id].ca.p = true; }
-            }
-        });
-
-        r2.forEach(row => {
-            const id = iC(row, idxh2); if(!id) return;
-            const me = idxh2.mes !== -1 ? normalizeHeader(row[idxh2.mes]) : '';
-            if (me === 'enero' || me === 'febrero' || me === 'marzo') {
-                const s = gS(row, idxh2);
-                const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5;
-                if (me === 'enero') { m[id].en.t++; if (s.is5p) { m[id].en.p5++; m[id].p5_months.add('ene'); } if (clOk && tuOk) { m[id].en.cl++; m[id].en.tu++; } }
-                else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) { m[id].fe.p5++; m[id].p5_months.add('feb'); } if (clOk && tuOk) { m[id].fe.cl++; m[id].fe.tu++; } }
-                else if (me === 'marzo') { m[id].ma.t++; if (s.is5p) { m[id].ma.p5++; m[id].p5_months.add('mar'); } if (clOk && tuOk) { m[id].ma.cl++; m[id].ma.tu++; } }
-            }
-            if (ind === 'ind2' && idxh2.ubiLoc !== -1) {
-                const ub = row[idxh2.ubiLoc] || '';
-                if (ub.includes('Fuente de Captación')) { if(eC(row, idxh2, true)) m[id].ca.c = true; }
-                if (ub.includes('Red de distribución')) { if(eC(row, idxh2, false)) m[id].ca.p = true; }
-            }
+                if (me === 'enero') { m[id].en.t++; if (s.is5p) m[id].en.p5++; if (clOk && tuOk) { m[id].en.cl++; m[id].en.tu++; } } 
+                else if (me === 'febrero') { m[id].fe.t++; if (s.is5p) m[id].fe.p5++; if (clOk && tuOk) { m[id].fe.cl++; m[id].fe.tu++; } } 
+                else if (me === 'marzo') { m[id].ma.t++; if (s.is5p) m[id].ma.p5++; if (clOk && tuOk) { m[id].ma.cl++; m[id].ma.tu++; } }
+            } 
+            if (ind === 'ind2' && iU2 !== -1) { const ub = r[iU2] || ''; if (ub.includes('Fuente de Captación')) { if(eC(r, h2, true)) m[id].ca.c = true; } if (ub.includes('Red de distribución')) { if(eC(r, h2, false)) m[id].ca.p = true; } } 
         });
 
         if (ind === 'ind2') {
-            const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1);
-            const idxsS = getIdx(sH); const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
-            sR.forEach(row => {
-                const id = iC(row, idxsS); if(!id) return;
-                let me = iMS !== -1 ? normalizeHeader(row[iMS]) : ''; let a = iAS !== -1 ? String(row[iAS]).trim() : '';
-                if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; }
-                const iD25 = (me === 'diciembre' && a === '2025'); const iE26 = (me === 'enero' && a === '2026'); const iF26 = (me === 'febrero' && a === '2026');
-                if ((iD25 || iE26 || iF26) && !isCellEmpty(row[iFS])) { m[id].i++; }
-            });
-            const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1);
-            const idxsR = getIdx(rH); const iA = findHeaderIndex(rH, 'Año');
-            rR.forEach(row => {
-                const id = iC(row, idxsR); if(!id) return;
-                const a = iA !== -1 ? String(row[iA]).trim() : '';
-                if (a === '2025' || a === '') { const cD = row[findHeaderIndex(rH, 'Cargo Diciembre')]; if (normalizeHeader(cD) === 'aprobado') m[id].ri_months.add('dic'); }
-                if (a === '2026' || a === '') { const cE = row[findHeaderIndex(rH, 'Cargo Enero')]; if (normalizeHeader(cE) === 'aprobado') m[id].ri_months.add('ene'); const cF = row[findHeaderIndex(rH, 'Cargo Febrero')]; if (normalizeHeader(cF) === 'aprobado') m[id].ri_months.add('feb'); }
-            });
+            const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1); const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
+            sR.forEach(r => { const id = iC(r, sH); if(!id) return; let me = iMS !== -1 ? normalizeHeader(r[iMS]) : ''; let a = iAS !== -1 ? String(r[iAS]).trim() : ''; if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; } const iD25 = (me === 'diciembre' && a === '2025'); const iE26 = (me === 'enero' && a === '2026'); const iF26 = (me === 'febrero' && a === '2026'); if ((iD25 || iE26 || iF26) && !isCellEmpty(r[iFS])) { m[id].i++; } });
+            const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
+            rR.forEach(r => { const id = iC(r, rH); if(!id) return; const a = iA !== -1 ? String(r[iA]).trim() : ''; if (a === '2025' || a === '') { const cD = r[findHeaderIndex(rH, 'Cargo Diciembre')]; if (normalizeHeader(cD) === 'aprobado') m[id].ri.d = true; } if (a === '2026' || a === '') { const cE = r[findHeaderIndex(rH, 'Cargo Enero')]; if (normalizeHeader(cE) === 'aprobado') m[id].ri.e = true; const cF = r[findHeaderIndex(rH, 'Cargo Febrero')]; if (normalizeHeader(cF) === 'aprobado') m[id].ri.f = true; } });
         }
 
         if (ind === 'ind1') {
@@ -1172,7 +1146,7 @@ const getEl = id => document.getElementById(id);
             });
             return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Tot Mon. Dic', 'Mon 5P Dic', 'EV_5p Dic', 'Dic (Cl>=0.5)', 'Dic (Turb<=5)', 'Ev_Dic', 'Tot Mon. Ene', 'Mon 5P Ene', 'EV_5p Ene', 'Ene (Cl>=0.5)', 'Ene (Turb<=5)', 'Ev_Ene', 'Tot Mon. Feb', 'Mon 5P Feb', 'EV_5p Feb', 'Feb (Cl>=0.5)', 'Feb (Turb<=5)', 'Ev_Feb', 'Tot Mon. Mar', 'Mon 5P Mar', 'EV_5p Mar', 'Mar(Cl>=0.5)', 'Mar(Turb<=5)', 'Ev_Mar', 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES'], data: fD };
         } else {
-            const fD = Object.values(m).map(s => { const ei = s.i > 0 ? 1 : 0; const ec = (s.ca.c && s.ca.p) ? 1 : 0; const em = s.p5_months.size >= 4 ? 1 : 0; const er = s.ri_months.size >= 3 ? 1 : 0; const inF = (ei === 1 && ec === 1 && em === 1 && er === 1) ? 1 : 0; const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, ei, ec, em, er, inF, iM, iF, iSR ]; });
+            const fD = Object.values(m).map(s => { const ei = s.i > 0 ? 1 : 0; const ec = (s.ca.c && s.ca.p) ? 1 : 0; const em = ((s.di.p5 > 0 ? 1 : 0) + (s.en.p5 > 0 ? 1 : 0) + (s.fe.p5 > 0 ? 1 : 0) + (s.ma.p5 > 0 ? 1 : 0)) >= 4 ? 1 : 0; const er = ((s.ri.d ? 1 : 0) + (s.ri.e ? 1 : 0) + (s.ri.f ? 1 : 0)) >= 3 ? 1 : 0; const inF = (ei === 1 && ec === 1 && em === 1 && er === 1) ? 1 : 0; const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; return [ s.u, s.c, s.p, s.d, s.r, ei, ec, em, er, inF, iM, iF, iSR ]; });
             return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Inspección', 'Cumple Caracterizacion', 'Cumple Monit. 5P', 'Cumple Rep. Riesgo', 'Cumplimiento Ind. 2', 'MEF', 'FED', 'SAP REGULARES'], data: fD };
         }
     }
@@ -1209,6 +1183,7 @@ const getEl = id => document.getElementById(id);
 
         dH.forEach((h, idx) => { 
             let stC = ""; let lS = ""; if (h === 'Ubigeo') { stC = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; lS = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { stC = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; lS = "left: 80px; min-width: 150px; max-width: 150px;"; }
+            if (h.includes('(Total)')) { stC += " bg-indigo-100/60 text-indigo-800"; }
             
             let dCol = result.data;
             if (Object.keys(APP_STATE.currentTableFilters).length > 0) { dCol = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([fI, fV]) => { 
@@ -1254,6 +1229,7 @@ const getEl = id => document.getElementById(id);
                 else if (h === 'Nombre CCPP') { stC = `sticky z-10 border-r border-slate-200 ${rB} group-hover:bg-indigo-50/60 sticky-col-shadow truncate`; lS = "left: 80px; min-width: 150px; max-width: 150px;"; }
                 
                 let tdA = `class="px-4 py-2.5 text-xs ${stC} transition-colors" style="${lS}"`; let ctt = c; const v = parseInt(c);
+                if (h.includes('(Total)')) { tdA = tdA.replace('class="', 'class="bg-indigo-50/60 '); }
 
                 if (h === 'Observación') {
                     const id = r[0]; const nm = r[1]; const ubi = r[2]; const cp = r[3];
@@ -1311,7 +1287,7 @@ const getEl = id => document.getElementById(id);
                 } else if (result.type === 'status_json' && idxO >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle') {
                     let d = {status: 0, params: []}; try { d = JSON.parse(c); } catch(e){}
                     if (d.status === 1) ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner" title="Completo"><i data-lucide="check" class="w-4 h-4"></i></div>`; 
-                    else if (d.status === 2) { const ps = safeEscape(d.params.join(', ')); ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 cursor-pointer shadow-inner hover:bg-amber-200 transition-colors" onclick="event.stopPropagation(); window.openParamsModal('${ps}')" title="Incompleto - Clic para ver"><i data-lucide="info" class="w-4 h-4"></i></div>`; } 
+                    else if (d.status === 2) { const ps = safeEscape(d.params.join(', ')); const desc = ps.includes('Falta:') ? 'Parámetros que faltan registrar:' : 'Detalles del registro:'; ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 cursor-pointer shadow-inner hover:bg-amber-200 transition-colors" onclick="event.stopPropagation(); window.openParamsModal('${ps}', '${desc}')" title="Incompleto - Clic para ver"><i data-lucide="info" class="w-4 h-4"></i></div>`; } 
                     else ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600 shadow-inner" title="No Cumple / Sin Dato"><i data-lucide="x" class="w-4 h-4"></i></div>`; tdA = tdA.replace('class="', 'class="text-center ');
                 } else if (result.type === 'boolean' && (h.includes('Visita') || MONITOR_MONTHS.includes(h))) {
                     if (v >= 1) ctt = `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-100 text-[10px]"><i data-lucide="check-circle-2" class="w-3 h-3"></i> ${v}</span>`; else ctt = `<span class="text-slate-300">-</span>`; tdA = tdA.replace('class="', 'class="text-center ');
@@ -1325,6 +1301,7 @@ const getEl = id => document.getElementById(id);
         html += `</tbody><tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"><tr class="bg-indigo-100 border-t-2 border-indigo-300 font-black text-indigo-900">`;
         dH.forEach((h, idx) => {
             let stC = ""; let lS = ""; if (h === 'Ubigeo') { stC = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`; lS = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { stC = `sticky z-40 border-r border-indigo-300 bg-indigo-100 sticky-col-shadow truncate`; lS = "left: 80px; min-width: 150px; max-width: 150px;"; }
+            if (h.includes('(Total)')) { stC += " bg-indigo-200/60"; }
             let ctt = "";
             if (idx === 0) ctt = "TOTALES:"; else if (idx === 1) ctt = `<span class="text-indigo-600 text-sm">${fD.length}</span> reg.`; else if (h === 'Observación' || h === 'Ver Detalle') ctt = "-"; 
             else if (result.type === 'nivel_riesgo') {
@@ -1387,7 +1364,7 @@ const getEl = id => document.getElementById(id);
         if (currentTab === 'res_nivel_riesgo') { renderNivelRiesgoConsolidated(result, prefix); return; }
         const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud'); const sum = {}; const sapsR = {}; 
         const isA = result.type === 'analysis'; const isJ = result.type === 'status_json'; const isC = result.type === 'caract_points';
-        let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle');
+        let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle' && (currentTab !== 'bacteriologico' || h.includes('(Total)')));
         const colC = sumH.length; const grTot = Array(colC).fill(null).map(() => (isJ || isC) ? {c:0, i:0, s:0} : 0); let gTSap = 0;
         const isSapPrefix = prefix === 'sap';
         let fD = result.data;
@@ -1399,7 +1376,7 @@ const getEl = id => document.getElementById(id);
             else { 
                 let cIdx = 0; 
                 for(let i = vIdx; i < r.length; i++) { 
-                    if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i] === 'Ver Detalle') continue; 
+                    if(result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i] === 'Ver Detalle' || (currentTab === 'bacteriologico' && !result.headers[i].includes('(Total)'))) continue; 
                     if(isJ) { try { const d = JSON.parse(r[i]); if(d.status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; } else if(d.status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; } else { sum[red][cIdx].s++; grTot[cIdx].s++; } } catch(e){} } 
                     else if (isC) { 
                         try { 
@@ -1439,7 +1416,6 @@ const getEl = id => document.getElementById(id);
         });
 
         let html = '';
-        totalMetaMef = 0; // Reiniciamos contador para asegurar total global limpio
         Object.keys(sum).forEach(red => { totalMetaMef += (APP_STATE.metaMefPorRed[red] || 0); });
 
         if (hasSemesters) {
@@ -1685,44 +1661,113 @@ const getEl = id => document.getElementById(id);
         const r = isR ? APP_STATE.resFilterRed : (isF ? APP_STATE.fedFilterRed : APP_STATE.sapFilterRed); 
         const a = isR ? APP_STATE.resFilterAmbito : (isF ? APP_STATE.fedFilterAmbito : APP_STATE.sapFilterAmbito);
         
-        let rawData;
+        let result;
         if(isF) {
-            rawData = APP_STATE.fedCache[t]?.data;
-            if(!rawData) return;
-            if(r !== 'Todos') rawData = rawData.filter(x => x[4] === r);
-            const rawH = APP_STATE.fedCache[t].headers;
-            const mI = rawH.indexOf('MEF'); const fI = rawH.indexOf('FED');
-            if (a === 'MEF') rawData = rawData.filter(x => x[mI] === 1);
-            if (a === 'FED') rawData = rawData.filter(x => x[fI] === 1);
+            const raw = APP_STATE.fedCache[t]; if(!raw) return;
+            let d = raw.data;
+            if(r !== 'Todos') d = d.filter(x => x[4] === r);
+            const mI = raw.headers.indexOf('MEF'), fI = raw.headers.indexOf('FED'), srI = raw.headers.indexOf('SAP REGULARES');
+            if (a === 'MEF' && mI !== -1) d = d.filter(x => x[mI] === 1);
+            if (a === 'FED' && fI !== -1) d = d.filter(x => x[fI] === 1);
+            if (a === 'SAP REGULARES' && srI !== -1) d = d.filter(x => x[srI] === 1);
+            result = { headers: raw.headers, data: d, type: 'fed' };
         } else {
             const cache = isR ? APP_STATE.resCache : APP_STATE.sapCache;
             const cK = `${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`;
-            rawData = cache[cK]?.data;
+            result = cache[cK];
         }
+        if(!result || !result.data) return;
         
-        if(!rawData) return;
-        
-        const wb = XLSX.utils.book_new(); let dE = rawData; 
+        let dE = result.data;
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) { 
-            dE = dE.filter(row => Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { 
-                let cV = String(row[i] ?? '').trim(); 
-                return cV === String(v); 
+            dE = dE.filter(row => Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => {
+                let cV = String(row[i] ?? '').trim();
+                if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') {
+                    try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch(e) { return false; }
+                }
+                return cV === String(v);
             })); 
         }
+
+        const wb = XLSX.utils.book_new();
         
-        let dH = [], dD = [];
-        // Lógica simplificada de exportación...
-        dH = isF ? APP_STATE.fedCache[t].headers : (isR ? APP_STATE.resCache : APP_STATE.sapCache)[`${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`].headers;
-        dD = dE;
-        
+        // --- HOJA 1: DETALLE (Con formato de texto en lugar de JSON) ---
+        const dH = result.headers.filter(h => h !== 'Detalles' && h !== 'Ver Detalle');
+        const dD = dE.map(row => {
+            return result.headers.map((h, i) => {
+                if (h === 'Detalles' || h === 'Ver Detalle') return null;
+                let v = row[i];
+                if (result.type === 'status_json' && i >= CORE_HEADERS.length && h !== 'Observación') {
+                    try {
+                        const d = JSON.parse(v);
+                        if (d.status === 1) return "COMPLETO";
+                        if (d.status === 2) return "INCOMPLETO: " + (d.params ? d.params.join(', ') : '');
+                        return "SIN MONITOREO";
+                    } catch(e) {}
+                }
+                if (result.type === 'caract_points' && i >= CORE_HEADERS.length) {
+                    try {
+                        const pts = JSON.parse(v); const k = Object.keys(pts);
+                        if (k.length === 0) return "SIN MONITOREO";
+                        return k.map(p => `${p}: ${pts[p].status === 1 ? 'COMPLETO' : 'INCOMPLETO'}`).join(' | ');
+                    } catch(e) {}
+                }
+                return v;
+            }).filter(x => x !== null);
+        });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dH, ...dD]), "Detalle");
+
+        // --- HOJA 2: RESUMEN CONSOLIDADO ---
+        if (!isF) {
+            const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud');
+            const sum = {}; const sapsR = {};
+            const isA = result.type === 'analysis'; const isJ = result.type === 'status_json'; const isC = result.type === 'caract_points';
+            let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle' && (t !== 'bacteriologico' || h.includes('(Total)')));
+            const colC = sumH.length;
+
+            dE.forEach(r => {
+                const red = r[idxR] || 'Sin Red';
+                if(!sum[red]) sum[red] = Array(colC).fill(null).map(() => (isJ || isC) ? {c:0, i:0, s:0} : 0);
+                if(sapsR[red] === undefined) sapsR[red] = 0; sapsR[red]++;
+                if (isA) {
+                    const u1 = parseInt(r[vIdx]) || 0; const eF = parseInt(r[vIdx + 2]) || 0; const cm = parseInt(r[vIdx + 3]);
+                    if (u1 > 0 || eF > 0) { sum[red][0]++; sum[red][1] += (r[vIdx+4] ? JSON.parse(r[vIdx+4]).length : 0); if (cm === 1) sum[red][2]++; }
+                } else {
+                    let cIdx = 0;
+                    for(let i = vIdx; i < r.length; i++) {
+                        const hN = result.headers[i];
+                        if(hN === 'Detalles' || hN === 'Observación' || hN === 'Ver Detalle' || (t === 'bacteriologico' && !hN.includes('(Total)'))) continue;
+                        if(isJ) { try { const d = JSON.parse(r[i]); if(d.status === 1) sum[red][cIdx].c++; else if(d.status === 2) sum[red][cIdx].i++; else sum[red][cIdx].s++; } catch(e){} }
+                        else if(isC) { try { const pts = JSON.parse(r[i]); const ks = Object.keys(pts); if(ks.length === 0) sum[red][cIdx].s++; else ks.forEach(k => { if(pts[k].status === 1) sum[red][cIdx].c++; else sum[red][cIdx].i++; }); } catch(e){} }
+                        else { let val = parseInt(r[i]) || 0; if(val>=1) sum[red][cIdx]++; }
+                        cIdx++;
+                    }
+                }
+            });
+            const summaryHeaders = ['Red de Salud', 'Cant. SAP', 'Meta MEF'];
+            sumH.forEach(h => { if (isJ || isC) { summaryHeaders.push(`${h} (Compl.)`, `${h} (Incompl.)`, `${h} (Sin Mon.)`); } else { summaryHeaders.push(h); } });
+            const summaryData = [summaryHeaders];
+            const finalTotals = Array(summaryHeaders.length - 3).fill(0);
+            let grandSap = 0, grandMeta = 0;
+
+            Object.entries(sum).sort((a,b) => a[0].localeCompare(b[0])).forEach(([red, vals]) => {
+                const meta = APP_STATE.metaMefPorRed[red] || 0; grandSap += sapsR[red]; grandMeta += meta;
+                const row = [red, sapsR[red], meta];
+                vals.forEach(v => { if (isJ || isC) { row.push(v.c, v.i, v.s); } else { row.push(v); } });
+                for(let k=3; k<row.length; k++) finalTotals[k-3] += row[k];
+                summaryData.push(row);
+            });
+            summaryData.push(['TOTAL GENERAL', grandSap, grandMeta, ...finalTotals]);
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Resumen");
+        }
+
         XLSX.writeFile(wb, `Reporte_${prefix.toUpperCase()}_${t}.xlsx`);
     };
 
     window.openLMPModal = (json) => { const dt = JSON.parse(json); getEl('modal-lmp-content').innerHTML = dt.map(d => `<div class="bg-white p-5 rounded-2xl border border-red-100 shadow-sm flex justify-between items-center hover:border-red-300"><div><span class="font-black text-slate-800 text-sm block mb-1.5">${d.metal}</span><span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">${d.month}</span></div><div class="text-right"><span class="text-red-600 font-black text-xl block mb-1.5">${d.value}</span><span class="text-[10px] font-bold text-slate-400">LMP: ${d.lmp}</span></div></div>`).join(''); getEl('modal-lmp').classList.remove('hidden'); };
     window.closeModal = () => { getEl('modal-lmp').classList.add('hidden'); };
     
-    window.openParamsModal = (str) => { getEl('modal-params-desc').textContent = "Detalles del registro:"; getEl('modal-params-content').innerHTML = str.split(',').filter(p=>p.trim()!=='').map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim()}</span>`).join(''); getEl('modal-params').classList.remove('hidden'); };
+    window.openParamsModal = (str, desc = "Detalles del registro:") => { getEl('modal-params-desc').textContent = desc; getEl('modal-params-content').innerHTML = str.split(',').filter(p=>p.trim()!=='').map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold">${p.trim().replace(/^Falta:\s*/, '')}</span>`).join(''); getEl('modal-params').classList.remove('hidden'); };
     window.openCaractDetailModal = (html) => { getEl('modal-params-desc').textContent = "Puntos de muestreo evaluados:"; getEl('modal-params-content').innerHTML = html; getEl('modal-params').classList.remove('hidden'); };
     window.closeParamsModal = () => { getEl('modal-params').classList.add('hidden'); };
 
