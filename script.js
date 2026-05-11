@@ -1764,29 +1764,36 @@ const getEl = id => document.getElementById(id);
         let gEvs = []; if (isI1) gEvs = Array(evCols.length).fill(0);
         let fD = result.data; if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
 
+        let gViv = 0, gAmbos = 0;
+        let idxViv = -1, idxAmb = -1;
+        if (isI1) {
+            idxViv = result.headers.indexOf('Cumple Vivienda');
+            idxAmb = result.headers.indexOf('Cumple Ambos');
+        }
+
         fD.forEach(r => {
             const red = r[4] || 'Sin Red'; const pro = r[2] || 'Sin Provincia'; const dis = r[3] || 'Sin Distrito';
             [sR, sP, sD].forEach((obj, idx) => {
                 const k = idx === 0 ? red : (idx === 1 ? pro : dis);
                 if(!obj[k]) {
-                    if (isI1) obj[k] = { cp:0, c:0, evs: Array(evCols.length).fill(0) };
+                    if (isI1) obj[k] = { cp:0, c:0, v:0, a:0, evs: Array(evCols.length).fill(0) };
                     else if (isI3) obj[k] = { cp:0, jul:0, ago:0, set:0, oct:0, nov:0, dic:0, c:0 };
                     else obj[k] = { cp:0, i:0, ca:0, m:0, ri:0, c:0 };
                 }
                 obj[k].cp++;
-                if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) obj[k].evs[i]++; }); if(sEv>=3) obj[k].c++; } 
+                if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) obj[k].evs[i]++; }); if(sEv>=3) obj[k].c++; if(r[idxViv] === 1) obj[k].v++; if(r[idxAmb] === 1) obj[k].a++; } 
                 else if (isI3) { if(r[5]===1) obj[k].jul++; if(r[6]===1) obj[k].ago++; if(r[7]===1) obj[k].set++; if(r[8]===1) obj[k].oct++; if(r[9]===1) obj[k].nov++; if(r[10]===1) obj[k].dic++; if(r[12]===1) obj[k].c++; }
                 else { const ei = r[5]; const ec = r[6]; const em = r[7]; const er = r[8]; const ef = r[9]; if(ei===1) obj[k].i++; if(ec===1) obj[k].ca++; if(em===1) obj[k].m++; if(er===1) obj[k].ri++; if(ef===1) obj[k].c++; }
             });
             gTC++;
-            if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) gEvs[i]++; }); if(sEv>=3) gCI++; } 
+            if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) gEvs[i]++; }); if(sEv>=3) gCI++; if(r[idxViv] === 1) gViv++; if(r[idxAmb] === 1) gAmbos++; } 
             else if (isI3) { if(r[5]===1) gJul++; if(r[6]===1) gAgo++; if(r[7]===1) gSet++; if(r[8]===1) gOct++; if(r[9]===1) gNov++; if(r[10]===1) gDic++; if(r[12]===1) gCI++; }
             else { if(r[5]===1) gI++; if(r[6]===1) gC++; if(r[7]===1) gM++; if(r[8]===1) gRi++; if(r[9]===1) gCI++; }
         });
 
         const bHtml = (obj, lbl) => {
             let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${lbl}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${lbl}</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th>`;
-            if (isI1) { h += evCols.map(colIdx => `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')}</th>`).join(''); h += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th>`; } 
+            if (isI1) { h += evCols.map(colIdx => `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')}</th>`).join(''); h += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses SALUD</th>`; } 
             else if (isI3) { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Jul 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Ago 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Set 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Oct 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Nov 2025</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Dic 2025</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Alerta</th>`; }
             else { h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`; }
             h += `</tr></thead><tbody class="divide-y divide-slate-100">`;
@@ -1804,8 +1811,34 @@ const getEl = id => document.getElementById(id);
             h += `</tr></tbody></table></div></div>`; return h;
         };
 
-        let ht = '<div class="flex flex-col w-full p-4">' + bHtml(sR, "RED DE SALUD") + bHtml(sP, "PROVINCIA") + bHtml(sD, "DISTRITO");
-        if (isI1) { ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>`; ht += evCols.map(colIdx => `<th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')} (Eval. Completa)</th>`).join(''); ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors">`; ht += gEvs.map(gev => `<td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gev}</td>`).join(''); ht += `<td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-blue-700 bg-blue-50">200</td></tr></tbody></table></div></div>`; }
+        const bHtmlViv = (obj, lbl) => {
+            let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-emerald-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-emerald-900 uppercase tracking-widest">→ Emparejamiento Vivienda Por ${lbl}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${lbl}</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumple Salud</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50">Cumple Vivienda</th><th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50">Cumple Ambas</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+            Object.entries(obj).sort((a,b) => a[0].localeCompare(b[0])).forEach(([k, v]) => {
+                h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td><td class="px-5 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${v.cp}</td><td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td><td class="px-5 py-2.5 text-xs text-center font-black text-blue-600 bg-blue-50/50">${v.v}</td><td class="px-5 py-2.5 text-xs text-center font-black text-indigo-600 bg-indigo-50/50">${v.a}</td></tr>`;
+            });
+            h += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-3 text-xs text-center text-white font-bold bg-slate-900">${gTC}</td><td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td><td class="px-5 py-3 text-xs text-center text-blue-400 font-black bg-blue-900/50">${gViv}</td><td class="px-5 py-3 text-xs text-center text-indigo-400 font-black bg-indigo-900/50">${gAmbos}</td></tr></tbody></table></div></div>`;
+            return h;
+        };
+
+        let ht = '<div class="flex flex-col w-full p-4">';
+        ht += bHtml(sR, "RED DE SALUD");
+        if (isI1) { 
+            ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>`; 
+            ht += evCols.map(colIdx => `<th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')} (Eval. Completa)</th>`).join(''); 
+            ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses SALUD</th>`;
+            ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Cumplen >=3 Meses VIVIENDA</th>`;
+            ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-100">Cumple Ambas</th>`;
+            ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors">`; 
+            ht += gEvs.map(gev => `<td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gev}</td>`).join(''); 
+            ht += `<td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td>`;
+            ht += `<td class="px-5 py-4 text-sm text-center font-black text-blue-600 bg-blue-50">${gViv}</td>`;
+            ht += `<td class="px-5 py-4 text-sm text-center font-black text-indigo-600 bg-indigo-50">${gAmbos}</td>`;
+            ht += `<td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">200</td></tr></tbody></table></div></div>`; 
+            
+            ht += bHtmlViv(sR, "RED DE SALUD");
+        } else if (APP_STATE.fedActiveTab === 'ind2') {
+            ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gI}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gC}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gM}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gRi}</td><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">246</td></tr></tbody></table></div></div>`;
+        }
         ht += '</div>'; getEl('fed-consolidated-container').innerHTML = ht;
 
         let c = [0,0,0,0]; let l = []; let colors = ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'];
