@@ -114,9 +114,9 @@ const getEl = id => document.getElementById(id);
         return res;
     }
 
-    window.setTableFilter = (i, v) => { APP_STATE.currentTableFilters[i] = v; reRenderCurrentTable(); };
-    window.removeTableFilter = (i) => { delete APP_STATE.currentTableFilters[i]; reRenderCurrentTable(); };
-    window.clearAllTableFilters = () => { APP_STATE.currentTableFilters = {}; reRenderCurrentTable(); };
+    window.setTableFilter = (i, v, p) => { if (p === 'viv') APP_STATE.vivFilters[i] = v; else APP_STATE.currentTableFilters[i] = v; reRenderCurrentTable(); };
+    window.removeTableFilter = (i, p) => { if (p === 'viv') delete APP_STATE.vivFilters[i]; else delete APP_STATE.currentTableFilters[i]; reRenderCurrentTable(); };
+    window.clearAllTableFilters = (p) => { if (p === 'viv') APP_STATE.vivFilters = {}; else APP_STATE.currentTableFilters = {}; reRenderCurrentTable(); };
     
     window.toggleFilterDropdown = (e, p, i) => { 
         e.stopPropagation(); 
@@ -131,7 +131,12 @@ const getEl = id => document.getElementById(id);
     };
     
     window.applyTableFilter = (p, i, v) => { 
-        if(v === '') delete APP_STATE.currentTableFilters[i]; else APP_STATE.currentTableFilters[i] = v; 
+        if (p === 'viv') {
+            if (!APP_STATE.vivFilters) APP_STATE.vivFilters = {};
+            if (v === '') delete APP_STATE.vivFilters[i]; else APP_STATE.vivFilters[i] = v; 
+        } else {
+            if (v === '') delete APP_STATE.currentTableFilters[i]; else APP_STATE.currentTableFilters[i] = v; 
+        }
         document.querySelectorAll('.filter-dropdown-menu').forEach(el => el.classList.add('hidden')); reRenderCurrentTable(); 
     };
     
@@ -261,7 +266,7 @@ const getEl = id => document.getElementById(id);
     }
 
     window.forceRefreshData = async () => { 
-        APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; APP_STATE.sapDataLoaded = false; APP_STATE.currentTableFilters = {}; 
+        APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {ind1: null, ind2: null, ind3: null}; APP_STATE.sapDataLoaded = false; APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; 
         const l = getEl('sap-loader'); if(l) { l.innerHTML = `<div class="relative"><div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div><p id="sap-loader-text" class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">Sincronizando...</p>`; lucide.createIcons(); l.classList.remove('hidden'); } 
         await preloadSAPData(); processActiveData(); 
     }
@@ -292,7 +297,7 @@ const getEl = id => document.getElementById(id);
     window.logout = () => { APP_STATE.currentUser = null; getEl('app-view').classList.add('hidden'); getEl('login-view').classList.remove('hidden'); getEl('login-user').value = ''; getEl('login-pass').value = ''; getEl('login-error').classList.add('hidden'); window.switchTab('dashboard'); }
 
     window.switchTab = id => { 
-        APP_STATE.activeTab = id; APP_STATE.currentTableFilters = {}; 
+        APP_STATE.activeTab = id; APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; 
         document.querySelectorAll('.sidebar-item').forEach(el => { 
             const i = el.querySelector('.active-indicator'); 
             if(el.id === `nav-${id}`) { el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white bg-white/10 shadow-inner"; if(i) i.classList.remove('hidden'); const c = el.querySelector('i'); if(c) { c.classList.remove('text-slate-400'); if(id==='fed') c.classList.add('text-amber-400'); else c.classList.add('text-indigo-300'); } } 
@@ -312,7 +317,7 @@ const getEl = id => document.getElementById(id);
     function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{id: 'ind1', label: 'AI-01.01'}, {id: 'ind2', label: 'AI-02.01'}, {id: 'ind3', label: 'AI-03.01'}].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
     window.changeFedSubTab = id => { 
         APP_STATE.fedActiveTab = id; 
-        APP_STATE.currentTableFilters = {}; 
+        APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; 
         if (id === 'ind2') { APP_STATE.globalDateFrom = '2026-01'; } 
         else if (id === 'ind1') { APP_STATE.globalDateFrom = '2025-12'; } 
         updateGlobalDateDropdowns();
@@ -353,7 +358,7 @@ const getEl = id => document.getElementById(id);
             try { const m0 = await fetch(URLS.MAIN0 + '&t=' + Date.now()).then(r => r.text()); const rM0 = parseCSVFast(m0); const th = APP_STATE.rawData.main[0] || []; APP_STATE.rawData.main0 = [th, ...window.alignRows(rM0, th, '2024')]; APP_STATE.main0Loaded = true; } catch(e) { console.error(e); }
             if (l) { const p = l.querySelector('p'); if (p) p.textContent = "PROCESANDO MATRIZ..."; }
         }
-        APP_STATE.currentTableFilters = {}; APP_STATE.sapCache = {}; APP_STATE.resCache = {}; 
+        APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; APP_STATE.sapCache = {}; APP_STATE.resCache = {}; 
         processActiveData(); 
     }
 
@@ -1125,11 +1130,21 @@ const getEl = id => document.getElementById(id);
             let n = r[findHeaderIndex(h, 'Nombre CCPP')]; 
             if(!n) n = r[findHeaderIndex(h, 'Nombre SAP')]; 
             if (!u || !n) return null; 
-            const id = u + '_' + normalizeHeader(n); 
-            if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', meses: {}, ca: { c: false, p: false }, i: 0, ri: {}, viv: 0 }; fM.forEach(ym => m[id].meses[ym] = { t:0, p5:0, cl:0, tu:0 }); } 
+            
+            let id;
+            if (ind === 'ind1') {
+                let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
+                let ns = r[findHeaderIndex(h, 'Nombre SAP')] || '';
+                id = u + '_' + normalizeHeader(n) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
+                if (!m[id]) { m[id] = { u: u || '', c: n || '', ids: ids || '', ns: ns || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', meses: {}, ca: { c: false, p: false }, i: 0, ri: {}, viv: 0 }; fM.forEach(ym => m[id].meses[ym] = { t:0, p5:0, cl:0, tu:0 }); } 
+            } else {
+                id = u + '_' + normalizeHeader(n); 
+                if (!m[id]) { m[id] = { u: u || '', c: n || '', p: r[findHeaderIndex(h, 'Provincia')] || '', d: r[findHeaderIndex(h, 'Distrito')] || '', r: r[findHeaderIndex(h, 'Red de Salud')] || '', meses: {}, ca: { c: false, p: false }, i: 0, ri: {}, viv: 0 }; fM.forEach(ym => m[id].meses[ym] = { t:0, p5:0, cl:0, tu:0 }); } 
+            }
             return id; 
         };
         const matchId = (r, h) => {
+            if (ind === 'ind1') return iC(r, h);
             const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
             const ccpp = normalizeHeader(r[findHeaderIndex(h, 'Nombre CCPP')]);
             const sap = normalizeHeader(r[findHeaderIndex(h, 'Nombre SAP')]);
@@ -1218,11 +1233,24 @@ const getEl = id => document.getElementById(id);
         if (ind === 'ind1') {
             const vH = dO.vivienda[0] || []; const vR = dO.vivienda.slice(1);
             const idxCumpleViv = findHeaderIndex(vH, 'Cumple');
+            const idxUbiV = findHeaderIndex(vH, 'Ubigeo');
+            const idxCcppV = findHeaderIndex(vH, 'Nombre CCPP');
+            const vMap = {};
             vR.forEach(r => {
-                const id = matchId(r, vH);
-                if (id && idxCumpleViv !== -1) {
+                const ubi = formatUbigeo(r[idxUbiV]);
+                const ccpp = normalizeHeader(r[idxCcppV]);
+                if (ubi && idxCumpleViv !== -1) {
                     const val = String(r[idxCumpleViv]).trim().toLowerCase();
-                    if (val === '1' || val === 'si' || val === 'cumple' || val === 'sí') m[id].viv = 1;
+                    if (val === '1' || val === 'si' || val === 'cumple' || val === 'sí') {
+                        vMap[ubi] = vMap[ubi] || []; vMap[ubi].push(ccpp);
+                    }
+                }
+            });
+            Object.values(m).forEach(s => {
+                if (vMap[s.u]) {
+                    const sn = normalizeHeader(s.c);
+                    const match = vMap[s.u].find(c => c === sn || c.includes(sn) || sn.includes(c));
+                    if (match || vMap[s.u].length === 1) s.viv = 1;
                 }
             });
 
@@ -1239,10 +1267,10 @@ const getEl = id => document.getElementById(id);
                 const cumpSalud = sE >= 3 ? 1 : 0;
                 const cumpViv = s.viv || 0;
                 const cumpAmbos = (cumpSalud === 1 && cumpViv === 1) ? 1 : 0;
-                const iM = APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; 
-                return [ s.u, s.c, s.p, s.d, s.r, ...mData, sg, iM, iF, iSR, cumpSalud, cumpViv, cumpAmbos ]; 
+                const iM = (s.ids && APP_STATE.mefSapIds.has(s.ids)) || APP_STATE.mefUbigeos.has(s.u) ? 1 : 0; const iF = APP_STATE.fedUbigeos.has(s.u) ? 1 : 0; const iSR = (s.ids && APP_STATE.sapRegularesIds.has(s.ids)) || APP_STATE.sapRegularesUbigeos.has(s.u) ? 1 : 0; 
+                return [ s.u, s.c, s.ids, s.ns, s.p, s.d, s.r, ...mData, sg, iM, iF, iSR, cumpSalud, cumpViv, cumpAmbos ]; 
             });
-            return { headers: ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', ...mHeaders, 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES', 'Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'], data: fD };
+            return { headers: ['Ubigeo', 'Nombre CCPP', 'Id. SAP', 'Nombre SAP', 'Provincia', 'Distrito', 'Red de Salud', ...mHeaders, 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES', 'Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'], data: fD };
         } else {
             const fD = Object.values(m).map(s => { 
                 const ei = s.i > 0 ? 1 : 0; 
@@ -1662,7 +1690,7 @@ const getEl = id => document.getElementById(id);
         const fmt = (h, v) => { if (h === 'Seguimiento') { if(v === 'Verde') return 'CUMPLE (>=3)'; if(v === 'Naranja') return 'CUMPLE PARCIAL'; if(v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO'; } if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES') return v === '1' ? 'SÍ' : '-'; if (h.includes('Cumple') || h.includes('Ev_') || h.includes('EV_5p')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
 
         result.headers.forEach((h, idx) => {
-            if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'].includes(h)) return;
+            if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos', 'MEF', 'FED', 'SAP REGULARES'].includes(h)) return;
             let st = ""; let ls = ""; if (h === 'Ubigeo') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
             let dC = result.data; if (Object.keys(APP_STATE.currentTableFilters).length > 0) { dC = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([fI, fV]) => { if (parseInt(fI) === idx) return true; return String(r[fI] ?? '').trim() === String(fV); }); }); }
             const uV = [...new Set(dC.map(r => String(r[idx] ?? '').trim()))].filter(Boolean).sort(); const cF = APP_STATE.currentTableFilters[idx] || "";
@@ -1673,7 +1701,7 @@ const getEl = id => document.getElementById(id);
         fD.forEach((r, i) => {
             const bg = i % 2 === 0 ? "bg-white" : "bg-slate-50"; html += `<tr class="${bg} hover:bg-amber-50/60 transition-colors group">`;
             r.forEach((c, idx) => {
-                const h = result.headers[idx]; if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'].includes(h)) return;
+                const h = result.headers[idx]; if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos', 'MEF', 'FED', 'SAP REGULARES'].includes(h)) return;
                 let st = ""; let ls = ""; if (h === 'Ubigeo') { st = `sticky z-10 border-r border-slate-200 ${bg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`; ls = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { st = `sticky z-10 border-r border-slate-200 ${bg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
                 let tA = `class="px-4 py-2.5 text-xs ${st} transition-colors" style="${ls}"`; let ctt = c;
 
@@ -1689,7 +1717,7 @@ const getEl = id => document.getElementById(id);
 
         html += `</tbody><tfoot class="sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"><tr class="bg-amber-100 border-t-2 border-amber-300 font-black text-amber-900">`;
         result.headers.forEach((h, idx) => {
-            if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'].includes(h)) return;
+            if(['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos', 'MEF', 'FED', 'SAP REGULARES'].includes(h)) return;
             let st = ""; let ls = ""; if (h === 'Ubigeo') { st = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow truncate`; ls = "left: 0px; min-width: 80px; max-width: 80px;"; } else if (h === 'Nombre CCPP') { st = `sticky z-40 border-r border-amber-300 bg-amber-100 sticky-col-shadow truncate`; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
             let ctt = "";
             if (idx === 0) ctt = "TOTALES:"; else if (idx === 1) ctt = `<span class="text-amber-600 text-sm">${fD.length}</span> reg.`; else if (idx > 4) {
@@ -1701,24 +1729,75 @@ const getEl = id => document.getElementById(id);
         }); html += `</tr></tfoot></table>`; cont.innerHTML = html; lucide.createIcons();
 
         if (APP_STATE.fedActiveTab === 'ind1') {
+            let hVivFilters = '';
+            if (APP_STATE.vivFilters && Object.keys(APP_STATE.vivFilters).length > 0) {
+                hVivFilters += `<div class="bg-emerald-50/80 px-4 py-2.5 border-b border-emerald-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full"><span class="text-[10px] font-black text-emerald-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
+                Object.entries(APP_STATE.vivFilters).forEach(([i, val]) => { 
+                    if (!result.headers[i]) return;
+                    let dV = val; if(result.headers[i].includes('Cumple')) { dV = val === '1' ? 'CUMPLE' : 'NO CUMPLE'; } 
+                    hVivFilters += `<span class="bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i}, 'viv')" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; 
+                });
+                hVivFilters += `<button onclick="window.clearAllTableFilters('viv')" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`;
+            }
+            const evCols = []; result.headers.forEach((h, i) => { if(h.startsWith('Ev_')) evCols.push(i); });
+            let ccppList = fD;
+            let mapCcpp = {};
+            let idxViv = result.headers.indexOf('Cumple Vivienda');
+            let idxAmb = result.headers.indexOf('Cumple Ambos');
+            let idxSalud = result.headers.indexOf('Cumple Salud');
+            
+            fD.forEach(r => {
+                const ubi = r[0]; const ccpp = r[1];
+                const key = `${ubi}_${ccpp}`;
+                if (!mapCcpp[key]) { mapCcpp[key] = { r: [...r], sapsCount: 0, saludCount: 0, evsCount: Array(evCols.length).fill(0) }; }
+                mapCcpp[key].sapsCount++;
+                if (r[idxSalud] === 1) mapCcpp[key].saludCount++;
+                evCols.forEach((colIdx, i) => { if (r[colIdx] === 1) mapCcpp[key].evsCount[i]++; });
+            });
+            ccppList = Object.values(mapCcpp).map(x => {
+                const row = x.r;
+                evCols.forEach((colIdx, i) => { row[colIdx] = (x.evsCount[i] === x.sapsCount) ? 1 : 0; });
+                row[idxSalud] = (x.saludCount === x.sapsCount) ? 1 : 0;
+                row[idxAmb] = (row[idxSalud] === 1 && row[idxViv] === 1) ? 1 : 0;
+                return row;
+            });
+
+            if (!APP_STATE.vivFilters) APP_STATE.vivFilters = {};
+            let fCcppList = ccppList;
+            if (Object.keys(APP_STATE.vivFilters).length > 0) {
+                fCcppList = ccppList.filter(r => {
+                    return Object.entries(APP_STATE.vivFilters).every(([fI, fV]) => String(r[fI] ?? '').trim() === String(fV));
+                });
+            }
+
             const vivWrapper = getEl('fed-vivienda-table-wrapper');
             if(vivWrapper) vivWrapper.classList.remove('hidden');
 
             const contViv = getEl('fed-vivienda-table-container');
-            let hViv = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
+            let hViv = hVivFilters + `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
             const vHeaders = ['Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos'];
-            const mapIdx = [0, 1, 2, 3, 4, result.headers.indexOf('Cumple Salud'), result.headers.indexOf('Cumple Vivienda'), result.headers.indexOf('Cumple Ambos')];
+            const mapIdx = [0, 1, 4, 5, 6, result.headers.indexOf('Cumple Salud'), result.headers.indexOf('Cumple Vivienda'), result.headers.indexOf('Cumple Ambos')];
 
-            vHeaders.forEach(h => {
+            vHeaders.forEach((h, j) => {
+                const idx = mapIdx[j];
+                let dC = ccppList; 
+                if (Object.keys(APP_STATE.vivFilters).length > 0) { dC = ccppList.filter(r => Object.entries(APP_STATE.vivFilters).every(([fI, fV]) => parseInt(fI) === idx ? true : String(r[fI] ?? '').trim() === String(fV))); }
+                const uV = [...new Set(dC.map(r => String(r[idx] ?? '').trim()))].filter(Boolean).sort(); 
+                const cF = APP_STATE.vivFilters[idx] || "";
+                
+                const fmtV = (h, v) => { if (h.includes('Cumple')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
+
+                let sel = `<div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()"><button onclick="window.toggleFilterDropdown(event, 'viv', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${cF ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : ''}"><span class="truncate">${cF ? safeEscape(fmtV(h, cF)) : 'Todos'}</span><i data-lucide="filter" class="w-3 h-3 ${cF ? 'text-emerald-500' : 'text-slate-400'}"></i></button><div id="dropdown-viv-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left"><div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg"><input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-emerald-500" onkeyup="window.filterDropdownOptions(event, 'viv', ${idx})"></div><div class="max-h-48 overflow-y-auto custom-scroll py-1"><div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-emerald-50 truncate transition-colors ${!cF ? 'bg-emerald-100 font-bold text-emerald-700' : 'text-slate-600'}" onclick="window.applyTableFilter('viv', ${idx}, '')">[ Todos ]</div>${uV.map(v => `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-emerald-50 truncate transition-colors ${cF === v ? 'bg-emerald-100 font-bold text-emerald-700' : 'text-slate-600'}" onclick="window.applyTableFilter('viv', ${idx}, '${safeEscape(v)}')">${safeEscape(fmtV(h, v))}</div>`).join('')}${uV.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}</div></div></div>`;
+
                 let st = ""; let ls = "";
                 if (h === 'Ubigeo') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 0px; min-width: 80px; max-width: 80px;"; }
                 else if (h === 'Nombre CCPP') { st = "sticky z-30 bg-slate-200 border-r border-slate-300 sticky-col-shadow"; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
-                hViv += `<th class="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest align-top ${st}" style="${ls}">${h}</th>`;
+                hViv += `<th class="px-4 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest align-top ${st}" style="${ls}"><div class="flex flex-col h-full justify-between"><span>${h}</span>${sel}</div></th>`;
             });
             hViv += `</tr></thead><tbody class="divide-y divide-slate-100">`;
 
             let sumSalud = 0, sumViv = 0, sumAmbos = 0;
-            fD.forEach((r, i) => {
+            fCcppList.forEach((r, i) => {
                 const bg = i % 2 === 0 ? "bg-white" : "bg-slate-50";
                 hViv += `<tr class="${bg} hover:bg-emerald-50/60 transition-colors group">`;
                 sumSalud += r[mapIdx[5]] || 0; sumViv += r[mapIdx[6]] || 0; sumAmbos += r[mapIdx[7]] || 0;
@@ -1745,7 +1824,7 @@ const getEl = id => document.getElementById(id);
                 else if (h === 'Nombre CCPP') { st = `sticky z-40 border-r border-emerald-300 bg-emerald-100 sticky-col-shadow truncate`; ls = "left: 80px; min-width: 150px; max-width: 150px;"; }
                 let ctt = "";
                 if (j === 0) ctt = "TOTALES:";
-                else if (j === 1) ctt = `<span class="text-emerald-700 text-sm">${fD.length}</span> reg.`;
+                else if (j === 1) ctt = `<span class="text-emerald-700 text-sm">${fCcppList.length}</span> reg.`;
                 else if (h === 'Cumple Salud') ctt = `<span class="text-emerald-700 text-sm">${sumSalud}</span>`;
                 else if (h === 'Cumple Vivienda') ctt = `<span class="text-emerald-700 text-sm">${sumViv}</span>`;
                 else if (h === 'Cumple Ambos') ctt = `<span class="text-emerald-700 text-sm">${sumAmbos}</span>`;
@@ -1764,15 +1843,37 @@ const getEl = id => document.getElementById(id);
         let gEvs = []; if (isI1) gEvs = Array(evCols.length).fill(0);
         let fD = result.data; if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
 
+        let ccppList = fD;
+        let mapCcpp = {};
         let gViv = 0, gAmbos = 0;
         let idxViv = -1, idxAmb = -1;
+        let idxSalud = -1;
         if (isI1) {
+            idxSalud = result.headers.indexOf('Cumple Salud');
             idxViv = result.headers.indexOf('Cumple Vivienda');
             idxAmb = result.headers.indexOf('Cumple Ambos');
+
+            fD.forEach(r => {
+                const ubi = r[0]; const ccpp = r[1];
+                const key = `${ubi}_${ccpp}`;
+                if (!mapCcpp[key]) { mapCcpp[key] = { r: [...r], sapsCount: 0, saludCount: 0, evsCount: Array(evCols.length).fill(0), saps: [] }; }
+                mapCcpp[key].sapsCount++;
+                mapCcpp[key].saps.push(r);
+                if (r[idxSalud] === 1) mapCcpp[key].saludCount++;
+                evCols.forEach((colIdx, i) => { if (r[colIdx] === 1) mapCcpp[key].evsCount[i]++; });
+            });
+            ccppList = Object.values(mapCcpp).map(x => {
+                const row = [...x.r];
+                evCols.forEach((colIdx, i) => { row[colIdx] = (x.evsCount[i] === x.sapsCount) ? 1 : 0; });
+                row[idxSalud] = (x.saludCount === x.sapsCount) ? 1 : 0;
+                row[idxAmb] = (row[idxSalud] === 1 && row[idxViv] === 1) ? 1 : 0;
+                return row;
+            });
         }
 
-        fD.forEach(r => {
-            const red = r[4] || 'Sin Red'; const pro = r[2] || 'Sin Provincia'; const dis = r[3] || 'Sin Distrito';
+        ccppList.forEach(r => {
+            let red = r[4] || 'Sin Red'; let pro = r[2] || 'Sin Provincia'; let dis = r[3] || 'Sin Distrito';
+            if (isI1) { red = r[6] || 'Sin Red'; pro = r[4] || 'Sin Provincia'; dis = r[5] || 'Sin Distrito'; }
             [sR, sP, sD].forEach((obj, idx) => {
                 const k = idx === 0 ? red : (idx === 1 ? pro : dis);
                 if(!obj[k]) {
@@ -1781,12 +1882,12 @@ const getEl = id => document.getElementById(id);
                     else obj[k] = { cp:0, i:0, ca:0, m:0, ri:0, c:0 };
                 }
                 obj[k].cp++;
-                if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) obj[k].evs[i]++; }); if(sEv>=3) obj[k].c++; if(r[idxViv] === 1) obj[k].v++; if(r[idxAmb] === 1) obj[k].a++; } 
+                if (isI1) { evCols.forEach((colIdx, i) => { const val = r[colIdx]; if(val===1) obj[k].evs[i]++; }); if(r[idxSalud]===1) obj[k].c++; if(r[idxViv] === 1) obj[k].v++; if(r[idxAmb] === 1) obj[k].a++; } 
                 else if (isI3) { if(r[5]===1) obj[k].jul++; if(r[6]===1) obj[k].ago++; if(r[7]===1) obj[k].set++; if(r[8]===1) obj[k].oct++; if(r[9]===1) obj[k].nov++; if(r[10]===1) obj[k].dic++; if(r[12]===1) obj[k].c++; }
                 else { const ei = r[5]; const ec = r[6]; const em = r[7]; const er = r[8]; const ef = r[9]; if(ei===1) obj[k].i++; if(ec===1) obj[k].ca++; if(em===1) obj[k].m++; if(er===1) obj[k].ri++; if(ef===1) obj[k].c++; }
             });
             gTC++;
-            if (isI1) { let sEv = 0; evCols.forEach((colIdx, i) => { const val = r[colIdx]; sEv += val; if(val===1) gEvs[i]++; }); if(sEv>=3) gCI++; if(r[idxViv] === 1) gViv++; if(r[idxAmb] === 1) gAmbos++; } 
+            if (isI1) { evCols.forEach((colIdx, i) => { const val = r[colIdx]; if(val===1) gEvs[i]++; }); if(r[idxSalud]===1) gCI++; if(r[idxViv] === 1) gViv++; if(r[idxAmb] === 1) gAmbos++; } 
             else if (isI3) { if(r[5]===1) gJul++; if(r[6]===1) gAgo++; if(r[7]===1) gSet++; if(r[8]===1) gOct++; if(r[9]===1) gNov++; if(r[10]===1) gDic++; if(r[12]===1) gCI++; }
             else { if(r[5]===1) gI++; if(r[6]===1) gC++; if(r[7]===1) gM++; if(r[8]===1) gRi++; if(r[9]===1) gCI++; }
         });
@@ -1842,7 +1943,22 @@ const getEl = id => document.getElementById(id);
         ht += '</div>'; getEl('fed-consolidated-container').innerHTML = ht;
 
         let c = [0,0,0,0]; let l = []; let colors = ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'];
-        if(isI1) { const segIdx = result.headers.indexOf('Seguimiento'); fD.forEach(r => { const s = r[segIdx]; if(s==='Verde') c[0]++; else if(s==='Naranja') c[1]++; else if(s==='Rojo') c[2]++; else c[3]++; }); l = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo']; }
+        if(isI1) { 
+            const segIdx = result.headers.indexOf('Seguimiento'); 
+            Object.values(mapCcpp).forEach(x => { 
+                let allVerde = true, anyVerdeNaranja = false, allSinMonitoreo = true;
+                x.saps.forEach(sapRow => {
+                    const s = sapRow[segIdx];
+                    if (s !== 'Verde') allVerde = false;
+                    if (s === 'Verde' || s === 'Naranja') anyVerdeNaranja = true;
+                    if (s !== 'Sin Monitoreo') allSinMonitoreo = false;
+                });
+                let ccppSg = 'Rojo';
+                if (allVerde) ccppSg = 'Verde'; else if (allSinMonitoreo) ccppSg = 'Sin Monitoreo'; else if (anyVerdeNaranja) ccppSg = 'Naranja';
+                if(ccppSg==='Verde') c[0]++; else if(ccppSg==='Naranja') c[1]++; else if(ccppSg==='Rojo') c[2]++; else c[3]++;
+            }); 
+            l = ['Cumple Meta (>=3)', 'Cumple Parcial (1-2)', 'No Cumple (0)', 'Sin Monitoreo']; 
+        }
         else if (isI3) {
             let wA = 0, woA = 0;
             fD.forEach(r => {
@@ -1869,6 +1985,23 @@ const getEl = id => document.getElementById(id);
             if (a === 'MEF' && mI !== -1) d = d.filter(x => x[mI] === 1);
             if (a === 'FED' && fI !== -1) d = d.filter(x => x[fI] === 1);
             if (a === 'SAP REGULARES' && srI !== -1) d = d.filter(x => x[srI] === 1);
+            
+            if (t === 'ind1') {
+                const idxSalud = raw.headers.indexOf('Cumple Salud');
+                const idxSeg = raw.headers.indexOf('Seguimiento');
+                const mapCcpp = {};
+                d.forEach(row => {
+                    const key = `${row[0]}_${row[1]}`;
+                    if (!mapCcpp[key]) mapCcpp[key] = { sapsCount: 0, saludCount: 0 };
+                    mapCcpp[key].sapsCount++;
+                    if (row[idxSalud] === 1) mapCcpp[key].saludCount++;
+                });
+                d = d.map(row => {
+                    const key = `${row[0]}_${row[1]}`;
+                    const newR = [...row]; newR[idxSeg] = (mapCcpp[key].saludCount === mapCcpp[key].sapsCount) ? 1 : 0; return newR;
+                });
+            }
+            
             result = { headers: raw.headers, data: d, type: 'fed' };
         } else {
             const cache = isR ? APP_STATE.resCache : APP_STATE.sapCache;
@@ -1921,7 +2054,7 @@ const getEl = id => document.getElementById(id);
             const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud');
             const sum = {}; const sapsR = {};
             const isA = result.type === 'analysis'; const isJ = result.type === 'status_json'; const isC = result.type === 'caract_points';
-            let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle' && (t !== 'bacteriologico' || h.includes('(Total)')));
+            let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => !excludeColsExcel.includes(h) && h !== 'Observación' && (t !== 'bacteriologico' || h.includes('(Total)')));
             const colC = sumH.length;
 
             dE.forEach(r => {
