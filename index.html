@@ -85,6 +85,12 @@
     </aside>
 
     <main class="flex-1 relative bg-slate-50 overflow-hidden flex flex-col">
+      <!-- CARGADOR GLOBAL (Sincronización inicial) -->
+      <div id="sap-loader" class="hidden flex flex-col items-center justify-center h-full bg-slate-50 absolute inset-0 z-50">
+        <div class="relative"><div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div>
+        <p id="sap-loader-text" class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">SINCRONIZANDO BASE DE DATOS...</p>
+      </div>
+
       <!-- VISTA DASHBOARD -->
       <div id="view-dashboard" class="view-section h-full overflow-y-auto custom-scroll p-6 lg:p-10 max-w-7xl mx-auto w-full">
         <div class="mb-10">
@@ -177,10 +183,6 @@
 
       <!-- VISTA ACTIVIDADES SAP -->
       <div id="view-sap" class="view-section hidden h-full w-full flex flex-col">
-        <div id="sap-loader" class="flex flex-col items-center justify-center h-full bg-slate-50 absolute inset-0 z-50">
-          <div class="relative"><div class="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><i data-lucide="activity" class="text-indigo-600"></i></div></div>
-          <p id="sap-loader-text" class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">SINCRONIZANDO BASE DE DATOS...</p>
-        </div>
         <div class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
           <div class="text-center sm:text-left">
             <h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start"><i data-lucide="file-spreadsheet" class="mr-2 text-indigo-600 w-6 h-6"></i> Actividades SAP</h2>
