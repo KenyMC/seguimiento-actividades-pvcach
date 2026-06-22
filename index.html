@@ -130,6 +130,7 @@
         <div class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
           <div class="text-center sm:text-left">
             <h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start"><i data-lucide="pie-chart" class="mr-2 text-indigo-600 w-6 h-6"></i> Resultados LMP</h2>
+            <div id="res-status-text" class="mt-1"></div>
           </div>
           <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner w-full sm:w-auto overflow-x-auto custom-scroll">
             <div class="flex items-center px-3 border-r border-slate-200 gap-1 shrink-0">
@@ -140,7 +141,7 @@
             </div>
             <div class="flex items-center px-3 border-r border-slate-200 shrink-0">
               <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Ámbito:</span>
-              <select id="res-filter-ambito" class="bg-transparent text-sm font-bold text-indigo-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option></select>
+              <select id="res-filter-ambito" class="bg-transparent text-sm font-bold text-indigo-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option><option value="Meta 2025">Meta 2025</option></select>
             </div>
             <div class="flex items-center px-3 flex-1 shrink-0">
               <i data-lucide="filter" class="w-4 h-4 text-slate-400 mr-2"></i>
@@ -186,7 +187,7 @@
         <div class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
           <div class="text-center sm:text-left">
             <h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start"><i data-lucide="file-spreadsheet" class="mr-2 text-indigo-600 w-6 h-6"></i> Actividades SAP</h2>
-            <p id="sap-status-text" class="text-xs font-medium text-slate-500 mt-1">...</p>
+            <div id="sap-status-text" class="mt-1"></div>
           </div>
           <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner w-full sm:w-auto overflow-x-auto custom-scroll">
             <div class="flex items-center px-3 border-r border-slate-200 gap-1 shrink-0">
@@ -197,7 +198,7 @@
             </div>
             <div class="flex items-center px-3 border-r border-slate-200 shrink-0">
               <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Ámbito:</span>
-              <select id="sap-filter-ambito" class="bg-transparent text-sm font-bold text-indigo-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option></select>
+              <select id="sap-filter-ambito" class="bg-transparent text-sm font-bold text-indigo-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option><option value="Meta 2025">Meta 2025</option></select>
             </div>
             <div class="flex items-center px-3 flex-1 shrink-0">
               <i data-lucide="filter" class="w-4 h-4 text-slate-400 mr-2"></i>
@@ -242,7 +243,7 @@
       <!-- VISTA MODULO FED -->
       <div id="view-fed" class="view-section hidden h-full w-full flex flex-col">
         <div class="bg-white border-b border-amber-200 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 z-10 flex-shrink-0 shadow-sm">
-          <div class="text-center sm:text-left"><h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start"><i data-lucide="target" class="mr-2 text-amber-500 w-6 h-6"></i> Compromisos FED</h2></div>
+          <div class="text-center sm:text-left"><h2 class="text-xl font-black text-slate-800 flex items-center justify-center sm:justify-start"><i data-lucide="target" class="mr-2 text-amber-500 w-6 h-6"></i> Compromisos FED</h2><div id="fed-status-text" class="mt-1"></div></div>
           <div class="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-inner w-full sm:w-auto overflow-x-auto custom-scroll">
             
             <!-- FILTRO DE FECHAS FED (SOLO 2025-12 EN ADELANTE) -->
@@ -255,13 +256,15 @@
 
             <div class="flex items-center px-3 border-r border-slate-200 shrink-0">
               <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Ámbito:</span>
-              <select id="fed-filter-ambito" class="bg-transparent text-sm font-bold text-amber-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option></select>
+              <select id="fed-filter-ambito" class="bg-transparent text-sm font-bold text-amber-700 outline-none cursor-pointer"><option value="Vigilancia">Vigilancia</option><option value="MEF">MEF</option><option value="FED">FED</option><option value="SAP REGULARES">SAP REGULARES</option><option value="MIDIS">MIDIS</option><option value="Meta 2025">Meta 2025</option></select>
             </div>
             <div class="flex items-center px-3 flex-1 shrink-0">
               <i data-lucide="filter" class="w-4 h-4 text-slate-400 mr-2"></i>
               <span class="text-xs font-bold text-slate-500 uppercase mr-2 hidden md:inline tracking-wider">Red:</span>
               <select id="fed-filter-red" class="bg-transparent text-sm font-bold text-amber-700 outline-none cursor-pointer w-full max-w-[150px] md:max-w-[200px] truncate"><option value="Todos">Todas las Redes</option></select>
             </div>
+            <div class="h-6 w-px bg-slate-300 mx-1 shrink-0"></div>
+            <button onclick="window.forceRefreshData()" class="p-2 hover:bg-white text-slate-500 hover:text-amber-600 rounded-lg transition-colors shadow-sm bg-transparent hover:shadow shrink-0" title="Refrescar Datos"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
             <button onclick="window.exportToExcel('fed')" class="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg transition-all shadow-sm font-bold flex items-center gap-1 text-xs px-3 ml-1 shrink-0" title="Descargar Excel">
               <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden md:inline">EXCEL</span>
             </button>
@@ -420,10 +423,12 @@
         <button onclick="window.closeMonitorDetailModal()" class="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl p-2 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <div class="p-6 bg-white flex-1 overflow-hidden flex flex-col gap-4">
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 text-xs">
             <div><span class="block text-slate-400 font-bold uppercase mb-1">Id. SAP</span><strong id="md-id" class="text-slate-700"></strong></div>
             <div><span class="block text-slate-400 font-bold uppercase mb-1">Nombre SAP</span><strong id="md-nombre" class="text-slate-700"></strong></div>
             <div><span class="block text-slate-400 font-bold uppercase mb-1">Centro Poblado</span><strong id="md-ccpp" class="text-slate-700"></strong></div>
+            <div><span class="block text-slate-400 font-bold uppercase mb-1">Provincia</span><strong id="md-prov" class="text-slate-700"></strong></div>
+            <div><span class="block text-slate-400 font-bold uppercase mb-1">Distrito</span><strong id="md-dist" class="text-slate-700"></strong></div>
             <div><span class="block text-slate-400 font-bold uppercase mb-1">Red de Salud</span><strong id="md-red" class="text-slate-700"></strong></div>
         </div>
         <div class="overflow-x-auto overflow-y-auto custom-scroll border border-slate-200 rounded-xl flex-1 relative">
