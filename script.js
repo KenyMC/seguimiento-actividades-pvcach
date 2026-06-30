@@ -3,7 +3,9 @@ const getEl = id => document.getElementById(id);
 window.APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfaJM_yxZ08fdMOmtWkEEG_u4BmjDW7GBE05X4KSrZpWVn8E5_IK3kodh60ou219QRDQ/exec';
 
 const URLS = {
-    MAIN0: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=43168494&single=true&output=csv',
+    MAIN2022: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRkrnzzFUICs1p_KsTzsNBKgaXmoJ-v6oSnp09xu144k3dngXTKPKcJtaR9FZWkSRhLI6IOspnWmNIm/pub?gid=0&single=true&output=csv',
+    MAIN2023: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbhZ8nHp9bpSW1rcWJ9iF6gF5waF7AIyHG_BC5Z9mYhVRWFWhiKf-w0gFSVsAW3RsgOq168bPK_ENl/pub?gid=0&single=true&output=csv',
+    MAIN0: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSMzWtKm3ALeXxBxH9DWtQ6Cc4cfJ_2KpuJTP2GU2YVyAC-hoZ_msrUkPBUPekaX5LdK00ApyekTbHd/pub?gid=0&single=true&output=csv',
     MAIN: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=1863124962&single=true&output=csv',
     MAIN2: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=0&single=true&output=csv',
     SANITARIA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=284188568&single=true&output=csv',
@@ -43,8 +45,8 @@ const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS H
 const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
 const APP_STATE = {
-    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [] },
-    main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
+    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [] },
+    main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
     sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null },
     mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
@@ -52,7 +54,7 @@ const APP_STATE = {
     metaMefPorRed: {}
 };
 
-const generateMonthsUpTo = (l) => { const m = []; if (!l) return m; const [y, mx] = l.split('-').map(Number); for (let i = 2024; i <= y; i++) { const k = (i === y) ? mx : 12; for (let j = 1; j <= k; j++) { const ym = `${i}-${String(j).padStart(2, '0')}`; if (ym >= '2024-01') m.push(ym); } } return m; };
+const generateMonthsUpTo = (l) => { const m = []; if (!l) return m; const [y, mx] = l.split('-').map(Number); for (let i = 2022; i <= y; i++) { const k = (i === y) ? mx : 12; for (let j = 1; j <= k; j++) { const ym = `${i}-${String(j).padStart(2, '0')}`; if (ym >= '2022-01') m.push(ym); } } return m; };
 
 const normalizeHeader = (() => {
     const cache = new Map();
@@ -275,6 +277,8 @@ async function preloadSAPData() {
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
         APP_STATE.rawData.main = [th, ...window.alignRows(rM, th, '2025')];
         APP_STATE.rawData.main2 = [th, ...window.alignRows(rM2, th, '2026')];
+        APP_STATE.rawData.main2022 = []; APP_STATE.main2022Loaded = false;
+        APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
 
         APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi);
@@ -399,9 +403,9 @@ function updateGlobalDateDropdowns() {
     let hs = ''; let hr = ''; let hf = '';
     APP_STATE.availableMonitorMonths.forEach(m => {
         const l = `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`;
-        if (m >= '2025-01') hs += `<option value="${m}">${l}</option>`;
+        if (m >= '2022-01') hs += `<option value="${m}">${l}</option>`;
         if (APP_STATE.resActiveTab === 'res_cloro' && APP_STATE.activeTab === 'resultados') { hr += `<option value="${m}">${l}</option>`; }
-        else { if (m >= '2025-01') hr += `<option value="${m}">${l}</option>`; }
+        else { if (m >= '2022-01') hr += `<option value="${m}">${l}</option>`; }
         if (m >= '2025-12') hf += `<option value="${m}">${l}</option>`;
     });
 
@@ -419,12 +423,15 @@ window.updateGlobalDateFilter = async (isRes = false, isFed = false) => {
     const nf = getEl(pf).value; const nt = getEl(pt).value;
     APP_STATE.globalDateFrom = nf; APP_STATE.globalDateTo = nt;
 
-    if (nf < '2025-01' && !APP_STATE.main0Loaded) {
+    const loadHist = async (url, year, k, lk) => {
         const l = getEl(isRes ? 'res-processing' : (isFed ? 'fed-processing' : 'sap-processing'));
-        if (l) { l.classList.remove('hidden'); const p = l.querySelector('p'); if (p) p.textContent = "DESCARGANDO HISTÓRICO 2024..."; }
-        try { const m0 = await fetch(URLS.MAIN0 + '&t=' + Date.now()).then(r => r.text()); const rM0 = parseCSVFast(m0); const th = APP_STATE.rawData.main[0] || []; APP_STATE.rawData.main0 = [th, ...window.alignRows(rM0, th, '2024')]; APP_STATE.main0Loaded = true; } catch (e) { console.error(e); }
+        if (l) { l.classList.remove('hidden'); const p = l.querySelector('p'); if (p) p.textContent = `DESCARGANDO HISTÓRICO ${year}...`; }
+        try { const txt = await fetch(url + '&t=' + Date.now()).then(r => r.text()); const rM = parseCSVFast(txt); const th = APP_STATE.rawData.main[0] || []; APP_STATE.rawData[k] = [th, ...window.alignRows(rM, th, String(year))]; APP_STATE[lk] = true; } catch (e) { console.error(e); }
         if (l) { const p = l.querySelector('p'); if (p) p.textContent = "PROCESANDO MATRIZ..."; }
-    }
+    };
+    if (nf < '2025-01' && !APP_STATE.main0Loaded) await loadHist(URLS.MAIN0, 2024, 'main0', 'main0Loaded');
+    if (nf < '2024-01' && !APP_STATE.main2023Loaded) await loadHist(URLS.MAIN2023, 2023, 'main2023', 'main2023Loaded');
+    if (nf < '2023-01' && !APP_STATE.main2022Loaded) await loadHist(URLS.MAIN2022, 2022, 'main2022', 'main2022Loaded');
     APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; APP_STATE.sapCache = {}; APP_STATE.resCache = {};
     processActiveData();
 }
@@ -537,6 +544,8 @@ function sortTableData(data, headers) {
 function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     const from = APP_STATE.globalDateFrom; const to = APP_STATE.globalDateTo; const aF = from <= to ? from : to; const aT = from <= to ? to : from; const fM = APP_STATE.availableMonitorMonths.filter(m => m >= aF && m <= aT);
     let h = dO.main[0] || []; let cR = [];
+    if (APP_STATE.main2022Loaded && dO.main2022 && dO.main2022.length > 1) cR.push(...dO.main2022.slice(1));
+    if (APP_STATE.main2023Loaded && dO.main2023 && dO.main2023.length > 1) cR.push(...dO.main2023.slice(1));
     if (APP_STATE.main0Loaded && dO.main0 && dO.main0.length > 1) cR.push(...dO.main0.slice(1));
     if (dO.main && dO.main.length > 1) cR.push(...dO.main.slice(1));
     if (dO.main2 && dO.main2.length > 1) cR.push(...dO.main2.slice(1));
@@ -548,7 +557,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     if (ambitoFilter === 'SAP REGULARES' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbi])));
     if (ambitoFilter === 'MIDIS') { rM = rM.filter(row => APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.midisSapIds.has(String(row[idxSap]).trim())); }
     const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año');
-    let dRows = rM.filter(row => { let m = row[idxMes]; if (!m) return true; let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false; let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; if (subTab !== 'res_cloro' && subTab !== 'res_nivel_riesgo' && ym < '2025-01') return false; return ym >= aF && ym <= aT; });
+    let dRows = rM.filter(row => { let m = row[idxMes]; if (!m) return true; let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false; let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; return ym >= aF && ym <= aT; });
     let fH = [], fD = [], pT = 'status'; const idxId = findHeaderIndex(h, 'Id. SAP');
 
     if (subTab === 'res_cloro') {
@@ -786,12 +795,12 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const formatSem = (k) => { const [y, s] = k.split('-'); return s === 'S1' ? `1er Semestre ${y}` : `2do Semestre ${y}`; };
 
         fH = [...CORE_HEADERS, 'Cloro LMP'];
-        sK.forEach(k => { fH.push(`Fuente (${formatSem(k)})`); fH.push(`Red (${formatSem(k)})`); });
+        sK.forEach(k => { fH.push(`Fuente (${formatSem(k)})`); fH.push(`Ver Detalle Fuente (${formatSem(k)})`); fH.push(`Red (${formatSem(k)})`); fH.push(`Ver Detalle Red (${formatSem(k)})`); });
 
         const map = {};
         const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
         const idxNomMues = findHeaderIndex(h, 'Nombre Lugar de Muestreo');
-        const idxCloro = findHeaderIndex(h, 'Cloro');
+        const idxCloro = findHeaderIndex(h, 'Cloro'); const idxFecha1 = findHeaderIndex(h, 'Fecha Muestreo'); const idxFecha2 = findHeaderIndex(h, 'Fecha');
 
         dRows.forEach(r => {
             const id = r[idxId];
@@ -822,24 +831,25 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 return { isC: exp > 0 && ct === exp, ct, exp, mis, fnd };
             };
 
+            const getFecha = () => { if (idxFecha1 !== -1 && !isCellEmpty(r[idxFecha1])) return r[idxFecha1]; if (idxFecha2 !== -1 && !isCellEmpty(r[idxFecha2])) return r[idxFecha2]; return ''; }; const getCloro = () => { if (idxCloro !== -1 && !isCellEmpty(r[idxCloro])) return r[idxCloro]; return ''; };
             const up = (type, e) => {
                 if (e.ct > 0) {
                     let st = e.isC ? 1 : 2;
                     let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`);
                     if (st === 2 && pm.length > 15) return;
                     if (!map[id].sem[skey][type].pts[nomMues]) {
-                        map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct };
+                        map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
                     } else {
                         const sl = map[id].sem[skey][type].pts[nomMues];
-                        if (sl.status === 2 && st === 1) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct };
-                        else if (sl.status === st && sl.params.length > pm.length) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct };
+                        if (sl.status === 2 && st === 1) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
+                        else if (sl.status === st && sl.params.length > pm.length) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
                     }
                 }
             };
             let hasCaract = false;
             if (iC) { const eC = ev(CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR); up('c', eC); if (eC.ct > 0) hasCaract = true; }
             if (iP) { const eP = ev(CARACT_PILETA_SINGLE, CARACT_PILETA_OR); up('p', eP); if (eP.ct > 0) hasCaract = true; }
-            if (hasCaract && idxCloro !== -1 && r[idxCloro] !== undefined && String(r[idxCloro]).trim() !== '') {
+            if (iP && hasCaract && idxCloro !== -1 && r[idxCloro] !== undefined && String(r[idxCloro]).trim() !== '') {
                 const val = parseFloat(r[idxCloro]);
                 if (!isNaN(val) && map[id].vCloro === null) {
                     map[id].vCloro = val;
@@ -855,12 +865,22 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             sK.forEach(k => {
                 const cKeys = Object.keys(sap.sem[k].c.pts); const pKeys = Object.keys(sap.sem[k].p.pts);
                 if (cKeys.length > 0 || pKeys.length > 0) hasAny = true;
-                rData.push(JSON.stringify(sap.sem[k].c.pts));
-                rData.push(JSON.stringify(sap.sem[k].p.pts));
+                rData.push(JSON.stringify(sap.sem[k].c.pts)); rData.push(JSON.stringify(sap.sem[k].c.pts)); rData.push(JSON.stringify(sap.sem[k].p.pts)); rData.push(JSON.stringify(sap.sem[k].p.pts));
             });
             if (!hasAny) return [];
+            let finalCloroVal = null;
+            sK.forEach(k => {
+                const pKeys = Object.keys(sap.sem[k].p.pts);
+                pKeys.forEach(pt => {
+                    const clStr = sap.sem[k].p.pts[pt].cloro;
+                    if (clStr !== undefined && clStr !== '') {
+                        const cl = parseFloat(clStr);
+                        if (!isNaN(cl) && finalCloroVal === null) finalCloroVal = cl;
+                    }
+                });
+            });
             let cloroLMP = '-';
-            if (sap.vCloro !== null) { cloroLMP = (sap.vCloro >= 0.5 && sap.vCloro <= 5) ? '0' : '1'; }
+            if (finalCloroVal !== null) { cloroLMP = (finalCloroVal >= 0.5 && finalCloroVal <= 5) ? '0' : '1'; }
             return aS.get(id).map(mt => [...mt, cloroLMP, ...rData]);
         }); pT = 'caract_points';
     } else if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
@@ -1956,8 +1976,14 @@ function renderMainTable(result, prefix) {
                 try { pts = JSON.parse(c); } catch (e) { }
                 const keys = Object.keys(pts);
                 const count = keys.length;
+                let isVerDetalle = h.startsWith('Ver Detalle');
+
                 if (count === 0) {
-                    ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shadow-inner" title="Sin Monitoreo"><i data-lucide="minus" class="w-4 h-4"></i></div>`;
+                    if (isVerDetalle) {
+                        ctt = `<span class="text-slate-300 text-[10px] italic font-medium">Sin detalle</span>`;
+                    } else {
+                        ctt = `<div class="mx-auto w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shadow-inner" title="Sin Monitoreo"><i data-lucide="minus" class="w-4 h-4"></i></div>`;
+                    }
                 } else {
                     let hasIncomplete = false;
                     let htmlStr = '';
@@ -1966,13 +1992,22 @@ function renderMainTable(result, prefix) {
                         if (d.status === 2) hasIncomplete = true;
                         const stLabel = d.status === 1 ? '<span class="text-emerald-600 font-bold">[Completo]</span>' : '<span class="text-amber-600 font-bold">[Incompleto]</span>';
                         const paramsHtml = d.params.map(p => `<span class="bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-1 rounded text-[10px] font-bold">${p}</span>`).join('');
-                        htmlStr += `<div class="mb-4 border-b border-slate-100 pb-3 last:border-0"><h4 class="font-black text-slate-800 text-xs mb-2">${pt} ${stLabel}</h4><div class="flex flex-wrap gap-1">${paramsHtml}</div></div>`;
+
+                        htmlStr += `<div class="mb-4 border-b border-slate-100 pb-3 last:border-0">`;
+                        htmlStr += `<h4 class="font-black text-slate-800 text-xs mb-2">${pt} ${stLabel}</h4>`;
+                        if (d.fecha || d.cloro) {
+                            htmlStr += `<div class="text-[10px] text-slate-600 mb-2 bg-slate-50 p-1.5 rounded border border-slate-100 inline-block"><strong>Fecha:</strong> ${safeEscape(d.fecha || '-')} <span class="mx-1 text-slate-300">|</span> <strong>Cloro:</strong> ${safeEscape(String(d.cloro) || '-')}</div>`;
+                        }
+                        htmlStr += `<div class="flex flex-wrap gap-1">${paramsHtml}</div></div>`;
                     });
 
-                    const colorClass = hasIncomplete ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
-                    const icon = hasIncomplete ? 'info' : 'check';
-
-                    ctt = `<div class="mx-auto px-3 py-1 rounded-full ${colorClass} inline-flex items-center justify-center cursor-pointer shadow-inner transition-colors border ${hasIncomplete ? 'border-amber-300' : 'border-emerald-300'}" onclick="event.stopPropagation(); window.openCaractDetailModal(decodeURIComponent('${encodeURIComponent(htmlStr)}'))" title="Clic para ver detalles"><span class="font-black text-[13px] mr-1.5">${count}</span><i data-lucide="${icon}" class="w-3.5 h-3.5"></i></div>`;
+                    if (isVerDetalle) {
+                        ctt = `<button onclick="event.stopPropagation(); window.openCaractDetailModal(decodeURIComponent('${encodeURIComponent(htmlStr)}'))" class="bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-lg shadow-sm text-[10px] font-black tracking-widest transition-colors inline-flex items-center"><i data-lucide="eye" class="w-3.5 h-3.5 mr-1.5"></i>VER DETALLE</button>`;
+                    } else {
+                        const colorClass = hasIncomplete ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200';
+                        const icon = hasIncomplete ? 'info' : 'check';
+                        ctt = `<div class="mx-auto px-3 py-1 rounded-full ${colorClass} inline-flex items-center justify-center cursor-pointer shadow-inner transition-colors border ${hasIncomplete ? 'border-amber-300' : 'border-emerald-300'}" onclick="event.stopPropagation(); window.openCaractDetailModal(decodeURIComponent('${encodeURIComponent(htmlStr)}'))" title="Clic para ver detalles"><span class="font-black text-[13px] mr-1.5">${count}</span><i data-lucide="${icon}" class="w-3.5 h-3.5"></i></div>`;
+                    }
                 }
                 tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
             } else if (result.type === 'cloro' && idxO >= CORE_HEADERS.length && h !== 'Consume Agua Clorada') {
