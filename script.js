@@ -2760,9 +2760,8 @@ function renderFedConsolidatedAndChart(result) {
         }
         fD.forEach(r => {
             const red = r[6] || 'Sin Red';
-            const dist = r[5] || 'Sin Distrito';
-            const key = `${red}|${dist}`;
-            if (!s[key]) s[key] = { red, dist, cols: 0, mon: 0, mc: Array(monColsCount).fill(0) };
+            const key = red;
+            if (!s[key]) s[key] = { red, cols: 0, mon: 0, mc: Array(monColsCount).fill(0) };
             s[key].cols++;
             const tM = parseInt(r[8]) || 0;
             s[key].mon += tM;
@@ -2777,16 +2776,18 @@ function renderFedConsolidatedAndChart(result) {
         });
         const monHeaders = result.headers.slice(9);
         const sortedKeys = Object.keys(s).sort();
-        let html = `<div class="flex flex-col w-full p-4"><div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por RED DE SALUD y DISTRITO</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Red de Salud</th><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Distrito</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Colegio</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Mon.</th>`;
+        let html = `<div class="flex flex-col w-full p-4"><div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">  Por RED DE SALUD</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Red de Salud</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Colegio</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Mon.</th>`;
         monHeaders.forEach(h => { html += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${h}</th>`; });
         html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
         sortedKeys.forEach(k => {
             const obj = s[k];
-            html += `<tr class="hover:bg-amber-50 transition-colors"><td class="px-5 py-2.5 text-[10px] font-bold text-slate-700">${obj.red}</td><td class="px-5 py-2.5 text-[10px] text-slate-600">${obj.dist}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.cols}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.mon}</td>`;
+            html += `<tr class="hover:bg-amber-50 transition-colors"><td class="px-5 py-2.5 text-[10px] font-bold text-slate-700">${obj.red}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.cols}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.mon}</td>`;
             obj.mc.forEach(v => { html += `<td class="px-4 py-2 text-center text-[11px] font-bold text-slate-700">${v}</td>`; });
             html += `</tr>`;
         });
-        html += `</tbody><tfoot class="bg-indigo-50/80 border-t-2 border-indigo-200 font-black"><tr><td class="px-5 py-3 text-[10px] text-indigo-900 text-right uppercase tracking-widest" colspan="2">TOTAL GENERAL</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotCol}</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotMon}</td>`;
+        html += `</tbody><tfoot class="bg-indigo-50/80 border-t-2 border-indigo-200 font-black"><tr><td class="px-5 py-3 text-[10px] text-indigo-900 text-right uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotCol}</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotMon}</td>`;
+        gMonCounts.forEach(v => { html += `<td class="px-4 py-3 text-center text-sm text-indigo-700">${v}</td>`; });
+        html += `</tr></tfoot></table></div></div></div>`;igo-700">${gTotMon}</td>`;
         gMonCounts.forEach(v => { html += `<td class="px-4 py-3 text-center text-sm text-indigo-700">${v}</td>`; });
         html += `</tr></tfoot></table></div></div></div>`;
         getEl('fed-consolidated-container').innerHTML = html;
