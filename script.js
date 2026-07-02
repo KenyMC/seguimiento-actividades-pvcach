@@ -2787,8 +2787,6 @@ function renderFedConsolidatedAndChart(result) {
         });
         html += `</tbody><tfoot class="bg-indigo-50/80 border-t-2 border-indigo-200 font-black"><tr><td class="px-5 py-3 text-[10px] text-indigo-900 text-right uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotCol}</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotMon}</td>`;
         gMonCounts.forEach(v => { html += `<td class="px-4 py-3 text-center text-sm text-indigo-700">${v}</td>`; });
-        html += `</tr></tfoot></table></div></div></div>`;igo-700">${gTotMon}</td>`;
-        gMonCounts.forEach(v => { html += `<td class="px-4 py-3 text-center text-sm text-indigo-700">${v}</td>`; });
         html += `</tr></tfoot></table></div></div></div>`;
         getEl('fed-consolidated-container').innerHTML = html;
         getEl('fed-chart-container').innerHTML = '';
