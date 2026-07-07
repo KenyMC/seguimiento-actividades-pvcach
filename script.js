@@ -2236,6 +2236,7 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
 
     if (hasSemesters) {
         Object.entries(semesterGroups).forEach(([semName, cols]) => {
+            if (currentTab === 'caracterizacion' && semName === 'General') return;
             html += `<div class="mb-6 last:mb-0 border border-slate-200 rounded-xl overflow-hidden shadow-sm"><div class="bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-indigo-500"></i><h5 class="font-black text-[11px] text-indigo-800 uppercase tracking-widest">${semName}</h5></div>`;
             html += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th><th class="px-5 py-4 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
             if (currentTab === 'caracterizacion' && semName === '1er Semestre 2026') {
