@@ -17,7 +17,8 @@ const URLS = {
     SAP_REGULARES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=811630485&single=true&output=csv',
     VIVIENDA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1863536023&single=true&output=csv',
     SAP_ESTADO: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1649240916&single=true&output=csv',
-    MIDIS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=131170297&single=true&output=csv'
+    MIDIS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=131170297&single=true&output=csv',
+    META2025: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=601186067&single=true&output=csv'
 };
 
 const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -47,9 +48,9 @@ const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coli
 const APP_STATE = {
     currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [] },
     main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
-    sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resCache: {},
+    sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resFilterUbicaciones: [], resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null, ind4: null },
-    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
+    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
     globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
     metaMefPorRed: {}
 };
@@ -223,6 +224,29 @@ function init() {
     if (resFilterRed) {
         resFilterRed.addEventListener('change', e => { APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
     }
+    
+    window.updateResUbicacionFilter = function() {
+        const checkboxes = document.querySelectorAll('.res-ubicacion-cb');
+        const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        APP_STATE.resFilterUbicaciones = selected;
+        const textEl = document.getElementById('res-filter-ubicacion-text');
+        if (textEl) {
+            if (selected.length === 0) textEl.textContent = 'Todas';
+            else if (selected.length === 1) textEl.textContent = selected[0].charAt(0).toUpperCase() + selected[0].slice(1).split(' ')[0] + '...';
+            else textEl.textContent = selected.length + ' selec.';
+        }
+        APP_STATE.currentTableFilters = {};
+        processActiveData();
+    };
+    
+    window.addEventListener('click', (e) => {
+        const btn = document.getElementById('res-filter-ubicacion-btn');
+        const menu = document.getElementById('res-filter-ubicacion-menu');
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
     const resFilterAmbito = getEl('res-filter-ambito');
     if (resFilterAmbito) {
         resFilterAmbito.addEventListener('change', e => { APP_STATE.resFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
@@ -271,7 +295,7 @@ async function preloadSAPData() {
         const lt = getEl('sap-loader-text'); if (lt) lt.textContent = "Descargando matrices (1/2)...";
         const [m, m2, s] = await Promise.all([fw(URLS.MAIN), fw(URLS.MAIN2), fw(URLS.SANITARIA)]);
         if (lt) lt.textContent = "Descargando complementos (2/2)...";
-        const [ri, me, fe, ob, sr, vi, se, mi] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS)]);
+        const [ri, me, fe, ob, sr, vi, se, mi, m25] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025)]);
         if (lt) lt.textContent = "Procesando...";
 
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
@@ -281,7 +305,7 @@ async function preloadSAPData() {
         APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
 
-        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi);
+        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25);
         const mD = parseCSVFast(me); const fD = parseCSVFast(fe);
 
         let mx = '2025-12';
@@ -303,6 +327,10 @@ async function preloadSAPData() {
         APP_STATE.midisUbigeos = new Set(); APP_STATE.midisSapIds = new Set();
         const miD = APP_STATE.rawData.midis;
         if (miD.length > 1) { let uI = findHeaderIndex(miD[0], 'Ubigeo'); let sI = findHeaderIndex(miD[0], 'Id. SAP'); miD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.midisUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.midisSapIds.add(String(r[sI]).trim()); }); }
+
+        APP_STATE.meta2025Ubigeos = new Set(); APP_STATE.meta2025SapIds = new Set();
+        const m25D = APP_STATE.rawData.meta2025;
+        if (m25D.length > 1) { let uI = findHeaderIndex(m25D[0], 'Ubigeo'); let sI = findHeaderIndex(m25D[0], 'Id. SAP'); m25D.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.meta2025Ubigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.meta2025SapIds.add(String(r[sI]).trim()); }); }
 
         const rds = new Set();
         if (APP_STATE.rawData.main.length > 1) { const idx = findHeaderIndex(th, 'Red de Salud'); APP_STATE.rawData.main.slice(1).forEach(r => { if (r[idx]) rds.add(r[idx]); }); }
@@ -383,7 +411,22 @@ function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monit
 window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
 
 function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
-window.changeResSubTab = id => { if (APP_STATE.resActiveTab === id) return; APP_STATE.resActiveTab = id; APP_STATE.currentTableFilters = {}; renderResTabs(); updateGlobalDateDropdowns(); processActiveData(); }
+window.changeResSubTab = id => { 
+    if (APP_STATE.resActiveTab === id) return; 
+    APP_STATE.resActiveTab = id; 
+    APP_STATE.currentTableFilters = {}; 
+    const ubi = document.getElementById('res-filter-ubicacion-container');
+    if (ubi) {
+        if (id === 'res_nivel_riesgo' || id === 'res_riesgo') {
+            ubi.classList.remove('hidden'); ubi.classList.add('flex');
+        } else {
+            ubi.classList.add('hidden'); ubi.classList.remove('flex');
+        }
+    }
+    renderResTabs(); 
+    updateGlobalDateDropdowns(); 
+    processActiveData(); 
+}
 
 function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{ id: 'ind1', label: 'AI-01.01' }, { id: 'ind2', label: 'AI-02.01' }, { id: 'ind3', label: 'AI-03.01' }, { id: 'ind4', label: 'AI-05.01' }].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
 window.changeFedSubTab = id => {
@@ -460,11 +503,9 @@ function processActiveData() {
                         const rawResult = APP_STATE.fedCache[t];
                         let filteredData = rawResult.data;
 
-                        // Filtrar por Red
                         const idxRed = rawResult.headers.indexOf('Red de Salud');
                         if (r !== 'Todos' && idxRed !== -1) filteredData = filteredData.filter(x => x[idxRed] === r);
 
-                        // Filtrar por Ámbito
                         const mI = rawResult.headers.indexOf('MEF');
                         const fI = rawResult.headers.indexOf('FED');
                         const srI = rawResult.headers.indexOf('SAP REGULARES');
@@ -489,7 +530,7 @@ function processActiveData() {
         return;
     }
 
-    const cK = `${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`;
+    const cK = `${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}_${(APP_STATE.resFilterUbicaciones || []).join(',')}`;
     const end = (res) => { renderMainTable(res, prefix); renderConsolidatedAndChart(res, prefix, t); updateGlobalDateDropdowns(); loader.classList.add('hidden'); };
 
     if (cache[cK]) { end(cache[cK]); return; }
@@ -557,13 +598,25 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     if (ambitoFilter === 'FED' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbi])));
     if (ambitoFilter === 'SAP REGULARES' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbi])));
     if (ambitoFilter === 'MIDIS') { rM = rM.filter(row => APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.midisSapIds.has(String(row[idxSap]).trim())); }
-    const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año');
-    let dRows = rM.filter(row => { let m = row[idxMes]; if (!m) return true; let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false; let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; return ym >= aF && ym <= aT; });
+    if (ambitoFilter === 'Meta 2025') { rM = rM.filter(row => APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.meta2025SapIds.has(String(row[idxSap]).trim())); }
+    const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año'); const iLoc = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
+    let dRows = rM.filter(row => { 
+        let m = row[idxMes]; if (!m) return true; 
+        let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false; 
+        let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; 
+        if (ym < aF || ym > aT) return false;
+        if (APP_STATE.resFilterUbicaciones && APP_STATE.resFilterUbicaciones.length > 0 && iLoc !== -1 && (subTab === 'res_nivel_riesgo' || subTab === 'res_riesgo')) {
+            const loc = String(row[iLoc] || '').trim().toLowerCase();
+            if (!APP_STATE.resFilterUbicaciones.some(val => loc.includes(val))) return false;
+        }
+        return true;
+    });
     let fH = [], fD = [], pT = 'status'; const idxId = findHeaderIndex(h, 'Id. SAP');
 
     if (subTab === 'res_cloro') {
         fH = [...CORE_HEADERS, 'Total Monitoreo', 'Cloro < 0.5', 'Cloro > 5', 'Cloro Rango LMP 0.5 a 5', 'Total Meses Cumplen', 'Consume Agua Clorada'];
         const map = {}; const idxC = findHeaderIndex(h, 'Cloro');
+
         dRows.forEach(r => { const id = r[idxId]; if (!id) return; let mR = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mR).toUpperCase()]; if (!mm) return; let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`; if (!map[id]) map[id] = { meta: getMeta(r, h), tot: 0, low: 0, high: 0, ok: 0, m: {} }; if (!map[id].m[ym]) map[id].m[ym] = { tot: 0, ok: 0 }; if (idxC !== -1 && !isCellEmpty(r[idxC])) { const v = parseFloat(r[idxC]); if (!isNaN(v)) { map[id].tot++; map[id].m[ym].tot++; if (v < 0.5) map[id].low++; else if (v > 5) map[id].high++; else { map[id].ok++; map[id].m[ym].ok++; } } } });
         const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
         const reqM = Math.ceil(fM.length * 5 / 6);
@@ -575,8 +628,6 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
 
         const map = {};
         dRows.forEach(r => {
-            const loc = r[iLoc] ? String(r[iLoc]).trim().toLowerCase() : '';
-            if (!loc.includes('red de distribu')) return;
             const ubi = r[iUbi] ? String(r[iUbi]).trim() : ''; const ccpp = r[iCCPP] ? String(r[iCCPP]).trim() : '';
             if (!ubi || !ccpp) return;
 
@@ -839,11 +890,11 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                     let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`);
                     if (st === 2 && pm.length > 15) return;
                     if (!map[id].sem[skey][type].pts[nomMues]) {
-                        map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
+                        map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, fnd: e.fnd, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
                     } else {
                         const sl = map[id].sem[skey][type].pts[nomMues];
-                        if (sl.status === 2 && st === 1) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
-                        else if (sl.status === st && sl.params.length > pm.length) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
+                        if (sl.status === 2 && st === 1) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, fnd: e.fnd, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
+                        else if (sl.status === st && sl.params.length > pm.length) map[id].sem[skey][type].pts[nomMues] = { status: st, params: pm, fnd: e.fnd, ct: e.ct, fecha: getFecha(), cloro: getCloro() };
                     }
                 }
             };
@@ -862,16 +913,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             const sap = map[id];
             if (!sap) return [];
             let hasAny = false;
-            const rData = [];
+            let finalCloroVal = null;
             sK.forEach(k => {
                 const cKeys = Object.keys(sap.sem[k].c.pts); const pKeys = Object.keys(sap.sem[k].p.pts);
                 if (cKeys.length > 0 || pKeys.length > 0) hasAny = true;
-                rData.push(JSON.stringify(sap.sem[k].c.pts)); rData.push(JSON.stringify(sap.sem[k].c.pts)); rData.push(JSON.stringify(sap.sem[k].p.pts)); rData.push(JSON.stringify(sap.sem[k].p.pts));
-            });
-            if (!hasAny) return [];
-            let finalCloroVal = null;
-            sK.forEach(k => {
-                const pKeys = Object.keys(sap.sem[k].p.pts);
                 pKeys.forEach(pt => {
                     const clStr = sap.sem[k].p.pts[pt].cloro;
                     if (clStr !== undefined && clStr !== '') {
@@ -880,8 +925,62 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                     }
                 });
             });
+            if (!hasAny) return [];
+
             let cloroLMP = '-';
-            if (finalCloroVal !== null) { cloroLMP = (finalCloroVal >= 0.5 && finalCloroVal <= 5) ? '0' : '1'; }
+            let isCloroCumple = false;
+            if (finalCloroVal !== null) {
+                cloroLMP = (finalCloroVal >= 0.5 && finalCloroVal <= 5) ? '0' : '1';
+                if (cloroLMP === '0') isCloroCumple = true;
+            }
+
+            const allowedMissing = new Set(['BACTERIAS HETEROTRÓFICAS', 'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Totales (NMP)', 'E. Coli (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (UFC)', 'Bacterias Coliformes Fecales', 'Bacterias Coliformes Totales', 'E. Coli']);
+
+            const rData = [];
+            sK.forEach(k => {
+                let obsParts = [];
+                const pKeys = Object.keys(sap.sem[k].p.pts);
+                pKeys.forEach(pt => {
+                    const point = sap.sem[k].p.pts[pt];
+                    if (point.status === 2 && isCloroCumple) {
+                        let remainingParams = [];
+                        let missingAllowedParams = [];
+                        let hasOtherFalta = false;
+                        for (let i = 0; i < point.params.length; i++) {
+                            const m = point.params[i];
+                            if (m.startsWith('Falta: ')) {
+                                let c = m.substring(7).trim();
+                                if (allowedMissing.has(c)) {
+                                    missingAllowedParams.push(c);
+                                } else {
+                                    remainingParams.push(m);
+                                    hasOtherFalta = true;
+                                }
+                            } else {
+                                remainingParams.push(m);
+                            }
+                        }
+                        if (missingAllowedParams.length > 0) {
+                            point.obs = missingAllowedParams.map(m => `Falta: ${m}`).join(', ');
+                            remainingParams.unshift('Exceptuado por Cloro');
+                            point.params = remainingParams;
+                            if (!hasOtherFalta) {
+                                point.status = 1;
+                                point.params = ['Exceptuado por Cloro', ...(point.fnd || [])];
+                            }
+                        }
+                    }
+                    if (point.obs) {
+                        obsParts.push(`${pt}: ${point.obs}`);
+                    }
+                });
+
+                let obsStr = obsParts.length > 0 ? obsParts.join(' | ') : '-';
+                rData.push(JSON.stringify(sap.sem[k].c.pts));
+                rData.push(JSON.stringify(sap.sem[k].c.pts));
+                rData.push(JSON.stringify(sap.sem[k].p.pts));
+                rData.push(JSON.stringify(sap.sem[k].p.pts));
+            });
             return aS.get(id).map(mt => [...mt, cloroLMP, ...rData]);
         }); pT = 'caract_points';
     } else if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
@@ -1036,9 +1135,11 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const idxSapR = findHeaderIndex(lH, 'Id. SAP');
 
         if (redFilter !== 'Todos' && idxRedR !== -1) lR = lR.filter(row => row[idxRedR] === redFilter);
-        if (ambitoFilter === 'MEF' && idxSapR !== -1) lR = lR.filter(row => APP_STATE.mefSapIds.has(String(row[idxSapR]).trim()));
+        if (ambitoFilter === 'MEF') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.mefUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.mefSapIds.has(String(row[idxSapR]).trim()))); }
         if (ambitoFilter === 'FED' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbiR])));
         if (ambitoFilter === 'SAP REGULARES' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbiR])));
+        if (ambitoFilter === 'MIDIS') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.midisSapIds.has(String(row[idxSapR]).trim()))); }
+        if (ambitoFilter === 'Meta 2025') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.meta2025SapIds.has(String(row[idxSapR]).trim()))); }
 
         const mapRiesgos = {};
         const iAR = findHeaderIndex(lH, 'Año');
@@ -1046,21 +1147,37 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const lNomCCPP = findHeaderIndex(lH, 'Nombre CCPP');
 
         lR.forEach(r => {
-            let nom = lNomSAP !== -1 ? normalizeHeader(r[lNomSAP]) : '';
+            let rawNom = lNomSAP !== -1 ? r[lNomSAP] : '';
+            let extractedId = '';
+            if (rawNom && String(rawNom).includes('|')) {
+                const pts = String(rawNom).split('|');
+                extractedId = pts[0].trim();
+                rawNom = pts[1].trim();
+            }
+            let nom = rawNom ? normalizeHeader(rawNom) : '';
             if (!nom) nom = lNomCCPP !== -1 ? normalizeHeader(r[lNomCCPP]) : '';
             if (!nom) return;
             let ubi = idxUbiR !== -1 ? formatUbigeo(r[idxUbiR]) : '';
-            let key = `${ubi}_${nom}`;
-
             let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : '';
+            if (ano && !fM.some(ym => ym.startsWith(ano + '-'))) return;
+
+            let key = `${ubi}_${nom}`;
             const vM = {};
+
 
             if (!mapRiesgos[key]) {
                 mapRiesgos[key] = {
-                    meta: CORE_HEADERS.map(x => { let v = r[findHeaderIndex(lH, x)] || ''; return x === 'Ubigeo' ? formatUbigeo(v) : v; }),
+                    meta: CORE_HEADERS.map(x => {
+                        if (x === 'Id. SAP' && extractedId) return extractedId;
+                        let v = r[findHeaderIndex(lH, x)] || '';
+                        if (x === 'Nombre SAP' && rawNom) return rawNom;
+                        return x === 'Ubigeo' ? formatUbigeo(v) : v;
+                    }),
                     vM: {}
                 };
                 fM.forEach(ym => mapRiesgos[key].vM[ym] = { status: 3, params: [] });
+            } else if (extractedId && !mapRiesgos[key].meta[0]) {
+                mapRiesgos[key].meta[0] = extractedId;
             }
 
             fM.forEach(ym => {
@@ -1935,7 +2052,7 @@ function runFedLogic(dO, ind) {
 function renderMainTable(result, prefix) {
     const cont = getEl(`${prefix}-main-table-container`); const fB = getEl(`${prefix}-active-filters`); const dH = result.headers.filter(h => h !== 'Detalles');
     let fD = result.data;
-    if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch (e) { return false; } } return cV === String(v); }); }); }
+    if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); let hName = result.headers[i]; if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Observación' && hName !== 'Ver Detalle' && hName !== 'Cloro LMP') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch (e) { return false; } } if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Cloro LMP') { try { const pts = JSON.parse(cV); const keys = Object.keys(pts); if (keys.length === 0) return String(v) === '0'; let hasInc = false; keys.forEach(k => { if (pts[k].status === 2) hasInc = true; }); return (hasInc ? '2' : '1') === String(v); } catch (e) { return false; } } return cV === String(v); }); }); }
 
     let headerHtml = '';
     if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
@@ -2180,7 +2297,12 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
     let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle' && (currentTab !== 'bacteriologico' || h.includes('(Total)')));
     const colC = sumH.length; const grTot = Array(colC).fill(null).map(() => (isJ || isC) ? { c: 0, i: 0, s: 0 } : 0); let gTSap = 0;
     const isSapPrefix = prefix === 'sap';
-    const requiredMonths = Math.max(1, sumH.length >= 10 ? sumH.length - 2 : sumH.length - 1);
+    let requiredMonths = Math.max(1, sumH.length >= 10 ? sumH.length - 2 : sumH.length - 1);
+    if (currentTab === 'sanitaria') {
+        requiredMonths = sumH.length;
+    } else if (currentTab === 'bacteriologico') {
+        requiredMonths = sumH.length >= 12 ? 10 : (sumH.length >= 6 ? 5 : sumH.length);
+    }
     let fD = result.data;
     if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); if (isJ && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch (e) { return false; } } return cV === String(v); }); }); }
 
@@ -2217,12 +2339,7 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
     let hasSemesters = false;
     sumH.forEach((h, i) => {
         let sem = 'General';
-        if (currentTab === 'sanitaria') {
-            if (h.includes('1ra Inspección')) sem = '1er Semestre ' + h.split(' ').pop();
-            else if (h.includes('2da Inspección')) sem = '2do Semestre ' + h.split(' ').pop();
-        }
-        // Only for 'sap' prefix, and only if it's 'caracterizacion'
-        else if (isSapPrefix && currentTab === 'caracterizacion') {
+        if (isSapPrefix && currentTab === 'caracterizacion') {
             const match = h.match(/\((.*?)\)/);
             if (match) sem = match[1];
         }
@@ -2278,7 +2395,7 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
             }); html += `</tr></tbody></table></div></div>`;
         });
     } else {
-        const showAvance = currentTab === 'monitor' || currentTab === 'bacteriologico' || currentTab === 'riesgos';
+        const showAvance = currentTab === 'monitor' || currentTab === 'bacteriologico' || currentTab === 'riesgos' || currentTab === 'sanitaria';
         html = `<table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th><th class="px-5 py-4 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
         sumH.forEach(h => html += `<th class="px-5 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${h.substring(0, 15)}</th>`);
         if (showAvance) html += `<th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">AVANCE</th>`;
