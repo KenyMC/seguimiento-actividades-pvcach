@@ -1135,6 +1135,8 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const idxSapR = findHeaderIndex(lH, 'Id. SAP');
 
         if (redFilter !== 'Todos' && idxRedR !== -1) lR = lR.filter(row => row[idxRedR] === redFilter);
+        // Corrección [2026-07-09]: La base de Riesgos no contiene 'Id. SAP'.
+        // Para que el filtro MEF funcione, usamos 'mefUbigeos' como respaldo al igual que en MIDIS y Meta 2025.
         if (ambitoFilter === 'MEF') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.mefUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.mefSapIds.has(String(row[idxSapR]).trim()))); }
         if (ambitoFilter === 'FED' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbiR])));
         if (ambitoFilter === 'SAP REGULARES' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbiR])));
@@ -1147,6 +1149,9 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const lNomCCPP = findHeaderIndex(lH, 'Nombre CCPP');
 
         lR.forEach(r => {
+            // Corrección [2026-07-09]: Manejo de duplicados por años (2025 vs 2026)
+            // Si el Nombre SAP viene con ID concatenado (ej. 16269|CHACAMAYO), extraemos el ID para la primera columna
+            // y limpiamos el nombre para que coincida exactamente con los registros antiguos (ej. CHACAMAYO).
             let rawNom = lNomSAP !== -1 ? r[lNomSAP] : '';
             let extractedId = '';
             if (rawNom && String(rawNom).includes('|')) {
@@ -1159,6 +1164,9 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             if (!nom) return;
             let ubi = idxUbiR !== -1 ? formatUbigeo(r[idxUbiR]) : '';
             let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : '';
+            
+            // Corrección [2026-07-09]: Filtramos estrictamente para que solo se procesen las filas que correspondan 
+            // a los años que el usuario ha seleccionado en el filtro de fechas (fM).
             if (ano && !fM.some(ym => ym.startsWith(ano + '-'))) return;
 
             let key = `${ubi}_${nom}`;
@@ -3125,7 +3133,7 @@ window.exportToExcel = (prefix) => {
         result = { headers: raw.headers, data: d, type: 'fed' };
     } else {
         const cache = isR ? APP_STATE.resCache : APP_STATE.sapCache;
-        const cK = `${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}`;
+        const cK = `${t}_${r}_${a}_${APP_STATE.globalDateFrom}_${APP_STATE.globalDateTo}_${(APP_STATE.resFilterUbicaciones || []).join(',')}`;
         result = cache[cK];
     }
     if (!result || !result.data) return;
