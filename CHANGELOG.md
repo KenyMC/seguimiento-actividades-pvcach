@@ -1,6 +1,51 @@
-# Historial de Cambios y Mejoras (Changelog)
+# Changelog del Proyecto - Seguimiento de Actividades SAP
 
-Este documento registra todas las modificaciones, mejoras y correcciones realizadas en el código, funcionando como una bitácora para facilitar el entendimiento de ajustes previos y futuras implementaciones.
+## [2026-07-13] - Implementación de Ámbito APNOP
+### Añadido
+- Nueva fuente de datos `APNOP` en el objeto `URLS` (Google Sheets).
+- Nuevas variables en `APP_STATE` para la caché de Ubigeos e Ids de SAP de APNOP (`apnopUbigeos` y `apnopSapIds`).
+- Lógica de descarga y mapeo de datos APNOP durante el proceso inicial `preloadSAPData()`.
+- Opciones de filtro "APNOP" agregadas a los menús desplegables de Ámbito en `index.html` para todas las vistas (SAP, Resultados LMP, FED).
+- Soporte para el filtro de APNOP en las funciones de procesamiento `runSapLogic` y `Riesgos`, y soporte extendido en `processActiveData` (ahora las lógicas de FED aplican el filtro a nivel de interfaz basado en Sets dinámicos).
+
+### Fragmento de Código Principal Modificado
+```javascript
+// script.js (Fragmento de la lógica agregada para runSapLogic y Riesgos)
+if (ambitoFilter === 'APNOP') { 
+    rM = rM.filter(row => 
+        APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbi])) || 
+        APP_STATE.apnopSapIds.has(String(row[idxSap]).trim())
+    ); 
+}
+```
+
+## [2026-07-14] - Ajustes en la Pestaña Caracterización
+### Modificado
+- Se optimizó el Resumen Consolidado de la pestaña Caracterización para que el conteo de cumplimiento se base **por sistema (SAP)** en lugar de la sumatoria individual de puntos de monitoreo. Si un sistema tiene al menos un punto incompleto, se marca como incompleto; de lo contrario, si todos sus puntos están completos, cuenta como un sistema completo.
+- Se eliminaron las columnas de `Ver Detalle Fuente` y `Ver Detalle Red` del Resumen Consolidado para simplificar la vista, excluyendo cualquier columna que inicie con "Ver Detalle".
+- Se corrigió un error de desincronización de índices en el renderizado de la tabla consolidada que causaba que la pestaña se quedara atascada en "Procesando matriz..." al omitir procesar las columnas de detalles que ya no se muestran.
+- Se removió la columna estática de `Meta Caract. 1er Tramo` del Resumen Consolidado de esta pestaña.
+
+## [2026-07-15] - Ajustes en Pestaña Riesgos
+### Añadido
+- Se agregó lógica de autocompletado inteligente en la pestaña **Riesgos** para las columnas `Código Ipress`, `Nombre Ipress` y `Red de Salud`. Cuando estas columnas vienen vacías en la hoja `RIESGOS`, la aplicación ahora busca el `Id. SAP` (extraído del nombre del SAP) dentro de la base de datos principal activa (`MAIN` según rango de fechas) y completa automáticamente estos tres datos para no perder la traza al cruzar información.
+
+### Fragmento de Código Principal Modificado
+```javascript
+// script.js (Dentro del procesador de 'riesgos')
+if (!v && extractedId && sapMetaLookup[extractedId]) {
+    if (x === 'Código Ipress') v = sapMetaLookup[extractedId].ipressCode;
+    if (x === 'Nombre Ipress') v = sapMetaLookup[extractedId].ipressName;
+    if (x === 'Red de Salud') v = sapMetaLookup[extractedId].red;
+}
+```
+```javascript
+// script.js (Ajuste en renderConsolidatedAndChart para contabilizar por sistema)
+let hasIncomplete = false;
+keys.forEach(k => { if (pts[k].status === 2) hasIncomplete = true; });
+if (hasIncomplete) { sum[red][cIdx].i++; grTot[cIdx].i++; }
+else { sum[red][cIdx].c++; grTot[cIdx].c++; sysC++; }
+```
 
 ## [2026-07-09] - Ajustes en Filtros y Pestaña Riesgos
 

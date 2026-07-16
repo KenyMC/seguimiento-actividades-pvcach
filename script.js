@@ -18,7 +18,8 @@ const URLS = {
     VIVIENDA: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1863536023&single=true&output=csv',
     SAP_ESTADO: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1649240916&single=true&output=csv',
     MIDIS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=131170297&single=true&output=csv',
-    META2025: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=601186067&single=true&output=csv'
+    META2025: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=601186067&single=true&output=csv',
+    APNOP: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=406984072&single=true&output=csv'
 };
 
 const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -46,11 +47,11 @@ const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS H
 const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
 const APP_STATE = {
-    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [] },
+    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [] },
     main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
     sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resFilterUbicaciones: [], resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null, ind4: null },
-    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
+    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), apnopUbigeos: new Set(), apnopSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
     globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
     metaMefPorRed: {}
 };
@@ -295,7 +296,7 @@ async function preloadSAPData() {
         const lt = getEl('sap-loader-text'); if (lt) lt.textContent = "Descargando matrices (1/2)...";
         const [m, m2, s] = await Promise.all([fw(URLS.MAIN), fw(URLS.MAIN2), fw(URLS.SANITARIA)]);
         if (lt) lt.textContent = "Descargando complementos (2/2)...";
-        const [ri, me, fe, ob, sr, vi, se, mi, m25] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025)]);
+        const [ri, me, fe, ob, sr, vi, se, mi, m25, ap] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025), fw(URLS.APNOP)]);
         if (lt) lt.textContent = "Procesando...";
 
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
@@ -305,7 +306,7 @@ async function preloadSAPData() {
         APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
 
-        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25);
+        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25); APP_STATE.rawData.apnop = parseCSVFast(ap);
         const mD = parseCSVFast(me); const fD = parseCSVFast(fe);
 
         let mx = '2025-12';
@@ -331,6 +332,10 @@ async function preloadSAPData() {
         APP_STATE.meta2025Ubigeos = new Set(); APP_STATE.meta2025SapIds = new Set();
         const m25D = APP_STATE.rawData.meta2025;
         if (m25D.length > 1) { let uI = findHeaderIndex(m25D[0], 'Ubigeo'); let sI = findHeaderIndex(m25D[0], 'Id. SAP'); m25D.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.meta2025Ubigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.meta2025SapIds.add(String(r[sI]).trim()); }); }
+
+        APP_STATE.apnopUbigeos = new Set(); APP_STATE.apnopSapIds = new Set();
+        const apnopD = APP_STATE.rawData.apnop;
+        if (apnopD.length > 1) { let uI = findHeaderIndex(apnopD[0], 'Ubigeo'); let sI = findHeaderIndex(apnopD[0], 'Id. SAP'); apnopD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.apnopUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.apnopSapIds.add(String(r[sI]).trim()); }); }
 
         const rds = new Set();
         if (APP_STATE.rawData.main.length > 1) { const idx = findHeaderIndex(th, 'Red de Salud'); APP_STATE.rawData.main.slice(1).forEach(r => { if (r[idx]) rds.add(r[idx]); }); }
@@ -510,10 +515,24 @@ function processActiveData() {
                         const fI = rawResult.headers.indexOf('FED');
                         const srI = rawResult.headers.indexOf('SAP REGULARES');
                         const miI = rawResult.headers.indexOf('MIDIS');
+                        const ubiI = rawResult.headers.indexOf('Ubigeo');
+                        const sapI = rawResult.headers.indexOf('Id. SAP');
+
                         if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
                         if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
                         if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
                         if (a === 'MIDIS' && miI !== -1) filteredData = filteredData.filter(x => x[miI] === 1);
+                        
+                        // Respaldo para filtros que no están en columnas como Meta 2025 y APNOP
+                        if (a === 'Meta 2025' || a === 'APNOP') {
+                            const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : APP_STATE.meta2025Ubigeos;
+                            const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : APP_STATE.meta2025SapIds;
+                            filteredData = filteredData.filter(x => {
+                                const ubi = ubiI !== -1 ? formatUbigeo(x[ubiI]) : '';
+                                const sap = sapI !== -1 ? String(x[sapI]).trim() : '';
+                                return ubiSet.has(ubi) || sapSet.has(sap);
+                            });
+                        }
 
                         const finalFedRes = { headers: rawResult.headers, data: filteredData };
                         renderFedTable(finalFedRes);
@@ -599,6 +618,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     if (ambitoFilter === 'SAP REGULARES' && idxUbi !== -1) rM = rM.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbi])));
     if (ambitoFilter === 'MIDIS') { rM = rM.filter(row => APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.midisSapIds.has(String(row[idxSap]).trim())); }
     if (ambitoFilter === 'Meta 2025') { rM = rM.filter(row => APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.meta2025SapIds.has(String(row[idxSap]).trim())); }
+    if (ambitoFilter === 'APNOP') { rM = rM.filter(row => APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.apnopSapIds.has(String(row[idxSap]).trim())); }
     const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año'); const iLoc = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
     let dRows = rM.filter(row => { 
         let m = row[idxMes]; if (!m) return true; 
@@ -1142,11 +1162,31 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         if (ambitoFilter === 'SAP REGULARES' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbiR])));
         if (ambitoFilter === 'MIDIS') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.midisSapIds.has(String(row[idxSapR]).trim()))); }
         if (ambitoFilter === 'Meta 2025') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.meta2025SapIds.has(String(row[idxSapR]).trim()))); }
+        if (ambitoFilter === 'APNOP') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.apnopSapIds.has(String(row[idxSapR]).trim()))); }
 
         const mapRiesgos = {};
         const iAR = findHeaderIndex(lH, 'Año');
         const lNomSAP = findHeaderIndex(lH, 'Nombre SAP');
         const lNomCCPP = findHeaderIndex(lH, 'Nombre CCPP');
+
+        const sapMetaLookup = {};
+        const mIdIdx = findHeaderIndex(h, 'Id. SAP');
+        const mIpressCodeIdx = findHeaderIndex(h, 'Código Ipress');
+        const mIpressNameIdx = findHeaderIndex(h, 'Nombre Ipress');
+        const mRedIdx = findHeaderIndex(h, 'Red de Salud');
+
+        if (mIdIdx !== -1) {
+            rM.forEach(r => {
+                const idSap = String(r[mIdIdx]).trim();
+                if (idSap) {
+                    sapMetaLookup[idSap] = {
+                        ipressCode: mIpressCodeIdx !== -1 ? r[mIpressCodeIdx] || '' : '',
+                        ipressName: mIpressNameIdx !== -1 ? r[mIpressNameIdx] || '' : '',
+                        red: mRedIdx !== -1 ? r[mRedIdx] || '' : ''
+                    };
+                }
+            });
+        }
 
         lR.forEach(r => {
             // Corrección [2026-07-09]: Manejo de duplicados por años (2025 vs 2026)
@@ -1179,6 +1219,13 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                         if (x === 'Id. SAP' && extractedId) return extractedId;
                         let v = r[findHeaderIndex(lH, x)] || '';
                         if (x === 'Nombre SAP' && rawNom) return rawNom;
+                        
+                        if (!v && extractedId && sapMetaLookup[extractedId]) {
+                            if (x === 'Código Ipress') v = sapMetaLookup[extractedId].ipressCode;
+                            if (x === 'Nombre Ipress') v = sapMetaLookup[extractedId].ipressName;
+                            if (x === 'Red de Salud') v = sapMetaLookup[extractedId].red;
+                        }
+
                         return x === 'Ubigeo' ? formatUbigeo(v) : v;
                     }),
                     vM: {}
@@ -2302,7 +2349,7 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
     const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud'); const sum = {}; const sapsR = {};
     const avanceR = {}; let gAvance = 0;
     const isA = result.type === 'analysis'; const isJ = result.type === 'status_json'; const isC = result.type === 'caract_points';
-    let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && h !== 'Ver Detalle' && (currentTab !== 'bacteriologico' || h.includes('(Total)')));
+    let sumH = isA ? ['Total Análisis', 'Parám. Excedidos', 'SAPs Cumplen'] : result.headers.slice(vIdx).filter(h => h !== 'Detalles' && h !== 'Observación' && !h.startsWith('Ver Detalle') && (currentTab !== 'bacteriologico' || h.includes('(Total)')));
     const colC = sumH.length; const grTot = Array(colC).fill(null).map(() => (isJ || isC) ? { c: 0, i: 0, s: 0 } : 0); let gTSap = 0;
     const isSapPrefix = prefix === 'sap';
     let requiredMonths = Math.max(1, sumH.length >= 10 ? sumH.length - 2 : sumH.length - 1);
@@ -2321,17 +2368,17 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
         else {
             let cIdx = 0; let sysC = 0;
             for (let i = vIdx; i < r.length; i++) {
-                if (result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i] === 'Ver Detalle' || (currentTab === 'bacteriologico' && !result.headers[i].includes('(Total)'))) continue;
+                if (result.headers[i] === 'Detalles' || result.headers[i] === 'Observación' || result.headers[i].startsWith('Ver Detalle') || (currentTab === 'bacteriologico' && !result.headers[i].includes('(Total)'))) continue;
                 if (isJ) { try { const d = JSON.parse(r[i]); if (d.status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; sysC++; } else if (d.status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; } else { sum[red][cIdx].s++; grTot[cIdx].s++; } } catch (e) { } }
                 else if (isC) {
                     try {
                         const pts = JSON.parse(r[i]); const keys = Object.keys(pts);
                         if (keys.length === 0) { sum[red][cIdx].s++; grTot[cIdx].s++; }
                         else {
-                            keys.forEach(k => {
-                                if (pts[k].status === 1) { sum[red][cIdx].c++; grTot[cIdx].c++; sysC++; }
-                                else if (pts[k].status === 2) { sum[red][cIdx].i++; grTot[cIdx].i++; }
-                            });
+                            let hasIncomplete = false;
+                            keys.forEach(k => { if (pts[k].status === 2) hasIncomplete = true; });
+                            if (hasIncomplete) { sum[red][cIdx].i++; grTot[cIdx].i++; }
+                            else { sum[red][cIdx].c++; grTot[cIdx].c++; sysC++; }
                         }
                     } catch (e) { sum[red][cIdx].s++; grTot[cIdx].s++; }
                 }
@@ -2364,38 +2411,18 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
             if (currentTab === 'caracterizacion' && semName === 'General') return;
             html += `<div class="mb-6 last:mb-0 border border-slate-200 rounded-xl overflow-hidden shadow-sm"><div class="bg-indigo-50 px-4 py-2 border-b border-indigo-100 flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-indigo-500"></i><h5 class="font-black text-[11px] text-indigo-800 uppercase tracking-widest">${semName}</h5></div>`;
             html += `<div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th><th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP</th><th class="px-5 py-4 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
-            if (currentTab === 'caracterizacion' && semName === '1er Semestre 2026') {
-                html += `<th class="px-5 py-4 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">Meta Caract. 1er Tramo</th>`;
-            }
             cols.forEach(c => html += `<th class="px-5 py-4 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${c.header.replace(/\(.*?\)/g, '').trim()}</th>`);
             html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-            let gMetaCaract = 0;
             Object.entries(sum).forEach(([red, vals]) => {
                 const metaMef = APP_STATE.metaMefPorRed[red] || 0;
-                let mCaractHtml = '';
-                if (currentTab === 'caracterizacion' && semName === '1er Semestre 2026') {
-                    const redU = String(red).toUpperCase().trim(); let mCaract = 0;
-                    if (redU.includes('CANAS') && redU.includes('ESPINAR')) mCaract = 67;
-                    else if (redU.includes('CHUMBIVILCAS')) mCaract = 70;
-                    else if (redU.includes('NORTE')) mCaract = 100;
-                    else if (redU.includes('SUR')) mCaract = 162;
-                    else if (redU.includes('KIMBIRI')) mCaract = 46;
-                    else if (redU.includes('CONVENCION') || redU.includes('CONVENCIÓN')) mCaract = 43;
-                    gMetaCaract += mCaract;
-                    mCaractHtml = `<td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${mCaract || '-'}</td>`;
-                }
-                html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${sapsR[red]}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${metaMef}</td>${mCaractHtml}`;
+                html += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-3.5 text-xs text-left font-bold text-slate-700 whitespace-nowrap">${red}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${sapsR[red]}</td><td class="px-5 py-3.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${metaMef}</td>`;
                 cols.forEach(c => {
                     const v = vals[c.colIdx];
                     if (isJ || isC) { html += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; }
                     else { html += `<td class="px-5 py-3.5 text-xs text-center text-slate-600 font-medium">${v}</td>`; }
                 }); html += `</tr>`;
             });
-            let gMetaCaractHtml = '';
-            if (currentTab === 'caracterizacion' && semName === '1er Semestre 2026') {
-                gMetaCaractHtml = `<td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gMetaCaract}</td>`;
-            }
-            html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td><td class="px-5 py-4 text-xs text-center text-blue-300 font-black bg-blue-900/50">${totalMetaMef}</td>${gMetaCaractHtml}`;
+            html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td><td class="px-5 py-4 text-xs text-center text-blue-300 font-black bg-blue-900/50">${totalMetaMef}</td>`;
             cols.forEach(c => {
                 const v = grTot[c.colIdx];
                 if (isJ || isC) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-black"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span></td>`; }
