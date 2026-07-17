@@ -19,7 +19,8 @@ const URLS = {
     SAP_ESTADO: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1649240916&single=true&output=csv',
     MIDIS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=131170297&single=true&output=csv',
     META2025: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=601186067&single=true&output=csv',
-    APNOP: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=406984072&single=true&output=csv'
+    APNOP: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=406984072&single=true&output=csv',
+    IIEE: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=462668030&single=true&output=csv'
 };
 
 const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -47,11 +48,11 @@ const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS H
 const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
 const APP_STATE = {
-    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [] },
+    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [], iiee: [] },
     main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
     sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resFilterUbicaciones: [], resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null, ind4: null },
-    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), apnopUbigeos: new Set(), apnopSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
+    mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), apnopUbigeos: new Set(), apnopSapIds: new Set(), iieeUbigeos: new Set(), iieeSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
     globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
     metaMefPorRed: {}
 };
@@ -296,7 +297,7 @@ async function preloadSAPData() {
         const lt = getEl('sap-loader-text'); if (lt) lt.textContent = "Descargando matrices (1/2)...";
         const [m, m2, s] = await Promise.all([fw(URLS.MAIN), fw(URLS.MAIN2), fw(URLS.SANITARIA)]);
         if (lt) lt.textContent = "Descargando complementos (2/2)...";
-        const [ri, me, fe, ob, sr, vi, se, mi, m25, ap] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025), fw(URLS.APNOP)]);
+        const [ri, me, fe, ob, sr, vi, se, mi, m25, ap, ie] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025), fw(URLS.APNOP), fw(URLS.IIEE)]);
         if (lt) lt.textContent = "Procesando...";
 
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
@@ -306,7 +307,7 @@ async function preloadSAPData() {
         APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
 
-        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25); APP_STATE.rawData.apnop = parseCSVFast(ap);
+        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25); APP_STATE.rawData.apnop = parseCSVFast(ap); APP_STATE.rawData.iiee = parseCSVFast(ie);
         const mD = parseCSVFast(me); const fD = parseCSVFast(fe);
 
         let mx = '2025-12';
@@ -336,6 +337,10 @@ async function preloadSAPData() {
         APP_STATE.apnopUbigeos = new Set(); APP_STATE.apnopSapIds = new Set();
         const apnopD = APP_STATE.rawData.apnop;
         if (apnopD.length > 1) { let uI = findHeaderIndex(apnopD[0], 'Ubigeo'); let sI = findHeaderIndex(apnopD[0], 'Id. SAP'); apnopD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.apnopUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.apnopSapIds.add(String(r[sI]).trim()); }); }
+        
+        APP_STATE.iieeUbigeos = new Set(); APP_STATE.iieeSapIds = new Set();
+        const iieeD = APP_STATE.rawData.iiee;
+        if (iieeD.length > 1) { let uI = findHeaderIndex(iieeD[0], 'Ubigeo'); let sI = findHeaderIndex(iieeD[0], 'Id. SAP'); iieeD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.iieeUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.iieeSapIds.add(String(r[sI]).trim()); }); }
 
         const rds = new Set();
         if (APP_STATE.rawData.main.length > 1) { const idx = findHeaderIndex(th, 'Red de Salud'); APP_STATE.rawData.main.slice(1).forEach(r => { if (r[idx]) rds.add(r[idx]); }); }
@@ -437,9 +442,15 @@ function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{ id: 'ind1'
 window.changeFedSubTab = id => {
     APP_STATE.fedActiveTab = id;
     APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {};
-    if (id === 'ind2') { APP_STATE.globalDateFrom = '2026-01'; }
-    else if (id === 'ind1') { APP_STATE.globalDateFrom = '2025-12'; }
-    else if (id === 'ind4') { APP_STATE.globalDateFrom = '2026-06'; }
+
+    let fedMinMonth = '2025-12';
+    if (id === 'ind2' || id === 'ind3') fedMinMonth = '2026-01';
+    else if (id === 'ind4') fedMinMonth = '2026-06';
+    
+    if (APP_STATE.globalDateFrom < fedMinMonth) {
+        APP_STATE.globalDateFrom = fedMinMonth;
+    }
+
     updateGlobalDateDropdowns();
     renderFedTabs(); processActiveData();
 }
@@ -450,19 +461,23 @@ function updateGlobalDateDropdowns() {
     const ff = getEl('fed-global-date-from'); const tf = getEl('fed-global-date-to');
 
     let hs = ''; let hr = ''; let hf = '';
+    let fedMinMonth = '2025-12';
+    if (APP_STATE.fedActiveTab === 'ind2' || APP_STATE.fedActiveTab === 'ind3') fedMinMonth = '2026-01';
+    else if (APP_STATE.fedActiveTab === 'ind4') fedMinMonth = '2026-06';
+
     APP_STATE.availableMonitorMonths.forEach(m => {
         const l = `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`;
         if (m >= '2022-01') hs += `<option value="${m}">${l}</option>`;
         if (APP_STATE.resActiveTab === 'res_cloro' && APP_STATE.activeTab === 'resultados') { hr += `<option value="${m}">${l}</option>`; }
         else { if (m >= '2022-01') hr += `<option value="${m}">${l}</option>`; }
-        if (m >= '2025-12') hf += `<option value="${m}">${l}</option>`;
+        if (m >= fedMinMonth) hf += `<option value="${m}">${l}</option>`;
     });
 
     if (fs) { fs.innerHTML = hs; fs.value = APP_STATE.globalDateFrom; }
     if (ts) { ts.innerHTML = hs; ts.value = APP_STATE.globalDateTo; }
     if (fr) { fr.innerHTML = hr; fr.value = APP_STATE.globalDateFrom; }
     if (tr) { tr.innerHTML = hr; tr.value = APP_STATE.globalDateTo; }
-    if (ff) { ff.innerHTML = hf; ff.value = APP_STATE.globalDateFrom < '2025-12' ? '2025-12' : APP_STATE.globalDateFrom; }
+    if (ff) { ff.innerHTML = hf; ff.value = APP_STATE.globalDateFrom < fedMinMonth ? fedMinMonth : APP_STATE.globalDateFrom; }
     if (tf) { tf.innerHTML = hf; tf.value = APP_STATE.globalDateTo; }
 }
 
@@ -481,7 +496,7 @@ window.updateGlobalDateFilter = async (isRes = false, isFed = false) => {
     if (nf < '2025-01' && !APP_STATE.main0Loaded) await loadHist(URLS.MAIN0, 2024, 'main0', 'main0Loaded');
     if (nf < '2024-01' && !APP_STATE.main2023Loaded) await loadHist(URLS.MAIN2023, 2023, 'main2023', 'main2023Loaded');
     if (nf < '2023-01' && !APP_STATE.main2022Loaded) await loadHist(URLS.MAIN2022, 2022, 'main2022', 'main2022Loaded');
-    APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; APP_STATE.sapCache = {}; APP_STATE.resCache = {};
+    APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {}; APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = {};
     processActiveData();
 }
 
@@ -524,9 +539,9 @@ function processActiveData() {
                         if (a === 'MIDIS' && miI !== -1) filteredData = filteredData.filter(x => x[miI] === 1);
                         
                         // Respaldo para filtros que no están en columnas como Meta 2025 y APNOP
-                        if (a === 'Meta 2025' || a === 'APNOP') {
-                            const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : APP_STATE.meta2025Ubigeos;
-                            const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : APP_STATE.meta2025SapIds;
+                        if (a === 'Meta 2025' || a === 'APNOP' || a === 'IIEE') {
+                            const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : (a === 'IIEE' ? APP_STATE.iieeUbigeos : APP_STATE.meta2025Ubigeos);
+                            const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : (a === 'IIEE' ? APP_STATE.iieeSapIds : APP_STATE.meta2025SapIds);
                             filteredData = filteredData.filter(x => {
                                 const ubi = ubiI !== -1 ? formatUbigeo(x[ubiI]) : '';
                                 const sap = sapI !== -1 ? String(x[sapI]).trim() : '';
@@ -619,6 +634,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     if (ambitoFilter === 'MIDIS') { rM = rM.filter(row => APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.midisSapIds.has(String(row[idxSap]).trim())); }
     if (ambitoFilter === 'Meta 2025') { rM = rM.filter(row => APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.meta2025SapIds.has(String(row[idxSap]).trim())); }
     if (ambitoFilter === 'APNOP') { rM = rM.filter(row => APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.apnopSapIds.has(String(row[idxSap]).trim())); }
+    else if (ambitoFilter === 'IIEE') { rM = rM.filter(row => APP_STATE.iieeUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.iieeSapIds.has(String(row[idxSap]).trim())); }
     const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año'); const iLoc = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
     let dRows = rM.filter(row => { 
         let m = row[idxMes]; if (!m) return true; 
@@ -1163,6 +1179,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         if (ambitoFilter === 'MIDIS') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.midisSapIds.has(String(row[idxSapR]).trim()))); }
         if (ambitoFilter === 'Meta 2025') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.meta2025SapIds.has(String(row[idxSapR]).trim()))); }
         if (ambitoFilter === 'APNOP') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.apnopSapIds.has(String(row[idxSapR]).trim()))); }
+        else if (ambitoFilter === 'IIEE') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.iieeUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.iieeSapIds.has(String(row[idxSapR]).trim()))); }
 
         const mapRiesgos = {};
         const iAR = findHeaderIndex(lH, 'Año');
@@ -1564,7 +1581,9 @@ function runFedLogic(dO, ind) {
     if (ind === 'ind3') {
         const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
 
-        const h1 = dO.main[0] || []; const r1 = dO.main.slice(1);
+        const is26 = APP_STATE.globalDateFrom >= '2026-06';
+        const h1 = is26 ? (dO.main2[0] || []) : (dO.main[0] || []); 
+        const r1 = is26 ? dO.main2.slice(1) : dO.main.slice(1);
         const iBcfNmp = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (NMP)');
         const iBcfUfc = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (UFC)');
         const iBctNmp = findHeaderIndex(h1, 'Bacterias Coliformes Totales (NMP)');
@@ -1585,10 +1604,15 @@ function runFedLogic(dO, ind) {
         const mMain = {};
         r1.forEach(r => {
             const a = iA1 !== -1 ? String(r[iA1]).trim() : '2025';
-            if (a !== '2025') return;
             const mesRaw = iM1 !== -1 ? nFst(r[iM1]) : '';
             const mm = MONTH_NUM[mesRaw.toUpperCase()];
-            if (!mm || parseInt(mm, 10) < 7 || parseInt(mm, 10) > 12) return;
+            if (is26) {
+                if (a !== '2026') return;
+                if (!mm || parseInt(mm, 10) < 1 || parseInt(mm, 10) > 6) return;
+            } else {
+                if (a !== '2025') return;
+                if (!mm || parseInt(mm, 10) < 7 || parseInt(mm, 10) > 12) return;
+            }
 
             const u = formatUbigeo(r[iU1]);
             const origCcpp = iN1 !== -1 ? String(r[iN1]).trim().toUpperCase() : '';
@@ -1626,9 +1650,17 @@ function runFedLogic(dO, ind) {
         let iNR = findHeaderIndex(rH, 'Nombre CCPP');
         const iU_R = findHeaderIndex(rH, 'Ubigeo'), iProv_R = findHeaderIndex(rH, 'Provincia');
         const iDist_R = findHeaderIndex(rH, 'Distrito'), iRed_R = findHeaderIndex(rH, 'Red de Salud');
-        const iA_Jul = findHeaderIndex(rH, 'Alerta Julio'), iA_Ago = findHeaderIndex(rH, 'Alerta Agosto');
-        let iA_Set = findHeaderIndex(rH, 'Alerta Setiembre'); if (iA_Set === -1) iA_Set = findHeaderIndex(rH, 'Alerta Septiembre');
-        const iA_Oct = findHeaderIndex(rH, 'Alerta Octubre'), iA_Nov = findHeaderIndex(rH, 'Alerta Noviembre'), iA_Dic = findHeaderIndex(rH, 'Alerta Diciembre');
+        
+        let iA_m1, iA_m2, iA_m3, iA_m4, iA_m5, iA_m6;
+        if (is26) {
+            iA_m1 = findHeaderIndex(rH, 'Alerta Enero'); iA_m2 = findHeaderIndex(rH, 'Alerta Febrero');
+            iA_m3 = findHeaderIndex(rH, 'Alerta Marzo'); iA_m4 = findHeaderIndex(rH, 'Alerta Abril');
+            iA_m5 = findHeaderIndex(rH, 'Alerta Mayo'); iA_m6 = findHeaderIndex(rH, 'Alerta Junio');
+        } else {
+            iA_m1 = findHeaderIndex(rH, 'Alerta Julio'); iA_m2 = findHeaderIndex(rH, 'Alerta Agosto');
+            iA_m3 = findHeaderIndex(rH, 'Alerta Setiembre'); if (iA_m3 === -1) iA_m3 = findHeaderIndex(rH, 'Alerta Septiembre');
+            iA_m4 = findHeaderIndex(rH, 'Alerta Octubre'); iA_m5 = findHeaderIndex(rH, 'Alerta Noviembre'); iA_m6 = findHeaderIndex(rH, 'Alerta Diciembre');
+        }
 
         rR.forEach(r => {
             const u = iU_R !== -1 ? formatUbigeo(r[iU_R]) : '';
@@ -1653,13 +1685,14 @@ function runFedLogic(dO, ind) {
                 };
             }
             const a = iA !== -1 ? String(r[iA]).trim() : '';
-            if (a === '2025' || a === '') {
-                if (iA_Jul !== -1 && nFst(r[iA_Jul]) === 'si') m3[id].jul = 1;
-                if (iA_Ago !== -1 && nFst(r[iA_Ago]) === 'si') m3[id].ago = 1;
-                if (iA_Set !== -1 && nFst(r[iA_Set]) === 'si') m3[id].set = 1;
-                if (iA_Oct !== -1 && nFst(r[iA_Oct]) === 'si') m3[id].oct = 1;
-                if (iA_Nov !== -1 && nFst(r[iA_Nov]) === 'si') m3[id].nov = 1;
-                if (iA_Dic !== -1 && nFst(r[iA_Dic]) === 'si') m3[id].dic = 1;
+            const targetA = is26 ? '2026' : '2025';
+            if (a === targetA || a === '') {
+                if (iA_m1 !== -1 && nFst(r[iA_m1]) === 'si') m3[id].jul = 1;
+                if (iA_m2 !== -1 && nFst(r[iA_m2]) === 'si') m3[id].ago = 1;
+                if (iA_m3 !== -1 && nFst(r[iA_m3]) === 'si') m3[id].set = 1;
+                if (iA_m4 !== -1 && nFst(r[iA_m4]) === 'si') m3[id].oct = 1;
+                if (iA_m5 !== -1 && nFst(r[iA_m5]) === 'si') m3[id].nov = 1;
+                if (iA_m6 !== -1 && nFst(r[iA_m6]) === 'si') m3[id].dic = 1;
             }
         });
 
@@ -1686,7 +1719,8 @@ function runFedLogic(dO, ind) {
             }
         });
 
-        const fM26 = APP_STATE.availableMonitorMonths.filter(m => m >= '2026-01' && m <= (APP_STATE.globalDateTo || '2026-12'));
+        const startM26 = (APP_STATE.globalDateFrom && APP_STATE.globalDateFrom >= '2026-01') ? APP_STATE.globalDateFrom : '2026-01';
+        const fM26 = APP_STATE.availableMonitorMonths.filter(m => m >= startM26 && m <= (APP_STATE.globalDateTo || '2026-12'));
         const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
         const iM2 = findHeaderIndex(h2, 'Mes');
         const iA2 = findHeaderIndex(h2, 'Año');
@@ -1791,7 +1825,8 @@ function runFedLogic(dO, ind) {
                 const ok = (s.meses26 && s.meses26[ym]) ? s.meses26[ym].ok : 0;
                 const val = ok >= 3 ? 1 : 0; if (val === 1) cumpP2_count++; return val;
             });
-            const cumplePaso2 = cumpP2_count >= 2 ? 1 : 0;
+            const reqP2 = is26 ? 4 : 2;
+            const cumplePaso2 = cumpP2_count >= reqP2 ? 1 : 0;
             const cumplePaso1y2 = (paso1 === 1 && cumplePaso2 === 1) ? 1 : 0;
 
             if (totA === 0 && !hasAnyParam) return null;
@@ -1806,8 +1841,11 @@ function runFedLogic(dO, ind) {
                 ...m26Vals, cumplePaso2, cumplePaso1y2
             ];
         }).filter(Boolean);
+        const alertH = is26 
+            ? ['Ene 2026', 'Feb 2026', 'Mar 2026', 'Abr 2026', 'May 2026', 'Jun 2026'] 
+            : ['Jul 2025', 'Ago 2025', 'Set 2025', 'Oct 2025', 'Nov 2025', 'Dic 2025'];
         const fH3 = [
-            'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', 'Jul 2025', 'Ago 2025', 'Set 2025', 'Oct 2025', 'Nov 2025', 'Dic 2025', 'Total Alertas', 'Cumple Alerta',
+            'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', ...alertH, 'Total Alertas', 'Cumple Alerta',
             'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (NMP)', 'E. Coli (UFC)',
             'Bacterias Coliformes Fecales (NMP) Resultado', 'Bacterias Coliformes Fecales (UFC) Resultado', 'Bacterias Coliformes Totales (NMP) Resultado', 'Bacterias Coliformes Totales (UFC) Resultado', 'E. Coli (NMP) Resultado', 'E. Coli (UFC) Resultado',
             'Total parámetros con contaminación fecal', 'Tiene al menos una muestra con contaminación fecal',
@@ -1889,7 +1927,7 @@ function runFedLogic(dO, ind) {
     };
 
     const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo'); const iA1 = findHeaderIndex(h1, 'Año');
-    r1.forEach(r => { const id = iC(r, h1); if (!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; const a = iA1 !== -1 && r[iA1] ? String(r[iA1]).trim() : '2025'; const mm = MONTH_NUM[me.toUpperCase()]; if (mm) { const ym = `${a}-${mm}`; if (m[id].meses[ym]) { const s = gS(r, h1); m[id].meses[ym].t++; if (s.is5p) m[id].meses[ym].p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk) m[id].meses[ym].cl++; if (tuOk) m[id].meses[ym].tu++; if (clOk && tuOk) m[id].meses[ym].cltu++; } } if (ind === 'ind2' && iU1 !== -1) { const ub = (r[iU1] || '').toLowerCase(); if (a === '2026') updateCaract(r, h1, id, ub); } });
+    r1.forEach(r => { const id = iC(r, h1); if (!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; const a = iA1 !== -1 && r[iA1] ? String(r[iA1]).trim() : '2025'; const mm = MONTH_NUM[me.toUpperCase()]; if (mm) { const ym = `${a}-${mm}`; if (m[id].meses[ym]) { const s = gS(r, h1); m[id].meses[ym].t++; if (s.is5p) m[id].meses[ym].p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk) m[id].meses[ym].cl++; if (tuOk) m[id].meses[ym].tu++; if (clOk && tuOk) m[id].meses[ym].cltu++; } if (ind === 'ind2' && iU1 !== -1 && fM.includes(ym)) { const ub = (r[iU1] || '').toLowerCase(); updateCaract(r, h1, id, ub); } } });
 
     const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo'); const iA2 = findHeaderIndex(h2, 'Año');
     r2.forEach(r => {
@@ -1902,8 +1940,8 @@ function runFedLogic(dO, ind) {
             if (m[id].meses[ym]) {
                 const s = gS(r, h2); m[id].meses[ym].t++; if (s.is5p) m[id].meses[ym].p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk) m[id].meses[ym].cl++; if (tuOk) m[id].meses[ym].tu++; if (clOk && tuOk) m[id].meses[ym].cltu++;
             }
+            if (ind === 'ind2' && iU2 !== -1 && fM.includes(ym)) { const ub = (r[iU2] || '').toLowerCase(); updateCaract(r, h2, id, ub); }
         }
-        if (ind === 'ind2' && iU2 !== -1) { const ub = (r[iU2] || '').toLowerCase(); if (a === '2026') updateCaract(r, h2, id, ub); }
     });
 
     if (ind === 'ind2') {
@@ -1946,8 +1984,8 @@ function runFedLogic(dO, ind) {
             const mm = MONTH_NUM[me.toUpperCase()];
             if (mm) {
                 if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; else a = '2025'; }
-                const skey = `${a}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`;
-                if (m[id] && sK.includes(skey) && !isCellEmpty(r[iFS])) { m[id].i++; }
+                const ym = `${a}-${mm}`;
+                if (m[id] && fM.includes(ym) && !isCellEmpty(r[iFS])) { m[id].i++; }
             }
         });
         const mNameMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Setiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
@@ -2071,7 +2109,8 @@ function runFedLogic(dO, ind) {
                 m5pArr.push(v);
                 if (v > 0) p5m++;
             });
-            const em = p5m >= 4 ? 1 : 0;
+            const required5p = (APP_STATE.globalDateFrom >= '2026-06') ? 5 : 4;
+            const em = p5m >= required5p ? 1 : 0;
 
             let rim = 0;
             const mRiArr = [];
@@ -2587,12 +2626,12 @@ function renderFedTable(result) {
     const fB = getEl('fed-active-filters');
     if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
         let html = `<div class="bg-amber-50/80 px-4 py-2.5 border-b border-amber-100 flex gap-3 items-center overflow-x-auto custom-scroll w-full"><span class="text-[10px] font-black text-amber-800 uppercase tracking-widest flex-shrink-0"><i data-lucide="filter" class="w-3 h-3 inline"></i> Activos:</span>`;
-        Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { let dV = val; if (result.headers[i] === 'Seguimiento') { if (val === 'Verde') dV = 'CUMPLE (>=3)'; else if (val === 'Naranja') dV = 'CUMPLE PARCIAL'; else if (val === 'Rojo') dV = 'NO CUMPLE'; else dV = 'SIN MONITOREO'; } else if (result.headers[i] === 'MEF' || result.headers[i] === 'FED' || result.headers[i] === 'SAP REGULARES') { dV = val === '1' ? 'SÍ' : '-'; } else if (result.headers[i].includes('Cumple') || result.headers[i].includes('Ev_') || result.headers[i].includes('EV_5p')) { dV = val === '1' ? 'CUMPLE' : 'NO CUMPLE'; } html += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; });
+        Object.entries(APP_STATE.currentTableFilters).forEach(([i, val]) => { let dV = val; if (result.headers[i] === 'Seguimiento') { if (val === 'Verde') dV = APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)'; else if (val === 'Naranja') dV = 'CUMPLE PARCIAL'; else if (val === 'Rojo') dV = 'NO CUMPLE'; else dV = 'SIN MONITOREO'; } else if (result.headers[i] === 'MEF' || result.headers[i] === 'FED' || result.headers[i] === 'SAP REGULARES') { dV = val === '1' ? 'SÍ' : '-'; } else if (result.headers[i].includes('Cumple') || result.headers[i].includes('Ev_') || result.headers[i].includes('EV_5p')) { dV = val === '1' ? 'CUMPLE' : 'NO CUMPLE'; } html += `<span class="bg-amber-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`; });
         html += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`; fB.innerHTML = html; fB.classList.remove('hidden');
     } else { fB.innerHTML = ''; fB.classList.add('hidden'); }
 
     let html = `<table class="min-w-full text-left border-collapse whitespace-nowrap"><thead class="bg-slate-100 sticky top-0 z-20 shadow-sm border-b border-slate-300"><tr>`;
-    const fmt = (h, v) => { if (h === 'Seguimiento') { if (v === 'Verde') return 'CUMPLE (>=3)'; if (v === 'Naranja') return 'CUMPLE PARCIAL'; if (v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO'; } if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES' || h === 'MIDIS') return v === '1' ? 'SÍ' : '-'; if (h.includes('Cumple') || h === 'CCPP Bueno' || h.includes('Ev_') || h.includes('EV_5p') || h.startsWith('P2_') || h.startsWith('M5P') || h.startsWith('Riesgo') || h.startsWith('Cap:') || h.startsWith('Red:')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
+    const fmt = (h, v) => { if (h === 'Seguimiento') { if (v === 'Verde') return APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)'; if (v === 'Naranja') return 'CUMPLE PARCIAL'; if (v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO'; } if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES' || h === 'MIDIS') return v === '1' ? 'SÍ' : '-'; if (h.includes('Cumple') || h === 'CCPP Bueno' || h.includes('Ev_') || h.includes('EV_5p') || h.startsWith('P2_') || h.startsWith('M5P') || h.startsWith('Riesgo') || h.startsWith('Cap:') || h.startsWith('Red:')) return String(v) === '1' ? 'CUMPLE' : 'NO CUMPLE'; return String(v).substring(0, 30); };
 
     result.headers.forEach((h, idx) => {
         if (['Cumple Salud', 'Cumple Vivienda', 'Cumple Ambos', 'MEF', 'FED', 'SAP REGULARES', 'MIDIS'].includes(h)) return;
@@ -2613,7 +2652,7 @@ function renderFedTable(result) {
             let tA = `class="px-4 py-2.5 text-xs ${st} transition-colors" style="${ls}"`; if (h === 'Nombre CCPP' || h === 'Nombre SAP' || (!st && typeof c === 'string' && c.length > 10 && !c.startsWith('{') && !c.startsWith('['))) tA += ` title="${safeEscape(c)}"`;
             let ctt = c;
 
-            if (h === 'Seguimiento') { if (c === 'Verde') ctt = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>CUMPLE (>=3)</span>"; else if (c === 'Naranja') ctt = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE PARCIAL</span>"; else if (c === 'Rojo') ctt = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>"; else ctt = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>"; }
+            if (h === 'Seguimiento') { if (c === 'Verde') ctt = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>" + (APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)') + "</span>"; else if (c === 'Naranja') ctt = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE PARCIAL</span>"; else if (c === 'Rojo') ctt = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>"; else ctt = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>"; }
             else if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES') { ctt = c === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`; tA = tA.replace('class="', 'class="text-center '); }
             else if (h === 'MEF' || h === 'FED' || h === 'SAP REGULARES' || h === 'MIDIS') { ctt = c === 1 ? `<span class="bg-indigo-100 text-indigo-700 px-2 rounded font-bold border border-indigo-200 text-[10px]">SÍ</span>` : `<span class="text-slate-300">-</span>`; tA = tA.replace('class="', 'class="text-center '); }
             else if (h === 'Cumplimiento Ind. 2' || h === 'Cumple Paso 1' || h.includes('Ev_') || h.includes('EV_5p')) { if (c === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>"; else ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>"; tA = tA.replace('class="', 'class="text-center '); }
@@ -2950,7 +2989,8 @@ function renderFedConsolidatedAndChart(result) {
     const isI1 = APP_STATE.fedActiveTab === 'ind1';
     const isI3 = APP_STATE.fedActiveTab === 'ind3';
     const evCols = []; if (isI1) { result.headers.forEach((h, i) => { if (h.startsWith('Ev_')) evCols.push(i); }); }
-    const fM26 = APP_STATE.availableMonitorMonths.filter(m => m >= '2026-01' && m <= (APP_STATE.globalDateTo || '2026-12'));
+    const startM26 = (APP_STATE.globalDateFrom && APP_STATE.globalDateFrom >= '2026-01') ? APP_STATE.globalDateFrom : '2026-01';
+    const fM26 = APP_STATE.availableMonitorMonths.filter(m => m >= startM26 && m <= (APP_STATE.globalDateTo || '2026-12'));
     const idxPaso1 = result.headers.indexOf('Cumple Paso 1');
     const idxPaso2 = result.headers.indexOf('Cumple paso 2');
     const idxAmbos = result.headers.indexOf('Cumple paso 1 y 2');
@@ -2983,6 +3023,7 @@ function renderFedConsolidatedAndChart(result) {
             const row = [...x.r];
             evCols.forEach((colIdx, i) => { row[colIdx] = (x.evsCount[i] > 0) ? 1 : 0; });
             row[idxSalud] = (x.saludCount > 0) ? 1 : 0;
+            if (APP_STATE.globalDateFrom >= '2026-06') { row[idxViv] = 0; }
             row[idxAmb] = (row[idxSalud] === 1 && row[idxViv] === 1) ? 1 : 0;
             return row;
         });
@@ -3028,7 +3069,7 @@ function renderFedConsolidatedAndChart(result) {
 
     const bHtml = (obj, lbl) => {
         let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por ${lbl}</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">${lbl}</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total CCPP</th>`;
-        if (isI1) { h += evCols.map(colIdx => `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')}</th>`).join(''); h += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses SALUD</th>`; }
+        if (isI1) { h += evCols.map(colIdx => `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')}</th>`).join(''); let labelM = (APP_STATE.globalDateFrom >= '2026-06') ? "5" : "3"; h += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=${labelM} Meses SALUD</th>`; }
         else if (isI3) {
             h += `<th class="px-4 py-3 text-center text-[10px] font-black text-emerald-600 uppercase">Cumple Paso 1</th>`;
             h += p2MonthsIdxs.map(colIdx => `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('P2_', '')}</th>`).join('');
@@ -3093,21 +3134,25 @@ function renderFedConsolidatedAndChart(result) {
     if (isI1) {
         ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>`;
         ht += evCols.map(colIdx => `<th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${result.headers[colIdx].replace('Ev_', '')} (Eval. Completa)</th>`).join('');
-        ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=3 Meses SALUD</th>`;
-        ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Cumplen >=3 Meses VIVIENDA</th>`;
+        let labelMeses = (APP_STATE.globalDateFrom >= '2026-06') ? "5" : "3";
+        ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen >=${labelMeses} Meses SALUD</th>`;
+        ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Cumplen >=${labelMeses} Meses VIVIENDA</th>`;
         ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-100">Cumple Ambas</th>`;
         ht += `<th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors">`;
         ht += gEvs.map(gev => `<td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gev}</td>`).join('');
         ht += `<td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td>`;
         ht += `<td class="px-5 py-4 text-sm text-center font-black text-blue-600 bg-blue-50">${gViv}</td>`;
         ht += `<td class="px-5 py-4 text-sm text-center font-black text-indigo-600 bg-indigo-50">${gAmbos}</td>`;
-        ht += `<td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">200</td></tr></tbody></table></div></div>`;
+        let metaAsumidaInd1 = (APP_STATE.globalDateFrom >= '2026-06') ? 285 : 200;
+        ht += `<td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">${metaAsumidaInd1}</td></tr></tbody></table></div></div>`;
 
         ht += bHtmlViv(sR, "RED DE SALUD");
     } else if (APP_STATE.fedActiveTab === 'ind2') {
-        ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gI}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gC}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gM}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gRi}</td><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">246</td></tr></tbody></table></div></div>`;
+        let metaAsumidaInd2 = (APP_STATE.globalDateFrom >= '2026-06') ? 525 : 246;
+        ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gI}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gC}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gM}</td><td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${gRi}</td><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gCI}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">${metaAsumidaInd2}</td></tr></tbody></table></div></div>`;
     } else if (APP_STATE.fedActiveTab === 'ind3') {
-        ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumple Paso 1</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Cumple Paso 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-100">Cumple Ambos</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gP1}</td><td class="px-5 py-4 text-sm text-center font-black text-blue-600 bg-blue-50">${gP2}</td><td class="px-5 py-4 text-sm text-center font-black text-indigo-600 bg-indigo-50">${gP1y2}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">-</td></tr></tbody></table></div></div>`;
+        let metaAsumidaInd3 = (APP_STATE.globalDateFrom >= '2026-06') ? 90 : 50;
+        ht += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumple Paso 1</th><th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-100">Cumple Paso 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-100">Cumple Ambos</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gP1}</td><td class="px-5 py-4 text-sm text-center font-black text-blue-600 bg-blue-50">${gP2}</td><td class="px-5 py-4 text-sm text-center font-black text-indigo-600 bg-indigo-50">${gP1y2}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">${metaAsumidaInd3}</td></tr></tbody></table></div></div>`;
     }
     ht += '</div>'; getEl('fed-consolidated-container').innerHTML = ht;
 
@@ -3207,7 +3252,7 @@ window.exportToExcel = (prefix) => {
             }
             if (isF) {
                 if (h === 'Seguimiento') {
-                    if (v === 'Verde') return 'CUMPLE (>=3)'; if (v === 'Naranja') return 'CUMPLE PARCIAL'; if (v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO';
+                    if (v === 'Verde') return APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)'; if (v === 'Naranja') return 'CUMPLE PARCIAL'; if (v === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO';
                 }
                 if (t === 'ind2' && (h.includes('Cumple') || h.includes('Cumplimiento') || h.startsWith('M5P') || h.startsWith('Riesgo') || h.startsWith('Cap:') || h.startsWith('Red:') || ['MEF', 'FED', 'SAP REGULARES', 'MIDIS'].includes(h))) {
                     return v === 1 ? 1 : 0;
@@ -3278,7 +3323,7 @@ window.exportToExcel = (prefix) => {
                     return row[i] === 1 ? 'CUMPLE' : 'NO CUMPLE';
                 }
                 if (h === 'Seguimiento') {
-                    if (row[i] === 'Verde') return 'CUMPLE (>=3)'; if (row[i] === 'Naranja') return 'CUMPLE PARCIAL'; if (row[i] === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO';
+                    if (row[i] === 'Verde') return APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)'; if (row[i] === 'Naranja') return 'CUMPLE PARCIAL'; if (row[i] === 'Rojo') return 'NO CUMPLE'; return 'SIN MONITOREO';
                 }
                 return row[i];
             }).filter(v => v !== null);
@@ -3306,7 +3351,8 @@ window.exportToExcel = (prefix) => {
 
         const consHeaders = ['Red de Salud', 'Total CCPP'];
         evColIdxsEval.forEach(c => consHeaders.push(dH[c].replace('Ev_', '') + ' (Eval. Completa)'));
-        consHeaders.push('Cumplen >=3 Meses SALUD', 'Cumplen >=3 Meses VIVIENDA', 'Cumple Ambas', 'Meta Asumida');
+        let labelMesesExport = (APP_STATE.globalDateFrom >= '2026-06') ? "5" : "3";
+        consHeaders.push(`Cumplen >=${labelMesesExport} Meses SALUD`, `Cumplen >=${labelMesesExport} Meses VIVIENDA`, 'Cumple Ambas', 'Meta Asumida');
 
         const consData = [consHeaders];
         const grandEvs = Array(evCols.length).fill(0);
