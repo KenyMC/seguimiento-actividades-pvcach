@@ -1,5 +1,79 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-07-20] - Mejoras en GERESA Actividades y Control de Acceso
+### Añadido
+- **Control de Acceso por Roles (Red de Salud):** Se implementó una lógica de permisos estricta basada en el valor de "Red de Salud" en el maestro de Usuarios:
+  - **Acceso Total:** Los usuarios con el rol `GERESA` (o `TODAS`) tienen acceso completo a todas las secciones del sistema, incluyendo *Calendario*, *GERESA Act.* y *Usuarios*. También pueden ver todas las redes en los filtros.
+  - **Acceso Restringido:** Los usuarios de las diversas Redes de Salud específicas (como `CUSCO NORTE`, `CUSCO SUR`, `CHUMBIVILCAS`, etc.) ahora tendrán un menú lateral limitado. Sólo podrán visualizar y acceder a las secciones vitales de consulta: *Inicio*, *Actividades*, *Resultados*, *FED* y *Cerrar Sesión*.
+### Añadido
+- **Modal de Detalle de Actividad:** Se integró un botón "Ver Detalle" junto a cada actividad en la tabla GERESA. Al hacer clic, se despliega un moderno modal interactivo que presenta:
+  - **Gráfico de Avance:** Un gráfico estadístico de barras (implementado con *Chart.js*) que muestra la evolución de la actividad mes a mes.
+  - **Métricas Consolidadas:** Estadísticas calculadas automáticamente desde el registro diario, incluyendo total de días realizados, sumatoria de horas trabajadas, total de muestras/sistemas y la lista única de todos los participantes registrados.
+  - **Galería Fotográfica Interactiva:** Extrae todas las URLs de Google Drive asociadas a la actividad en los registros diarios y genera un visualizador de imágenes responsivo en formato *grid*.
+- **Columna Porcentaje de Ejecución:** Se agregó una nueva columna `% Ejecución` al final de la tabla de GERESA (a la derecha de Diciembre) para las pestañas APNOP y PPORDIT. Ésta suma los valores de los 12 meses y los divide entre la *META ANUAL*, mostrando el progreso porcentual con un decimal. Incluye colores dinámicos: Verde (>=100%), Ámbar (50-99%) y Rojo (<50%).
+- **Nueva Pestaña "Otras Activ.":** Se incorporó una nueva sub-pestaña para las actividades que corresponden al Tipo de Matriz `OTRO`. Esta vista se alimenta directamente de los registros diarios (`registro_diario`) saltándose el catálogo fijo de metas, permitiendo listar dinámicamente cualquier actividad personalizada ingresada desde el calendario.
+- **Renderizado Adaptativo de Tabla:** Para la pestaña de `Otras Activ.`, la tabla oculta dinámicamente las cabeceras y columnas de *META ANUAL* y *% Ejecución*, mostrando exclusivamente el nombre de la actividad, la unidad y el conteo de los 12 meses.
+
+## [2026-07-19 / 2026-07-20] - Evidencias Fotográficas y Optimización de Webhook
+### Añadido
+- **Subida de Imágenes a Google Drive:** Se implementó una funcionalidad que permite adjuntar una fotografía (evidencia fotográfica) al momento de crear o actualizar una actividad en el calendario. La imagen se codifica en Base64 desde el cliente, burlando las limitaciones de `FormData` de Apps Script, y se sube exitosamente a una carpeta pública de Google Drive mediante el webhook.
+- **Previsualización de Foto en Modal:** Al abrir el "Detalle de Actividad" en el calendario, si la actividad incluye una foto, la interfaz ahora carga un *thumbnail* o miniatura responsiva obtenida dinámicamente usando la API no oficial de Google Drive (`/thumbnail?id=...`), complementada con un botón para ver el archivo a resolución original en una pestaña nueva.
+
+### Modificado
+- **Buscador Inteligente de Columnas (Case-Insensitive):** Se incorporaron las funciones `getHeaderIndex` en el servidor Apps Script y `findHeaderIndex` en la UI cliente, las cuales flexibilizan la búsqueda de columnas por nombre independientemente del uso de mayúsculas, minúsculas o espacios adicionales. Esto soluciona de raíz los bugs donde la columna "ID" y "url img" no se identificaban correctamente al guardar nuevas filas en Sheets.
+- **Configuración de CORS y OAuth de Apps Script:** Se ajustó el archivo de manifiesto `appsscript.json` del proyecto de Google para inyectar explícitamente el scope `https://www.googleapis.com/auth/drive`, y se fijó el parámetro `"access": "ANYONE_ANONYMOUS"`. Se eliminó de Apps Script el intento redundante de cambiar permisos por archivo (`setSharing`), que causaba excepciones innecesarias.
+- **Actualización Optimizada y UI en Tiempo Real:** En el script del frontend, se eliminó temporalmente la restricción de `mode: 'no-cors'` permitiendo leer la respuesta JSON del webhook. Una vez subida la imagen exitosamente, la página detecta la nueva URL de Drive y actualiza el Calendario instantáneamente sin necesidad de esperar a que venza la caché de Sheets.
+
+
+## [2026-07-18] - Soporte Multidía y Mejoras en Fechas
+### Añadido
+- **Soporte de Bloques Multidía:** El calendario ahora procesa eventos que abarcan varios días ("Fecha Inicio" a "Fecha Fin"). En la vista de Mes, el evento se muestra como un bloque continuo único (Banner). En las vistas de Día/Semana, el banner superior se oculta dinámicamente mediante JS y en su lugar se generan "bloques diarios discretos" para que el evento se dibuje cada día en su horario específico.
+- **Campos Separados de Fechas:** Se ha migrado la columna única "Día" hacia 4 nuevas columnas: "Fecha Inicio", "Fecha Fin", "Hora Inicio", y "Hora Fin". El formulario de la interfaz y los webhooks se actualizaron para leer y enviar estas columnas independientemente.
+- **Normalización de Formatos de Hora:** Se integró un parseador avanzado de fechas para decodificar automáticamente el formato de tiempo sin procesar que devuelve la API de Sheets (`Sat Dec 30 1899...`), extrayendo exitosamente las horas en formato `HH:mm`.
+
+### Modificado
+- **Lógica de Drag and Drop (Update):** Mover un evento dentro del calendario ahora limpia dinámicamente prefijos técnicos internos (`banner_` o `_multi_`) asegurando que el identificador enviado a la base de datos sea el original. Tras el guardado local, el calendario fuerza una resincronización visual completa para prevenir eventos "fantasma" desfasados.
+- **Corrección de Eventos sin Duración (0 minutos):** Si la hora final coincide con la inicial, el código internamente calcula y añade 1 hora de diferencia. Esto arregla el bug visual donde las barras de evento se aplastaban horizontalmente sin mostrar texto.
+- **UI Optimista Inteligente:** `saveCalendarEvent` y `deleteCalendarEvent` abandonaron las actualizaciones manuales de bloques aislados. Ahora inyectan los datos actualizados a la memoria cruda (`APP_STATE`) y mandan a reconstruir todo el calendario a través del conducto `initScheduleX()`.
+
+## [2026-07-17] - Integración de Calendario de Actividades y GERESA Act.
+### Añadido
+- **Módulo de Calendario Interactivo:** Se implementó la librería `Schedule-X` v2.2.0 para visualizar las actividades diarias (Registro_Diario) de forma interactiva. El calendario admite vistas de Mes, Semana y Día, e incluye un botón "+ Añadir Actividad" con un modal de registro rápido. 
+- **Flujo de Guardado y Sincronización:** Las nuevas actividades registradas en el calendario se envían a Google Sheets mediante `fetch`. Mientras se procesa la actualización, la pantalla muestra un estado de carga y posteriormente recarga toda la data llamando a `preloadSAPData()`. Esto garantiza que los cambios se reflejen de inmediato tanto en el Calendario como en las demás pestañas.
+- **Pestaña GERESA Act.:** Se creó una nueva pestaña que comparte la misma base de datos del Calendario (Registro_Diario) pero que totaliza y consolida la cantidad de actividades realizadas en el mes. Esta tabla resume la sumatoria de actividades ejecutadas por cada tipo, proveyendo una vista tabular y ejecutiva.
+- **Pestañas por Tipo de Matriz (APNOP / PPORDIT):** Se ha habilitado la categorización de actividades según su matriz en la sección GERESA Act. Ahora la interfaz presenta sub-pestañas para alternar dinámicamente entre las tablas de APNOP y PPORDIT, ocultando la columna de matriz y mostrando únicamente las actividades correspondientes a la categoría seleccionada.
+- **Formulario de Registro Enriquecido:** Se ampliaron los campos en el modal de "Registrar Actividad". Ahora cuenta con un selector de "Tipo Matriz" que filtra dinámicamente las actividades. Se muestra automáticamente la "Unidad de Medida" de la actividad seleccionada. Además, se agregaron los campos opcionales: Cant. Análisis, Cant. SAP, Lista de Participantes y Observaciones, los cuales se envían estructurados al backend y se recuperan al momento de editar una actividad existente.
+- **Actividades Manuales (OTRO):** Se incorporó la opción "OTRO" en el selector de "Tipo Matriz". Al seleccionarla, el campo de actividad se transforma en un cuadro de texto libre, permitiendo escribir nombres de actividades personalizadas (ej: Reuniones, Asistencias Técnicas) que no están en la lista predefinida. Estas actividades se registran normalmente en el Calendario y en Google Sheets.
+- **Loader para Nuevas Pestañas:** Se modificó `switchTab` para que las pestañas `geresa` y `calendario` respeten el ícono global de carga (sap-loader). Si un usuario intenta acceder a estas vistas antes de que los datos de Google Sheets hayan finalizado su carga, el sistema bloqueará la interfaz con el loader hasta tener la información lista.
+- **Modal Personalizado de Actividad:** Se reemplazó la alerta genérica del navegador (`confirm`) por un modal flotante elegante (`modal-event-action`). Al hacer clic en un evento, este modal muestra los detalles (título, fecha, descripción) y ofrece dos opciones: **Eliminar** (que procesa el borrado con el backend) y **Actualizar** (que precarga el formulario de creación para editar la actividad).
+
+### Modificado
+- **Lógica de Inicialización (Preact/Schedule-X):** Se solucionó un conflicto de ciclo de vida donde el calendario desaparecía al recargarse. Originalmente, el DOM se destruía para forzar el cálculo del ancho, pero si el calendario ya existía en memoria, nunca se volvía a dibujar. Ahora, si la instancia ya existe, solo se inyectan los nuevos eventos (`events.set()`) y se detiene el flujo, evitando destruir el DOM innecesariamente y mejorando drásticamente el rendimiento de actualización.
+- **Limpieza del DOM (Virtual DOM):** Se reemplazó el uso de `container.innerHTML = ''` por una recreación completa del nodo contenedor (`document.createElement`). Esto previene el quiebre silencioso (pantalla en blanco) provocado cuando Preact perdía el rastro de sus nodos en memoria al re-renderizar.
+- **Normalización de Fechas (Duración y Formato):** Se corrigió la importación de datos desde Google Sheets. Como el calendario no dibuja eventos de "0 minutos", ahora a las fechas que incluyen hora de inicio se les añade automáticamente 1 hora de duración. Asimismo, se forzó el formato estricto de dos dígitos para horas y minutos (ej. "09:00" en lugar de "9:0") mediante `padStart`, previniendo que el calendario colapse ante formatos truncados de Sheets.
+
+### Fragmento de Código Principal Modificado
+```javascript
+// script.js (Fragmento de la lógica agregada para recreación del contenedor y padding de fechas)
+if (container.offsetWidth === 0) {
+    APP_STATE.calendarNeedsInit = true;
+    return;
+}
+APP_STATE.calendarNeedsInit = false;
+// Se reemplaza el contenedor para evitar crashes del DOM virtual de Preact
+const newContainer = document.createElement('div');
+newContainer.id = 'sx-calendar';
+newContainer.className = container.className;
+container.parentNode.replaceChild(newContainer, container);
+
+// ...
+// Asegurar padding de ceros en la fecha
+let [h, m] = timePart.split(':');
+h = String(h || '00').padStart(2, '0');
+m = String(m || '00').padStart(2, '0');
+dateRaw = `${datePart} ${h}:${m}`;
+```
+
 ## [2026-07-13] -   
 ### Añadido
 - Nueva fuente de datos `APNOP` en el objeto `URLS` (Google Sheets).

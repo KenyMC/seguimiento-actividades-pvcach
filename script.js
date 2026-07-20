@@ -1,3 +1,11 @@
+/**
+ * Changelog Reciente (2026-07-19 / 2026-07-20)
+ * - Integración de subida de evidencias fotográficas a Google Drive mediante webhook.
+ * - Refactorización de fetch payload a texto base64 para eludir restricciones de CORS y FormData en Apps Script.
+ * - Implementación de previsualización de imágenes (thumbnails) responsivas directo desde Drive en el modal de detalles.
+ * - Búsqueda inteligente (case-insensitive) de columnas mediante findHeaderIndex y getHeaderIndex.
+ * - Restablecimiento del parseo JSON en la respuesta del webhook para actualizar la UI instantáneamente con la URL real de la imagen.
+ */
 const getEl = id => document.getElementById(id);
 
 window.APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfaJM_yxZ08fdMOmtWkEEG_u4BmjDW7GBE05X4KSrZpWVn8E5_IK3kodh60ou219QRDQ/exec';
@@ -20,7 +28,9 @@ const URLS = {
     MIDIS: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=131170297&single=true&output=csv',
     META2025: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=601186067&single=true&output=csv',
     APNOP: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRsZqnrFcpjOc3VLmzIpjblcQVcoygUs6CfOc8OafqJTWb6eGMEKSBeI1eDnBvoewSSmLYDCeSHpb67/pub?gid=406984072&single=true&output=csv',
-    IIEE: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=462668030&single=true&output=csv'
+    IIEE: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=462668030&single=true&output=csv',
+    CALENDAR_ACTIV: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=15886649&single=true&output=csv',
+    REGISTRO_DIARIO: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vThotzv-QqSJzWYxpawII4yWGqugTKtt1ot7NoPxxx4GuLNB0ZE6_vK5IEP4pDod4dxwu8IWxviUpRv/pub?gid=1137344741&single=true&output=csv'
 };
 
 const CORE_HEADERS = ['Id. SAP', 'Nombre SAP', 'Ubigeo', 'Nombre CCPP', 'Distrito', 'Provincia', 'Código Ipress', 'Nombre Ipress', 'Red de Salud'];
@@ -48,7 +58,7 @@ const CARACT_PILETA_SINGLE = ['Aluminio', 'Antimonio', 'Arsénico', 'BACTERIAS H
 const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)'], ['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)'], ['E. Coli (NMP)', 'E. Coli (UFC)'], ['Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)']];
 
 const APP_STATE = {
-    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [], iiee: [] },
+    currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [], iiee: [], calendar_activ: [], registro_diario: [] },
     main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
     sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resFilterUbicaciones: [], resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null, ind4: null },
@@ -226,8 +236,8 @@ function init() {
     if (resFilterRed) {
         resFilterRed.addEventListener('change', e => { APP_STATE.resFilterRed = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
     }
-    
-    window.updateResUbicacionFilter = function() {
+
+    window.updateResUbicacionFilter = function () {
         const checkboxes = document.querySelectorAll('.res-ubicacion-cb');
         const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
         APP_STATE.resFilterUbicaciones = selected;
@@ -240,7 +250,7 @@ function init() {
         APP_STATE.currentTableFilters = {};
         processActiveData();
     };
-    
+
     window.addEventListener('click', (e) => {
         const btn = document.getElementById('res-filter-ubicacion-btn');
         const menu = document.getElementById('res-filter-ubicacion-menu');
@@ -262,8 +272,8 @@ function init() {
         fedFilterAmbito.addEventListener('change', e => { APP_STATE.fedFilterAmbito = e.target.value; APP_STATE.currentTableFilters = {}; processActiveData(); });
     }
 
-    if (typeof window.initWhiteboard === 'function') {
-        window.initWhiteboard();
+    if (typeof window.initGeresaAndCalendar === 'function') {
+        window.initGeresaAndCalendar();
     }
 }
 
@@ -285,10 +295,45 @@ async function syncUsers(ld = false) {
 }
 
 window.applyUserRoleUI = () => {
-    const uR = APP_STATE.currentUser?.red || 'TODAS'; const iR = uR !== 'TODAS'; let h = '';
-    if (iR) { h = `<option value="${uR}">${uR}</option>`; } else { h = '<option value="Todos">Todas las Redes</option>'; if (APP_STATE.uniqueRedes) { Array.from(APP_STATE.uniqueRedes).sort().forEach(r => { h += `<option value="${r}">${r}</option>`; }); } }
-    ['sap-filter-red', 'res-filter-red', 'fed-filter-red'].forEach(id => { const s = getEl(id); if (s) { s.innerHTML = h; s.disabled = iR; if (iR) s.classList.add('opacity-50', 'cursor-not-allowed'); else s.classList.remove('opacity-50', 'cursor-not-allowed'); } });
-    if (iR) { APP_STATE.sapFilterRed = uR; APP_STATE.resFilterRed = uR; APP_STATE.fedFilterRed = uR; } else { APP_STATE.sapFilterRed = 'Todos'; APP_STATE.resFilterRed = 'Todos'; APP_STATE.fedFilterRed = 'Todos'; }
+    const uR = APP_STATE.currentUser?.red || 'TODAS'; 
+    const isRestrictedRed = (uR !== 'TODAS' && uR !== 'GERESA');
+    const iR = isRestrictedRed; 
+    let h = '';
+    
+    if (iR) { 
+        h = `<option value="${uR}">${uR}</option>`; 
+    } else { 
+        h = '<option value="Todos">Todas las Redes</option>'; 
+        if (APP_STATE.uniqueRedes) { 
+            Array.from(APP_STATE.uniqueRedes).sort().forEach(r => { h += `<option value="${r}">${r}</option>`; }); 
+        } 
+    }
+    
+    ['sap-filter-red', 'res-filter-red', 'fed-filter-red'].forEach(id => { 
+        const s = getEl(id); 
+        if (s) { 
+            s.innerHTML = h; 
+            s.disabled = iR; 
+            if (iR) s.classList.add('opacity-50', 'cursor-not-allowed'); 
+            else s.classList.remove('opacity-50', 'cursor-not-allowed'); 
+        } 
+    });
+    
+    if (iR) { 
+        APP_STATE.sapFilterRed = uR; APP_STATE.resFilterRed = uR; APP_STATE.fedFilterRed = uR; 
+    } else { 
+        APP_STATE.sapFilterRed = 'Todos'; APP_STATE.resFilterRed = 'Todos'; APP_STATE.fedFilterRed = 'Todos'; 
+    }
+
+    // Mostrar/Ocultar secciones según el rol
+    const canSeeAll = (uR === 'TODAS' || uR === 'GERESA');
+    const navCal = getEl('nav-calendario');
+    const navGer = getEl('nav-geresa');
+    const navUsr = getEl('nav-users');
+    
+    if (navCal) navCal.style.display = canSeeAll ? 'flex' : 'none';
+    if (navGer) navGer.style.display = canSeeAll ? 'flex' : 'none';
+    if (navUsr) navUsr.style.display = canSeeAll ? 'flex' : 'none';
 };
 
 async function preloadSAPData() {
@@ -297,7 +342,7 @@ async function preloadSAPData() {
         const lt = getEl('sap-loader-text'); if (lt) lt.textContent = "Descargando matrices (1/2)...";
         const [m, m2, s] = await Promise.all([fw(URLS.MAIN), fw(URLS.MAIN2), fw(URLS.SANITARIA)]);
         if (lt) lt.textContent = "Descargando complementos (2/2)...";
-        const [ri, me, fe, ob, sr, vi, se, mi, m25, ap, ie] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025), fw(URLS.APNOP), fw(URLS.IIEE)]);
+        const [ri, me, fe, ob, sr, vi, se, mi, m25, ap, ie, ca, rd] = await Promise.all([fw(URLS.RIESGOS), fw(URLS.MEF_UB), fw(URLS.FED_UB), fw(URLS.OBSERVACIONES), fw(URLS.SAP_REGULARES), fw(URLS.VIVIENDA), fw(URLS.SAP_ESTADO), fw(URLS.MIDIS), fw(URLS.META2025), fw(URLS.APNOP), fw(URLS.IIEE), fw(URLS.CALENDAR_ACTIV), fw(URLS.REGISTRO_DIARIO)]);
         if (lt) lt.textContent = "Procesando...";
 
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
@@ -307,7 +352,7 @@ async function preloadSAPData() {
         APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
 
-        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25); APP_STATE.rawData.apnop = parseCSVFast(ap); APP_STATE.rawData.iiee = parseCSVFast(ie);
+        APP_STATE.rawData.sanitaria = parseCSVFast(s); APP_STATE.rawData.riesgos = parseCSVFast(ri); APP_STATE.rawData.observaciones = parseCSVFast(ob); APP_STATE.rawData.vivienda = parseCSVFast(vi); APP_STATE.rawData.sapEstado = parseCSVFast(se); APP_STATE.rawData.midis = parseCSVFast(mi); APP_STATE.rawData.meta2025 = parseCSVFast(m25); APP_STATE.rawData.apnop = parseCSVFast(ap); APP_STATE.rawData.iiee = parseCSVFast(ie); APP_STATE.rawData.calendar_activ = parseCSVFast(ca); APP_STATE.rawData.registro_diario = parseCSVFast(rd);
         const mD = parseCSVFast(me); const fD = parseCSVFast(fe);
 
         let mx = '2025-12';
@@ -337,7 +382,7 @@ async function preloadSAPData() {
         APP_STATE.apnopUbigeos = new Set(); APP_STATE.apnopSapIds = new Set();
         const apnopD = APP_STATE.rawData.apnop;
         if (apnopD.length > 1) { let uI = findHeaderIndex(apnopD[0], 'Ubigeo'); let sI = findHeaderIndex(apnopD[0], 'Id. SAP'); apnopD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.apnopUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.apnopSapIds.add(String(r[sI]).trim()); }); }
-        
+
         APP_STATE.iieeUbigeos = new Set(); APP_STATE.iieeSapIds = new Set();
         const iieeD = APP_STATE.rawData.iiee;
         if (iieeD.length > 1) { let uI = findHeaderIndex(iieeD[0], 'Ubigeo'); let sI = findHeaderIndex(iieeD[0], 'Id. SAP'); iieeD.slice(1).forEach(r => { if (uI !== -1 && r[uI]) APP_STATE.iieeUbigeos.add(formatUbigeo(r[uI])); if (sI !== -1 && r[sI]) APP_STATE.iieeSapIds.add(String(r[sI]).trim()); }); }
@@ -347,6 +392,10 @@ async function preloadSAPData() {
         if (APP_STATE.rawData.main2.length > 1) { const idx = findHeaderIndex(th, 'Red de Salud'); APP_STATE.rawData.main2.slice(1).forEach(r => { if (r[idx]) rds.add(r[idx]); }); }
 
         APP_STATE.uniqueRedes = rds; window.applyUserRoleUI(); APP_STATE.sapDataLoaded = true; updateGlobalDateDropdowns();
+
+        if (typeof window.initGeresaAndCalendar === 'function') {
+            window.initGeresaAndCalendar();
+        }
 
         const l = getEl('sap-loader');
         if (l && !l.classList.contains('hidden')) {
@@ -409,7 +458,12 @@ window.switchTab = id => {
     });
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     const v = getEl(`view-${id}`); if (v) v.classList.remove('hidden');
-    if (['sap', 'fed', 'resultados'].includes(id)) {
+
+    if (id === 'calendario' && APP_STATE.calendarNeedsInit) {
+        if (window.initScheduleX) window.initScheduleX();
+    }
+
+    if (['sap', 'fed', 'resultados', 'geresa', 'calendario'].includes(id)) {
         if (!APP_STATE.sapDataLoaded) getEl('sap-loader').classList.remove('hidden');
         else { getEl('sap-loader').classList.add('hidden'); if (id === 'sap') { renderSapTabs(); updateGlobalDateDropdowns(); processActiveData(); } if (id === 'resultados') { renderResTabs(); updateGlobalDateDropdowns(); processActiveData(); } if (id === 'fed') { renderFedTabs(); updateGlobalDateDropdowns(); processActiveData(); } }
     } else {
@@ -421,10 +475,10 @@ function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monit
 window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
 
 function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
-window.changeResSubTab = id => { 
-    if (APP_STATE.resActiveTab === id) return; 
-    APP_STATE.resActiveTab = id; 
-    APP_STATE.currentTableFilters = {}; 
+window.changeResSubTab = id => {
+    if (APP_STATE.resActiveTab === id) return;
+    APP_STATE.resActiveTab = id;
+    APP_STATE.currentTableFilters = {};
     const ubi = document.getElementById('res-filter-ubicacion-container');
     if (ubi) {
         if (id === 'res_nivel_riesgo' || id === 'res_riesgo') {
@@ -433,9 +487,9 @@ window.changeResSubTab = id => {
             ubi.classList.add('hidden'); ubi.classList.remove('flex');
         }
     }
-    renderResTabs(); 
-    updateGlobalDateDropdowns(); 
-    processActiveData(); 
+    renderResTabs();
+    updateGlobalDateDropdowns();
+    processActiveData();
 }
 
 function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{ id: 'ind1', label: 'AI-01.01' }, { id: 'ind2', label: 'AI-02.01' }, { id: 'ind3', label: 'AI-03.01' }, { id: 'ind4', label: 'AI-05.01' }].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
@@ -446,7 +500,7 @@ window.changeFedSubTab = id => {
     let fedMinMonth = '2025-12';
     if (id === 'ind2' || id === 'ind3') fedMinMonth = '2026-01';
     else if (id === 'ind4') fedMinMonth = '2026-06';
-    
+
     if (APP_STATE.globalDateFrom < fedMinMonth) {
         APP_STATE.globalDateFrom = fedMinMonth;
     }
@@ -537,7 +591,7 @@ function processActiveData() {
                         if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
                         if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
                         if (a === 'MIDIS' && miI !== -1) filteredData = filteredData.filter(x => x[miI] === 1);
-                        
+
                         // Respaldo para filtros que no están en columnas como Meta 2025 y APNOP
                         if (a === 'Meta 2025' || a === 'APNOP' || a === 'IIEE') {
                             const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : (a === 'IIEE' ? APP_STATE.iieeUbigeos : APP_STATE.meta2025Ubigeos);
@@ -636,10 +690,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
     if (ambitoFilter === 'APNOP') { rM = rM.filter(row => APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.apnopSapIds.has(String(row[idxSap]).trim())); }
     else if (ambitoFilter === 'IIEE') { rM = rM.filter(row => APP_STATE.iieeUbigeos.has(formatUbigeo(row[idxUbi])) || APP_STATE.iieeSapIds.has(String(row[idxSap]).trim())); }
     const idxMes = findHeaderIndex(h, 'Mes'); const idxAno = findHeaderIndex(h, 'Año'); const iLoc = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
-    let dRows = rM.filter(row => { 
-        let m = row[idxMes]; if (!m) return true; 
-        let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false; 
-        let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`; 
+    let dRows = rM.filter(row => {
+        let m = row[idxMes]; if (!m) return true;
+        let mm = MONTH_NUM[normalizeHeader(m).toUpperCase()]; if (!mm) return false;
+        let a = idxAno !== -1 ? row[idxAno] : '2025'; let ym = `${String(a).trim()}-${mm}`;
         if (ym < aF || ym > aT) return false;
         if (APP_STATE.resFilterUbicaciones && APP_STATE.resFilterUbicaciones.length > 0 && iLoc !== -1 && (subTab === 'res_nivel_riesgo' || subTab === 'res_riesgo')) {
             const loc = String(row[iLoc] || '').trim().toLowerCase();
@@ -1221,7 +1275,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             if (!nom) return;
             let ubi = idxUbiR !== -1 ? formatUbigeo(r[idxUbiR]) : '';
             let ano = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : '';
-            
+
             // Corrección [2026-07-09]: Filtramos estrictamente para que solo se procesen las filas que correspondan 
             // a los años que el usuario ha seleccionado en el filtro de fechas (fM).
             if (ano && !fM.some(ym => ym.startsWith(ano + '-'))) return;
@@ -1236,7 +1290,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                         if (x === 'Id. SAP' && extractedId) return extractedId;
                         let v = r[findHeaderIndex(lH, x)] || '';
                         if (x === 'Nombre SAP' && rawNom) return rawNom;
-                        
+
                         if (!v && extractedId && sapMetaLookup[extractedId]) {
                             if (x === 'Código Ipress') v = sapMetaLookup[extractedId].ipressCode;
                             if (x === 'Nombre Ipress') v = sapMetaLookup[extractedId].ipressName;
@@ -1582,7 +1636,7 @@ function runFedLogic(dO, ind) {
         const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iA = findHeaderIndex(rH, 'Año');
 
         const is26 = APP_STATE.globalDateFrom >= '2026-06';
-        const h1 = is26 ? (dO.main2[0] || []) : (dO.main[0] || []); 
+        const h1 = is26 ? (dO.main2[0] || []) : (dO.main[0] || []);
         const r1 = is26 ? dO.main2.slice(1) : dO.main.slice(1);
         const iBcfNmp = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (NMP)');
         const iBcfUfc = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (UFC)');
@@ -1650,7 +1704,7 @@ function runFedLogic(dO, ind) {
         let iNR = findHeaderIndex(rH, 'Nombre CCPP');
         const iU_R = findHeaderIndex(rH, 'Ubigeo'), iProv_R = findHeaderIndex(rH, 'Provincia');
         const iDist_R = findHeaderIndex(rH, 'Distrito'), iRed_R = findHeaderIndex(rH, 'Red de Salud');
-        
+
         let iA_m1, iA_m2, iA_m3, iA_m4, iA_m5, iA_m6;
         if (is26) {
             iA_m1 = findHeaderIndex(rH, 'Alerta Enero'); iA_m2 = findHeaderIndex(rH, 'Alerta Febrero');
@@ -1841,8 +1895,8 @@ function runFedLogic(dO, ind) {
                 ...m26Vals, cumplePaso2, cumplePaso1y2
             ];
         }).filter(Boolean);
-        const alertH = is26 
-            ? ['Ene 2026', 'Feb 2026', 'Mar 2026', 'Abr 2026', 'May 2026', 'Jun 2026'] 
+        const alertH = is26
+            ? ['Ene 2026', 'Feb 2026', 'Mar 2026', 'Abr 2026', 'May 2026', 'Jun 2026']
             : ['Jul 2025', 'Ago 2025', 'Set 2025', 'Oct 2025', 'Nov 2025', 'Dic 2025'];
         const fH3 = [
             'Ubigeo', 'Nombre CCPP', 'Provincia', 'Distrito', 'Red de Salud', ...alertH, 'Total Alertas', 'Cumple Alerta',
@@ -3558,19 +3612,1170 @@ window.renderUserTable = () => {
     tb.innerHTML = APP_STATE.usersList.map((u, i) => `<tr class="${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-indigo-50 transition-colors"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold mr-3">${u.usuario.charAt(0).toUpperCase()}</div><span class="text-sm font-bold text-slate-700">${u.usuario}</span></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded">••••••••</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs font-bold ${u.red === 'TODAS' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'} px-2.5 py-1 rounded-full">${u.red}</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Activo</span></td></tr>`).join('');
 };
 
-window.initWhiteboard = () => {
-    const cv = getEl('wb-canvas'); if (!cv) return; const ctx = cv.getContext('2d'); APP_STATE.canvas = cv; APP_STATE.isDrawing = false;
-    const resize = () => { const r = cv.parentElement.getBoundingClientRect(); cv.width = r.width; cv.height = r.height; ctx.fillStyle = 'white'; ctx.fillRect(0, 0, cv.width, cv.height); };
-    window.addEventListener('resize', resize); setTimeout(resize, 100);
-    const start = (e) => { APP_STATE.isDrawing = true; draw(e); };
-    const end = () => { APP_STATE.isDrawing = false; ctx.beginPath(); };
-    const draw = (e) => {
-        if (!APP_STATE.isDrawing) return; const r = cv.getBoundingClientRect(); const x = (e.clientX || e.touches?.[0].clientX) - r.left; const y = (e.clientY || e.touches?.[0].clientY) - r.top;
-        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#4f46e5'; ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y);
-    };
-    cv.addEventListener('mousedown', start); cv.addEventListener('mousemove', draw); cv.addEventListener('mouseup', end);
-    cv.addEventListener('touchstart', start, { passive: true }); cv.addEventListener('touchmove', draw, { passive: true }); cv.addEventListener('touchend', end);
-    window.clearCanvas = () => { ctx.clearRect(0, 0, cv.width, cv.height); ctx.fillStyle = 'white'; ctx.fillRect(0, 0, cv.width, cv.height); };
+window.initGeresaAndCalendar = () => {
+    if (window.renderGeresaTable) window.renderGeresaTable();
+    if (window.initScheduleX) window.initScheduleX();
+};
+
+APP_STATE.geresaActiveTab = 'APNOP';
+
+window.setGeresaTab = (tab) => {
+    APP_STATE.geresaActiveTab = tab;
+
+    // Update button styling
+    const btnApnop = getEl('tab-geresa-apnop');
+    const btnPpordit = getEl('tab-geresa-ppordit');
+    const btnOtro = getEl('tab-geresa-otro');
+    const thMeta = getEl('th-meta-anual');
+    const thPct = getEl('th-pct-ejecucion');
+
+    if (btnApnop && btnPpordit && btnOtro) {
+        const activeClass = "px-5 py-2 text-sm font-bold rounded-t-lg border-b-2 transition-colors border-indigo-600 text-indigo-700 bg-white shadow-sm";
+        const inactiveClass = "px-5 py-2 text-sm font-bold rounded-t-lg border-b-2 transition-colors border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-200/50";
+        
+        btnApnop.className = tab === 'APNOP' ? activeClass : inactiveClass;
+        btnPpordit.className = tab === 'PPORDIT' ? activeClass : inactiveClass;
+        btnOtro.className = tab === 'OTRO' ? activeClass : inactiveClass;
+        
+        if (thMeta) thMeta.style.display = tab === 'OTRO' ? 'none' : '';
+        if (thPct) thPct.style.display = tab === 'OTRO' ? 'none' : '';
+    }
+
+    window.renderGeresaTable();
+};
+
+window.renderGeresaTable = () => {
+    const tb = getEl('geresa-tbody'); if (!tb) return;
+    const data = APP_STATE.rawData.calendar_activ;
+    if (!data || data.length < 2) { tb.innerHTML = '<tr><td colspan="15" class="px-4 py-3 text-center text-slate-500 font-bold">Sin datos. Sincroniza o revisa la fuente de datos.</td></tr>'; return; }
+
+    // Calcular sumas de Registro_Diario
+    const rawEvents = APP_STATE.rawData.registro_diario || [];
+    const sumas = {}; // sumas['Actividad'] = { 1: 0, 2: 0 ... 12: 0 }
+
+    if (rawEvents.length > 1) {
+        const h = rawEvents[0];
+        const idIdx = findHeaderIndex(h, 'ID');
+        const hasId = idIdx !== -1;
+        const dateStartIdx = findHeaderIndex(h, 'Fecha Inicio');
+        const diaIdx = findHeaderIndex(h, 'Día');
+        const dateIdx = dateStartIdx !== -1 ? dateStartIdx : (diaIdx !== -1 ? diaIdx : (hasId ? 1 : 0));
+        const actIdx = findHeaderIndex(h, 'Actividad') !== -1 ? findHeaderIndex(h, 'Actividad') : (hasId ? 5 : 1);
+        const qtyIdx = findHeaderIndex(h, 'Cantidad') !== -1 ? findHeaderIndex(h, 'Cantidad') : (hasId ? 6 : 2);
+
+        for (let i = 1; i < rawEvents.length; i++) {
+            const r = rawEvents[i];
+            if (!r[dateIdx] || !r[actIdx]) continue;
+
+            const actName = String(r[actIdx]).trim();
+            const qty = parseFloat(r[qtyIdx]) || 1;
+            let dateRaw = String(r[dateIdx]).trim();
+            if (dateRaw.includes('|')) dateRaw = dateRaw.split('|')[0];
+
+            let month = -1;
+            if (dateRaw.includes('-')) {
+                month = parseInt(dateRaw.split('-')[1], 10);
+            } else if (dateRaw.includes('/')) {
+                month = parseInt(dateRaw.split('/')[1], 10);
+            }
+
+            if (month >= 1 && month <= 12) {
+                if (!sumas[actName]) sumas[actName] = {};
+                sumas[actName][month] = (sumas[actName][month] || 0) + qty;
+                
+                // Se detecta si la matriz es 'OTRO' desde el registro diario
+                // para poder listarlas dinámicamente en la tabla de GERESA Act.
+                const matrizIdx = findHeaderIndex(h, 'Tipo Matriz');
+                if (matrizIdx !== -1) {
+                    if (String(r[matrizIdx]).trim() === 'OTRO') sumas[actName]._isOtro = true;
+                }
+            }
+        }
+    }
+
+    let html = '';
+    
+    if (APP_STATE.geresaActiveTab === 'OTRO') {
+        // Para "Otras Activ.", leemos directamente del registro diario (sumas)
+        // porque estas actividades son libres y no existen en el catálogo maestro.
+        const otroActs = Object.keys(sumas).filter(k => sumas[k]._isOtro);
+        for (const actName of otroActs) {
+            const actSums = sumas[actName] || {};
+            
+            const monthsHtml = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(mes => {
+                const sumVal = actSums[mes] || 0;
+                const hasValue = sumVal > 0;
+                const cellClass = hasValue ? 'font-black text-indigo-700 bg-indigo-50' : 'text-slate-400';
+                return `<td class="px-4 py-3 border-b border-slate-200 text-center ${cellClass}">${sumVal}</td>`;
+            }).join('');
+            
+            html += `<tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 border-b border-r border-slate-200 bg-white sticky left-0 z-10 font-bold text-slate-800 whitespace-normal min-w-[250px] max-w-[350px] leading-snug">
+                    <div class="flex items-start justify-between gap-2">
+                        <span>${actName}</span>
+                        <button onclick="window.openGeresaActivityDetail('${safeEscape(actName)}')" class="shrink-0 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors border border-indigo-200 flex items-center gap-1 shadow-sm"><i data-lucide="bar-chart-2" class="w-3 h-3"></i> Detalle</button>
+                    </div>
+                </td>
+                <td class="px-4 py-3 border-b border-r border-slate-200 text-center text-slate-500">-</td>
+                ${monthsHtml}
+            </tr>`;
+        }
+    } else {
+        for (let i = 1; i < data.length; i++) {
+            const r = data[i];
+            if (!r[0]) continue;
+
+            const tipoMatriz = String(r[0]).trim();
+            if (tipoMatriz !== APP_STATE.geresaActiveTab) continue;
+
+            const actName = String(r[1] || '').trim();
+            if (!actName) continue;
+
+            const actSums = sumas[actName] || {};
+            const metaAnual = parseFloat(r[3]) || 0;
+            let totalSum = 0;
+            
+            const monthsHtml = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(mes => {
+                const sumVal = actSums[mes] || 0;
+                totalSum += sumVal;
+                const hasValue = sumVal > 0;
+                const cellClass = hasValue ? 'font-black text-indigo-700 bg-indigo-50' : 'text-slate-400';
+                return `<td class="px-4 py-3 border-b border-slate-200 text-center ${cellClass}">${sumVal}</td>`;
+            }).join('');
+            
+            // Calcular Porcentaje de Ejecución para APNOP y PPORDIT
+            const pct = metaAnual > 0 ? ((totalSum / metaAnual) * 100).toFixed(1) : 0;
+            const pctClass = pct >= 100 ? 'text-emerald-700 bg-emerald-50' : (pct >= 50 ? 'text-amber-700 bg-amber-50' : 'text-rose-700 bg-rose-50');
+
+            // Las columnas de META y % Ejecución se omiten si la pestaña es OTRO (condicional heredado de la versión anterior)
+            const metaHtml = `<td class="px-4 py-3 border-b border-r border-slate-200 text-center font-black bg-indigo-50/50 text-indigo-700">${r[3] || '0'}</td>`;
+            const pctHtml = `<td class="px-4 py-3 border-b border-l border-slate-200 text-center font-black ${pctClass}">${pct}%</td>`;
+
+            html += `<tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 border-b border-r border-slate-200 bg-white sticky left-0 z-10 font-bold text-slate-800 whitespace-normal min-w-[250px] max-w-[350px] leading-snug">
+                    <div class="flex items-start justify-between gap-2">
+                        <span>${r[1] || ''}</span>
+                        <button onclick="window.openGeresaActivityDetail('${safeEscape(r[1] || '')}')" class="shrink-0 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors border border-indigo-200 flex items-center gap-1 shadow-sm"><i data-lucide="bar-chart-2" class="w-3 h-3"></i> Detalle</button>
+                    </div>
+                </td>
+                <td class="px-4 py-3 border-b border-r border-slate-200 text-center text-slate-500">${r[2] || ''}</td>
+                ${metaHtml}
+                ${monthsHtml}
+                ${pctHtml}
+            </tr>`;
+        }
+    }
+
+    if (html === '') {
+        const cSpan = APP_STATE.geresaActiveTab === 'OTRO' ? 14 : 16;
+        tb.innerHTML = `<tr><td colspan="${cSpan}" class="px-4 py-6 text-center text-slate-500 font-bold">No hay actividades para ${APP_STATE.geresaActiveTab}.</td></tr>`;
+    } else {
+        tb.innerHTML = html;
+        if (window.lucide) window.lucide.createIcons();
+    }
+};
+
+let geresaDetailChart = null;
+
+window.openGeresaActivityDetail = (actName) => {
+    const rawEvents = APP_STATE.rawData.registro_diario || [];
+    if (rawEvents.length < 2) return;
+    
+    getEl('gad-title').textContent = actName;
+    
+    const h = rawEvents[0];
+    const actIdx = findHeaderIndex(h, 'Actividad');
+    const dateIdx = findHeaderIndex(h, 'Fecha Inicio');
+    const horaIniIdx = findHeaderIndex(h, 'Hora Inicio');
+    const horaFinIdx = findHeaderIndex(h, 'Hora Fin');
+    const qtyIdx = findHeaderIndex(h, 'Cantidad');
+    const partIdx = findHeaderIndex(h, 'Lista participantes');
+    const urlIdx = findHeaderIndex(h, 'url img');
+    
+    let totalMuestras = 0;
+    let totalMinutos = 0;
+    const diasUnicos = new Set();
+    const participantes = new Set();
+    const imagenes = [];
+    const sumasMes = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    
+    for (let i = 1; i < rawEvents.length; i++) {
+        const r = rawEvents[i];
+        if (actIdx !== -1 && String(r[actIdx]).trim() === actName) {
+            // Contabilizar dia y sumar al mes
+            if (dateIdx !== -1 && r[dateIdx]) {
+                const dateStr = String(r[dateIdx]).trim().split('|')[0];
+                diasUnicos.add(dateStr);
+                
+                let month = -1;
+                if (dateStr.includes('-')) month = parseInt(dateStr.split('-')[1], 10);
+                else if (dateStr.includes('/')) month = parseInt(dateStr.split('/')[1], 10);
+                
+                const qty = qtyIdx !== -1 ? (parseFloat(r[qtyIdx]) || 0) : 1;
+                if (month >= 1 && month <= 12) {
+                    sumasMes[month - 1] += qty;
+                }
+                totalMuestras += qty;
+            }
+            
+            // Contabilizar horas
+            if (horaIniIdx !== -1 && horaFinIdx !== -1 && r[horaIniIdx] && r[horaFinIdx]) {
+                const start = String(r[horaIniIdx]);
+                const end = String(r[horaFinIdx]);
+                if (start.includes(':') && end.includes(':')) {
+                    const [sh, sm] = start.split(':').map(Number);
+                    const [eh, em] = end.split(':').map(Number);
+                    let diff = (eh * 60 + em) - (sh * 60 + sm);
+                    if (diff < 0) diff += 24 * 60; // cruce de medianoche
+                    totalMinutos += diff;
+                }
+            }
+            
+            // Participantes
+            if (partIdx !== -1 && r[partIdx]) {
+                const partList = String(r[partIdx]).split(',').map(p => p.trim()).filter(p => p);
+                partList.forEach(p => participantes.add(p));
+            }
+            
+            // Fotos
+            if (urlIdx !== -1 && r[urlIdx]) {
+                const urlImg = String(r[urlIdx]).trim();
+                let imgId = '';
+                let match = urlImg.match(/id=([^&]+)/) || urlImg.match(/d\/([^/]+)/);
+                if (match && match[1]) imgId = match[1];
+                if (imgId) {
+                    imagenes.push({
+                        url: urlImg,
+                        thumb: `https://drive.google.com/thumbnail?id=${imgId}&sz=w400`
+                    });
+                }
+            }
+        }
+    }
+    
+    // Estadisticas
+    getEl('gad-dias').textContent = diasUnicos.size;
+    getEl('gad-horas').textContent = (totalMinutos / 60).toFixed(1);
+    getEl('gad-cantidad').textContent = totalMuestras;
+    
+    // Participantes list
+    const partDiv = getEl('gad-participantes');
+    if (participantes.size > 0) {
+        partDiv.innerHTML = Array.from(participantes).map(p => `<span class="inline-block bg-white px-2.5 py-1 rounded border border-slate-200 mr-2 mb-2 shadow-sm">${safeEscape(p)}</span>`).join('');
+    } else {
+        partDiv.innerHTML = '<span class="text-slate-400 italic">No hay participantes registrados.</span>';
+    }
+    
+    // Galeria
+    const galDiv = getEl('gad-gallery');
+    getEl('gad-fotos-count').textContent = `${imagenes.length} Fotos`;
+    if (imagenes.length > 0) {
+        galDiv.innerHTML = imagenes.map(img => `
+            <a href="${img.url}" target="_blank" class="block aspect-square rounded-xl overflow-hidden shadow-sm border border-slate-200 hover:border-indigo-400 hover:shadow-md transition-all group relative">
+                <img src="${img.thumb}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Evidencia">
+                <div class="absolute inset-0 bg-indigo-900/0 group-hover:bg-indigo-900/10 transition-colors flex items-center justify-center">
+                    <div class="bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform scale-75 group-hover:scale-100 shadow-sm"><i data-lucide="external-link" class="w-4 h-4 text-indigo-700"></i></div>
+                </div>
+            </a>
+        `).join('');
+    } else {
+        galDiv.innerHTML = '<div class="col-span-full py-8 text-center text-slate-400 italic font-medium bg-slate-50 border border-slate-200 border-dashed rounded-xl">No hay evidencia fotográfica para esta actividad.</div>';
+    }
+    
+    // Chart
+    const ctx = getEl('gad-chart').getContext('2d');
+    if (geresaDetailChart) geresaDetailChart.destroy();
+    
+    const mesesLabel = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    geresaDetailChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: mesesLabel,
+            datasets: [{
+                label: 'Avance por Mes',
+                data: sumasMes,
+                backgroundColor: 'rgba(79, 70, 229, 0.8)', // indigo-600
+                hoverBackgroundColor: 'rgba(67, 56, 202, 1)', // indigo-700
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+    
+    getEl('modal-geresa-activity-detail').classList.remove('hidden');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.closeGeresaActivityDetail = () => {
+    getEl('modal-geresa-activity-detail').classList.add('hidden');
+};
+
+let sxCalendarInstance = null;
+window.initScheduleX = () => {
+    if (!window.SXCalendar) {
+        setTimeout(window.initScheduleX, 500);
+        return;
+    }
+    const container = getEl('sx-calendar');
+    if (!container) return;
+
+    // 1. Build the events array first
+    const rawEvents = APP_STATE.rawData.registro_diario;
+    const events = [];
+
+    if (rawEvents && rawEvents.length > 1) {
+        const h = rawEvents[0];
+        const idIdx = findHeaderIndex(h, 'ID');
+        const hasId = idIdx !== -1;
+        const dateStartIdx = findHeaderIndex(h, 'Fecha Inicio');
+        const dateEndIdx = findHeaderIndex(h, 'Fecha Fin');
+        const timeStartIdx = findHeaderIndex(h, 'Hora Inicio');
+        const timeEndIdx = findHeaderIndex(h, 'Hora Fin');
+        
+        // Backward compatibility for old "Día" column just in case
+        const diaIdx = findHeaderIndex(h, 'Día');
+        const actIdx = findHeaderIndex(h, 'Actividad') !== -1 ? findHeaderIndex(h, 'Actividad') : (hasId ? 5 : 1);
+        const qtyIdx = findHeaderIndex(h, 'Cantidad') !== -1 ? findHeaderIndex(h, 'Cantidad') : (hasId ? 6 : 2);
+
+        for (let i = 1; i < rawEvents.length; i++) {
+            const r = rawEvents[i];
+            
+            let dateRaw = "";
+            let endRaw = "";
+            
+            if (dateStartIdx !== -1) {
+                const parseTimeCell = (cell) => {
+                    if (!cell) return '';
+                    let c = String(cell).trim();
+                    if (c.includes('1899') || c.includes('GMT') || c.includes('Sat ') || c.includes('Sun ')) {
+                        const d = new Date(c);
+                        if (!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    }
+                    if (c.includes(':')) return c.split(':').slice(0, 2).join(':');
+                    return c;
+                };
+
+                let dStart = r[dateStartIdx] ? String(r[dateStartIdx]).trim() : '';
+                let dEnd = dateEndIdx !== -1 && r[dateEndIdx] ? String(r[dateEndIdx]).trim() : '';
+                let tStart = timeStartIdx !== -1 ? parseTimeCell(r[timeStartIdx]) : '';
+                let tEnd = timeEndIdx !== -1 ? parseTimeCell(r[timeEndIdx]) : '';
+                
+                if (tStart) dateRaw = `${dStart} ${tStart}`; else dateRaw = dStart;
+                if (dEnd) {
+                    if (tEnd) endRaw = `${dEnd} ${tEnd}`; else endRaw = dEnd;
+                } else {
+                    endRaw = dateRaw;
+                }
+            } else if (diaIdx !== -1) {
+                // Old format fallback
+                let cellDate = String(r[diaIdx]).trim();
+                if (cellDate.includes('|')) {
+                    const parts = cellDate.split('|');
+                    dateRaw = parts[0];
+                    endRaw = parts[1];
+                } else {
+                    dateRaw = cellDate;
+                    endRaw = cellDate;
+                }
+            }
+            
+            if (!dateRaw || !r[actIdx]) continue;
+
+            const formatSxDate = (rawStr) => {
+                if (!rawStr) return "";
+                let str = rawStr.trim();
+                // Normalize DD/MM/YYYY to YYYY-MM-DD
+                if (str.includes('/')) {
+                    const parts = str.split('/');
+                    if (parts.length === 3) {
+                        const yearTime = parts[2].split(' ');
+                        const year = yearTime[0];
+                        const time = yearTime.length > 1 ? ` ${yearTime.slice(1).join(' ')}` : '';
+                        str = `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}${time}`;
+                    }
+                }
+                
+                if (str.includes(' ')) {
+                    const [datePart, timePart] = str.split(' ');
+                    let [h, m] = timePart.split(':');
+                    h = String(h || '00').padStart(2, '0');
+                    m = String(m || '00').padStart(2, '0');
+                    str = `${datePart} ${h}:${m}`;
+                }
+                return str;
+            };
+
+            dateRaw = formatSxDate(dateRaw);
+            endRaw = formatSxDate(endRaw);
+
+            let [d1, t1] = dateRaw.split(' ');
+            let [d2, t2] = endRaw.split(' ');
+
+            // Si hay hora de inicio pero la hora de fin es igual (o no hay), calcular +1 hora
+            if (t1 && (!t2 || t1 === t2)) {
+                let [h, m] = t1.split(':');
+                let endH = parseInt(h, 10) + 1;
+                if (endH > 23) endH = 23;
+                t2 = `${String(endH).padStart(2, '0')}:${m}`;
+                endRaw = d2 ? `${d2} ${t2}` : `${d1} ${t2}`;
+            }
+
+            const evId = (hasId && r[idIdx]) ? r[idIdx] : `ev-${i}-${Math.random().toString(36).substr(2, 9)}`;
+            const title = `${r[actIdx]} (${r[qtyIdx] || 1})`;
+            const desc = `Cantidad registrada: ${r[qtyIdx] || 1}`;
+
+            if (d1 !== d2 && d1 && d2) {
+                // Banner para vista mensual
+                events.push({
+                    id: `banner_${evId}`,
+                    title: title + '\u200B',
+                    start: dateRaw,
+                    end: endRaw,
+                    description: desc
+                });
+
+                let current = new Date(d1 + 'T00:00:00');
+                const end = new Date(d2 + 'T00:00:00');
+                
+                if (current <= end) {
+                    let dayIndex = 0;
+                    while (current <= end) {
+                        const yyyy = current.getFullYear();
+                        const mm = String(current.getMonth() + 1).padStart(2, '0');
+                        const dd = String(current.getDate()).padStart(2, '0');
+                        const currDateStr = `${yyyy}-${mm}-${dd}`;
+                        
+                        let eStart = t1 ? `${currDateStr} ${t1}` : currDateStr;
+                        let eEnd = t2 ? `${currDateStr} ${t2}` : currDateStr;
+                        
+                        // Bloques diarios para vista día/semana
+                        events.push({
+                            id: `${evId}_multi_${dayIndex}`,
+                            title: title + '\u200C',
+                            start: eStart,
+                            end: eEnd,
+                            description: desc
+                        });
+                        
+                        current.setDate(current.getDate() + 1);
+                        dayIndex++;
+                    }
+                }
+            } else {
+                events.push({ id: String(evId), title: title, start: dateRaw, end: endRaw, description: desc });
+            }
+        }
+    }
+
+    // 2. If the calendar is already instantiated, just update the events and exit
+    if (sxCalendarInstance) {
+        sxCalendarInstance.events.set(events);
+        window.populateCalendarActivities();
+        return;
+    }
+
+    // 3. Otherwise, check visibility before destroying and creating a new calendar
+    if (container.offsetWidth === 0) {
+        APP_STATE.calendarNeedsInit = true;
+        return;
+    }
+    APP_STATE.calendarNeedsInit = false;
+
+    // Create a fresh container to prevent Preact virtual DOM crashes
+    const newContainer = document.createElement('div');
+    newContainer.id = 'sx-calendar';
+    newContainer.className = container.className;
+    container.parentNode.replaceChild(newContainer, container);
+    const finalContainer = newContainer;
+
+    const { createCalendar, createViewMonthGrid, createViewWeek, createViewDay } = window.SXCalendar;
+    const dragAndDropPlugin = window.SXDragAndDrop.createDragAndDropPlugin();
+    const eventModalPlugin = window.SXEventModal.createEventModalPlugin();
+
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx7cePCedHzyYgVxpv3cTzUwCmsjAvFOATy8VjXirihPhotQBv2ochaurLde0DlaHrQ/exec';
+
+    const monthGrid = createViewMonthGrid();
+    const weekGrid = createViewWeek();
+    const dayGrid = createViewDay();
+
+    if (!document.getElementById('sx-custom-styles')) {
+        const style = document.createElement('style');
+        style.id = 'sx-custom-styles';
+        style.innerHTML = `
+            .sx__month-grid-wrapper [data-event-id*="_multi_"] { display: none !important; }
+            .sx__time-grid-wrapper [data-event-id^="banner_"],
+            .sx__week-grid-wrapper [data-event-id^="banner_"],
+            .sx__day-grid-wrapper [data-event-id^="banner_"] { display: none !important; }
+        `;
+        document.head.appendChild(style);
+        
+        setInterval(() => {
+            const selectors = [
+                '.sx__time-grid-event',
+                '.sx__date-grid-event',
+                '.sx__month-grid-event',
+                '.sx__event',
+                '[data-event-id]'
+            ];
+            const elements = document.querySelectorAll(selectors.join(', '));
+            
+            elements.forEach(el => {
+                const text = el.textContent || '';
+                const isBanner = text.includes('\u200B');
+                const isDiscrete = text.includes('\u200C');
+                if (!isBanner && !isDiscrete) return;
+                
+                // Identify the view
+                const inMonth = el.closest('.sx__month-grid-wrapper') || el.closest('.sx__view-container--month') || el.closest('[class*="month-grid"]');
+                
+                if (isBanner && !inMonth) {
+                    el.style.display = 'none';
+                } else if (isDiscrete && inMonth) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = '';
+                }
+            });
+        }, 150);
+    }
+
+    sxCalendarInstance = createCalendar({
+        views: [monthGrid, weekGrid, dayGrid],
+        defaultView: monthGrid.name,
+        events: events,
+        locale: 'es-ES',
+        calendars: {
+            default: {
+                colorName: 'default',
+                lightColors: { main: '#4f46e5', container: '#eef2ff', onContainer: '#312e81' }
+            }
+        },
+        plugins: [dragAndDropPlugin, eventModalPlugin],
+        callbacks: {
+            onEventUpdate: async (updatedEvent) => {
+                let realId = String(updatedEvent.id);
+                if (realId.includes('_multi_')) realId = realId.split('_multi_')[0];
+                if (realId.startsWith('banner_')) realId = realId.replace('banner_', '');
+
+                if (realId === 'dummy') {
+                    if (sxCalendarInstance) sxCalendarInstance.events.remove('dummy');
+                    return;
+                }
+
+                let dStart = '', tStart = '', dEnd = '', tEnd = '';
+                if (updatedEvent.start) {
+                    const parts = updatedEvent.start.split(' ');
+                    dStart = parts[0];
+                    if (parts.length > 1) tStart = parts[1];
+                }
+                if (updatedEvent.end) {
+                    const parts = updatedEvent.end.split(' ');
+                    dEnd = parts[0];
+                    if (parts.length > 1) tEnd = parts[1];
+                }
+                
+                const rawEvents = APP_STATE.rawData.registro_diario || [];
+                let foundRow = null;
+                let headers = [];
+                if (rawEvents.length > 1) {
+                    headers = rawEvents[0];
+                    const idIdx = findHeaderIndex(headers, 'ID');
+                    if (idIdx !== -1) {
+                        for (let i = 1; i < rawEvents.length; i++) {
+                            if (String(rawEvents[i][idIdx]) === realId) {
+                                foundRow = rawEvents[i];
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                const getVal = (headerName) => {
+                    const idx = findHeaderIndex(headers, headerName);
+                    return (idx !== -1 && foundRow) ? foundRow[idx] : '';
+                };
+                
+                let act = getVal('Actividad');
+                let qty = getVal('Cantidad');
+                if (!act) {
+                    let cleanTitle = updatedEvent.title.replace('\u200B', '').replace('\u200C', '');
+                    const titleMatch = cleanTitle.match(/(.+?)\s*\((\d+)\)$/);
+                    if (titleMatch) { act = titleMatch[1].trim(); qty = titleMatch[2]; } 
+                    else { act = cleanTitle; qty = 1; }
+                }
+                
+                if (foundRow) {
+                    const dsIdx = findHeaderIndex(headers, 'Fecha Inicio');
+                    const deIdx = findHeaderIndex(headers, 'Fecha Fin');
+                    const tsIdx = findHeaderIndex(headers, 'Hora Inicio');
+                    const teIdx = findHeaderIndex(headers, 'Hora Fin');
+                    if (dsIdx !== -1) foundRow[dsIdx] = dStart;
+                    if (deIdx !== -1) foundRow[deIdx] = dEnd;
+                    if (tsIdx !== -1) foundRow[tsIdx] = tStart;
+                    if (teIdx !== -1) foundRow[teIdx] = tEnd;
+                }
+                
+                try {
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            action: 'update', 
+                            id: realId, 
+                            fechaInicio: dStart,
+                            fechaFin: dEnd,
+                            horaInicio: tStart,
+                            horaFin: tEnd,
+                            tipoMatriz: getVal('Tipo Matriz'),
+                            actividad: act,
+                            cantidad: qty,
+                            cantidadAnalisis: getVal('Cantidad Analisis'),
+                            cantidadSAP: getVal('Cantidad SAP'),
+                            listaParticipantes: getVal('Lista participantes'),
+                            observacion: getVal('Observacion')
+                        })
+                    });
+                } catch (e) { }
+
+                // Forzar reconstrucción de todos los bloques hermanos
+                setTimeout(() => window.initScheduleX(APP_STATE.rawData.registro_diario), 50);
+            },
+            onEventClick: (calendarEvent) => {
+                let realId = String(calendarEvent.id);
+                if (realId.includes('_multi_')) realId = realId.split('_multi_')[0];
+                if (realId.startsWith('banner_')) realId = realId.replace('banner_', '');
+
+                // Limpiar los caracteres invisibles del título para el modal
+                let cleanTitle = calendarEvent.title.replace('\u200B', '').replace('\u200C', '');
+
+                APP_STATE.selectedEvent = { ...calendarEvent, id: realId, title: cleanTitle };
+                getEl('ea-title').textContent = cleanTitle;
+                getEl('ea-date').textContent = calendarEvent.start;
+                getEl('ea-desc').textContent = calendarEvent.description || '';
+                
+                const photoContainer = getEl('ea-photo-container');
+                const photoLink = getEl('ea-photo-link');
+                if (photoContainer && photoLink) {
+                    photoContainer.classList.add('hidden');
+                    const rawEvents = APP_STATE.rawData.registro_diario || [];
+                    if (rawEvents.length > 1) {
+                        const headers = rawEvents[0];
+                        const idIdx = findHeaderIndex(headers, 'ID');
+                        const urlIdx = findHeaderIndex(headers, 'url img');
+                        if (idIdx !== -1 && urlIdx !== -1) {
+                            for (let i = 1; i < rawEvents.length; i++) {
+                                if (String(rawEvents[i][idIdx]) === realId) {
+                                    const urlImg = String(rawEvents[i][urlIdx] || '').trim();
+                                    const previewWrapper = getEl('ea-photo-preview-wrapper');
+                                    const previewImg = getEl('ea-photo-preview');
+                                    
+                                    if (urlImg) {
+                                        photoLink.href = urlImg;
+                                        if (urlImg === 'procesando...') {
+                                            photoLink.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Subiendo imagen...';
+                                            photoLink.href = '#';
+                                            if (previewWrapper) previewWrapper.classList.add('hidden');
+                                        } else {
+                                            photoLink.innerHTML = '<i data-lucide="external-link" class="w-4 h-4"></i> Abrir en Drive';
+                                            if (previewWrapper && previewImg) {
+                                                // Convertir link de Drive a thumbnail directo si es posible
+                                                // Drive URLs usually end in /view, we can sometimes use googleusercontent or just show it if it's open
+                                                // Since it's an iframe-able view link, we can't directly put it in <img> unless we extract the ID
+                                                let imgId = '';
+                                                let match = urlImg.match(/id=([^&]+)/) || urlImg.match(/d\/([^/]+)/);
+                                                if (match && match[1]) {
+                                                    imgId = match[1];
+                                                    previewImg.src = `https://drive.google.com/thumbnail?id=${imgId}&sz=w800`;
+                                                    previewWrapper.classList.remove('hidden');
+                                                } else {
+                                                    previewWrapper.classList.add('hidden');
+                                                }
+                                            }
+                                        }
+                                        photoContainer.classList.remove('hidden');
+                                        if (window.lucide) window.lucide.createIcons();
+                                    } else {
+                                        if (previewWrapper) previewWrapper.classList.add('hidden');
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                getEl('modal-event-action').classList.remove('hidden');
+            }
+        }
+    });
+
+    sxCalendarInstance.render(finalContainer);
+    window.populateCalendarActivities();
+};
+
+window.onMatrizChange = () => {
+    window.populateCalendarActivities();
+};
+
+window.onActivityChange = () => {
+    const selAct = getEl('cal-input-activity');
+    const lblUnit = getEl('lbl-qty-unit');
+    if (!selAct || !lblUnit) return;
+
+    const actName = selAct.value;
+    const d = APP_STATE.rawData.calendar_activ;
+    const isOtro = getEl('cal-input-matriz').value === 'OTRO';
+    
+    let unit = '';
+    if (!isOtro && d && d.length >= 2) {
+        for (let i = 1; i < d.length; i++) {
+            if (d[i][1] === actName) {
+                unit = d[i][2] || '';
+                break;
+            }
+        }
+    }
+    lblUnit.textContent = unit ? `(${unit})` : '';
+};
+
+window.populateCalendarActivities = () => {
+    const selMatriz = getEl('cal-input-matriz');
+    const sel = getEl('cal-input-activity');
+    if (!sel || !selMatriz) return;
+
+    const selectedMatriz = selMatriz.value;
+    const txtAct = getEl('cal-input-activity-text');
+    
+    if (selectedMatriz === 'OTRO') {
+        sel.classList.add('hidden');
+        if (txtAct) txtAct.classList.remove('hidden');
+        window.onActivityChange(); // Clear unit
+        return;
+    } else {
+        sel.classList.remove('hidden');
+        if (txtAct) txtAct.classList.add('hidden');
+    }
+    
+    const d = APP_STATE.rawData.calendar_activ;
+    if (!d || d.length < 2) return;
+
+    let opts = '';
+    for (let i = 1; i < d.length; i++) {
+        const matriz = String(d[i][0]).trim();
+        const actName = String(d[i][1] || '').trim();
+        if (matriz === selectedMatriz && actName) {
+            opts += `<option value="${actName}">${actName}</option>`;
+        }
+    }
+    sel.innerHTML = opts;
+    window.onActivityChange(); // Trigger unit update
+};
+
+window.showAddEventModal = () => {
+    APP_STATE.editingEventId = null; // Clear edit state
+    getEl('modal-calendar-event').classList.remove('hidden');
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+    
+    let endH = today.getHours() + 1;
+    if (endH > 23) endH = 23;
+    const timeEndStr = `${String(endH).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+
+    getEl('cal-input-date').value = dateStr;
+    getEl('cal-input-time').value = timeStr;
+    if (getEl('cal-input-date-end')) getEl('cal-input-date-end').value = dateStr;
+    if (getEl('cal-input-time-end')) getEl('cal-input-time-end').value = timeEndStr;
+    getEl('cal-input-qty').value = 1;
+
+    if (getEl('cal-input-qty-analisis')) getEl('cal-input-qty-analisis').value = '';
+    if (getEl('cal-input-qty-sap')) getEl('cal-input-qty-sap').value = '';
+    if (getEl('cal-input-participantes')) getEl('cal-input-participantes').value = '';
+    if (getEl('cal-input-obs')) getEl('cal-input-obs').value = '';
+    if (getEl('cal-input-activity-text')) getEl('cal-input-activity-text').value = '';
+    if (getEl('cal-input-photo')) getEl('cal-input-photo').value = '';
+
+    window.onMatrizChange(); // Reset dropdowns
+};
+
+window.closeEventActionModal = () => { getEl('modal-event-action').classList.add('hidden'); };
+
+window.deleteCalendarEvent = async () => {
+    const calendarEvent = APP_STATE.selectedEvent;
+    if (!calendarEvent) return;
+    if (!confirm(`¿Estás seguro que deseas ELIMINAR permanentemente la actividad: "${calendarEvent.title}"?`)) return;
+
+    window.closeEventActionModal();
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx7cePCedHzyYgVxpv3cTzUwCmsjAvFOATy8VjXirihPhotQBv2ochaurLde0DlaHrQ/exec';
+
+    try {
+        fetch(WEBHOOK_URL, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', id: calendarEvent.id })
+        });
+        
+        // Optimistic local update
+        
+        const rawEvents = APP_STATE.rawData.registro_diario;
+        if (rawEvents && rawEvents.length > 1) {
+            const h = rawEvents[0];
+            const idIdx = findHeaderIndex(h, 'ID');
+            if (idIdx !== -1) {
+                for (let i = 1; i < rawEvents.length; i++) {
+                    if (String(rawEvents[i][idIdx]) === calendarEvent.id) {
+                        rawEvents.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+        window.initScheduleX(APP_STATE.rawData.registro_diario);
+        window.renderGeresaTable();
+        
+    } catch (e) { }
+};
+
+window.editCalendarEvent = () => {
+    const calendarEvent = APP_STATE.selectedEvent;
+    if (!calendarEvent) return;
+
+    window.closeEventActionModal();
+    window.showAddEventModal(); // opens the form and clears edit state
+
+    APP_STATE.editingEventId = calendarEvent.id; // Override for edit mode
+
+    const [dateStr, timeStr] = calendarEvent.start.split(' ');
+    getEl('cal-input-date').value = dateStr;
+    getEl('cal-input-time').value = timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
+
+    if (getEl('cal-input-date-end')) getEl('cal-input-date-end').value = '';
+    if (getEl('cal-input-time-end')) getEl('cal-input-time-end').value = '';
+
+    // Buscar el evento en registro_diario para cargar los campos extra
+    const rawEvents = APP_STATE.rawData.registro_diario || [];
+    let foundRow = null;
+    let headers = [];
+    if (rawEvents.length > 1) {
+        headers = rawEvents[0];
+        const idIdx = findHeaderIndex(headers, 'ID');
+        if (idIdx !== -1) {
+            for (let i = 1; i < rawEvents.length; i++) {
+                if (String(rawEvents[i][idIdx]) === calendarEvent.id) {
+                    foundRow = rawEvents[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    if (foundRow) {
+        const dateStartIdx = findHeaderIndex(headers, 'Fecha Inicio');
+        const dateEndIdx = findHeaderIndex(headers, 'Fecha Fin');
+        const timeStartIdx = findHeaderIndex(headers, 'Hora Inicio');
+        const timeEndIdx = findHeaderIndex(headers, 'Hora Fin');
+        const diaIdx = findHeaderIndex(headers, 'Día');
+
+        if (dateStartIdx !== -1 && foundRow[dateStartIdx]) {
+            // Normalize dates to YYYY-MM-DD
+            const normalizeDate = (d) => {
+                let ds = String(d).trim();
+                if (ds.includes('/')) {
+                    const p = ds.split('/');
+                    if (p.length === 3) return `${p[2].split(' ')[0]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+                }
+                return ds;
+            };
+            getEl('cal-input-date').value = normalizeDate(foundRow[dateStartIdx]);
+            if (dateEndIdx !== -1 && foundRow[dateEndIdx]) getEl('cal-input-date-end').value = normalizeDate(foundRow[dateEndIdx]);
+            else if (getEl('cal-input-date-end')) getEl('cal-input-date-end').value = '';
+            
+            const normalizeTime = (t) => {
+                let ts = String(t).trim();
+                return ts ? ts.split(':').slice(0, 2).join(':') : '';
+            }
+            if (timeStartIdx !== -1 && foundRow[timeStartIdx]) getEl('cal-input-time').value = normalizeTime(foundRow[timeStartIdx]);
+            if (timeEndIdx !== -1 && foundRow[timeEndIdx]) {
+                if (getEl('cal-input-time-end')) getEl('cal-input-time-end').value = normalizeTime(foundRow[timeEndIdx]);
+            } else if (getEl('cal-input-time-end')) getEl('cal-input-time-end').value = '';
+        } else if (diaIdx !== -1 && foundRow[diaIdx]) {
+            const rawD = String(foundRow[diaIdx]);
+            if (rawD.includes('|')) {
+                const parts = rawD.split('|');
+                const eParts = parts[1].split(' ');
+                if (getEl('cal-input-date-end')) getEl('cal-input-date-end').value = eParts[0] || '';
+                if (getEl('cal-input-time-end')) getEl('cal-input-time-end').value = eParts[1] ? eParts[1].split(':').slice(0, 2).join(':') : '';
+            }
+        }
+
+        const matrizIdx = findHeaderIndex(headers, 'Tipo Matriz');
+        const actIdx = findHeaderIndex(headers, 'Actividad');
+        const qtyIdx = findHeaderIndex(headers, 'Cantidad');
+        const qAnalisisIdx = findHeaderIndex(headers, 'Cantidad Analisis');
+        const qSapIdx = findHeaderIndex(headers, 'Cantidad SAP');
+        const partIdx = findHeaderIndex(headers, 'Lista participantes');
+        const obsIdx = findHeaderIndex(headers, 'Observacion');
+
+        if (matrizIdx !== -1 && foundRow[matrizIdx]) {
+            const m = String(foundRow[matrizIdx]).trim();
+            // Si el valor no es APNOP ni PPORDIT, asumimos que es OTRO
+            if (m !== 'APNOP' && m !== 'PPORDIT') {
+                getEl('cal-input-matriz').value = 'OTRO';
+            } else {
+                getEl('cal-input-matriz').value = m;
+            }
+            window.onMatrizChange(); 
+        }
+        if (actIdx !== -1) {
+            const a = foundRow[actIdx];
+            if (getEl('cal-input-matriz').value === 'OTRO') {
+                getEl('cal-input-activity-text').value = a;
+            } else {
+                getEl('cal-input-activity').value = a;
+            }
+        }
+        if (qtyIdx !== -1) getEl('cal-input-qty').value = foundRow[qtyIdx];
+
+        if (qAnalisisIdx !== -1 && getEl('cal-input-qty-analisis')) getEl('cal-input-qty-analisis').value = foundRow[qAnalisisIdx];
+        if (qSapIdx !== -1 && getEl('cal-input-qty-sap')) getEl('cal-input-qty-sap').value = foundRow[qSapIdx];
+        if (partIdx !== -1 && getEl('cal-input-participantes')) getEl('cal-input-participantes').value = foundRow[partIdx];
+        if (obsIdx !== -1 && getEl('cal-input-obs')) getEl('cal-input-obs').value = foundRow[obsIdx];
+
+        window.onActivityChange();
+    } else {
+        // Fallback si no se encontró (ej. modo optimista)
+        const titleMatch = calendarEvent.title.match(/(.+?)\s*\((\d+)\)$/);
+        if (titleMatch) {
+            getEl('cal-input-activity').value = titleMatch[1].trim();
+            getEl('cal-input-qty').value = titleMatch[2];
+        } else {
+            getEl('cal-input-activity').value = calendarEvent.title;
+            getEl('cal-input-qty').value = 1;
+        }
+        window.onActivityChange();
+    }
+};
+
+window.closeCalendarModal = () => { getEl('modal-calendar-event').classList.add('hidden'); };
+
+window.saveCalendarEvent = async () => {
+    const date = getEl('cal-input-date').value;
+    const time = getEl('cal-input-time').value;
+    const matriz = getEl('cal-input-matriz').value;
+    const act = matriz === 'OTRO' ? getEl('cal-input-activity-text').value : getEl('cal-input-activity').value;
+    const qty = getEl('cal-input-qty').value;
+    const qtyAnalisis = getEl('cal-input-qty-analisis') ? getEl('cal-input-qty-analisis').value : '';
+    const qtySap = getEl('cal-input-qty-sap') ? getEl('cal-input-qty-sap').value : '';
+    const participantes = getEl('cal-input-participantes') ? getEl('cal-input-participantes').value : '';
+    const obs = getEl('cal-input-obs') ? getEl('cal-input-obs').value : '';
+
+    const dateEnd = getEl('cal-input-date-end') ? getEl('cal-input-date-end').value : '';
+    const timeEnd = getEl('cal-input-time-end') ? getEl('cal-input-time-end').value : '';
+    
+    const photoInput = getEl('cal-input-photo');
+    let imageBase64 = '';
+    let imageMimeType = '';
+    let imageName = '';
+
+    if (!date || !act || !qty) { alert("Completa la fecha, actividad y cantidad principal"); return; }
+
+    let dateTimeStart = date;
+    let endDateTime = date;
+    if (time) {
+        dateTimeStart = `${date} ${time}`;
+        let [h, m] = time.split(':');
+        let endH = parseInt(h, 10) + 1;
+        if (endH > 23) endH = 23;
+        endDateTime = `${date} ${String(endH).padStart(2, '0')}:${m}`;
+    }
+
+    let dateTimeEnd = '';
+    if (dateEnd) {
+        dateTimeEnd = timeEnd ? `${dateEnd} ${timeEnd}` : dateEnd;
+        endDateTime = dateTimeEnd; // override visual end date
+    }
+
+    const dateTime = dateTimeEnd ? `${dateTimeStart}|${dateTimeEnd}` : dateTimeStart;
+
+    const btn = getEl('btn-save-cal');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...';
+    btn.disabled = true;
+
+    const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbx7cePCedHzyYgVxpv3cTzUwCmsjAvFOATy8VjXirihPhotQBv2ochaurLde0DlaHrQ/exec';
+
+    try {
+        if (photoInput && photoInput.files.length > 0) {
+            const file = photoInput.files[0];
+            imageName = file.name;
+            imageMimeType = file.type;
+            imageBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        const payload = {
+            action: APP_STATE.editingEventId ? 'update' : 'create',
+            fechaInicio: date,
+            fechaFin: dateEnd,
+            horaInicio: time,
+            horaFin: timeEnd,
+            tipoMatriz: matriz,
+            actividad: act,
+            cantidad: qty,
+            cantidadAnalisis: qtyAnalisis,
+            cantidadSAP: qtySap,
+            listaParticipantes: participantes,
+            observacion: obs,
+            imageBase64: imageBase64,
+            imageMimeType: imageMimeType,
+            imageName: imageName
+        };
+        const newId = APP_STATE.editingEventId || `ev-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        payload.id = newId;
+
+        const findHeaderIndex = (headers, name) => {
+            if (!headers) return -1;
+            const lowerName = name.toLowerCase();
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i] && headers[i].toString().trim().toLowerCase() === lowerName) {
+                    return i;
+                }
+            }
+            return -1;
+        };
+
+        let finalImageUrl = "";
+
+        if (WEBHOOK_URL !== 'URL_DEL_SCRIPT') {
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                try {
+                    const responseData = await res.json();
+                    if (responseData.status === "error") {
+                        console.error("Webhook error:", responseData.message);
+                    } else if (responseData.imageUrl) {
+                        finalImageUrl = responseData.imageUrl;
+                    }
+                } catch(e) {
+                    console.log("No se pudo leer JSON. Ignorando.");
+                    finalImageUrl = "procesando...";
+                }
+            } catch (err) {
+                console.error("Error saving event:", err);
+                alert("Error de conexión con Google Sheets. Revisa la consola para más detalles.");
+            }
+        }
+        
+        // Update optimistic UI with real URL if we got it
+        if (finalImageUrl && APP_STATE.rawData.registro_diario) {
+            const headers = APP_STATE.rawData.registro_diario[0];
+            const urlIdx = findHeaderIndex(headers, 'url img');
+            if (urlIdx !== -1) {
+                for (let i = 1; i < APP_STATE.rawData.registro_diario.length; i++) {
+                    if (String(APP_STATE.rawData.registro_diario[i][findHeaderIndex(headers, 'ID')]) === newId) {
+                        APP_STATE.rawData.registro_diario[i][urlIdx] = finalImageUrl;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Optimistic UI Update sin recargar la página (evita el caché de 5 mins del CSV)
+        if (APP_STATE.rawData.registro_diario && APP_STATE.rawData.registro_diario.length > 0) {
+            const headers = APP_STATE.rawData.registro_diario[0];
+            let newRow = new Array(headers.length).fill('');
+            
+            // Si es actualización, buscar la fila actual
+            let isUpdate = false;
+            if (APP_STATE.editingEventId) {
+                const idIdx = findHeaderIndex(headers, 'ID');
+                if (idIdx !== -1) {
+                    for (let i = 1; i < APP_STATE.rawData.registro_diario.length; i++) {
+                        if (String(APP_STATE.rawData.registro_diario[i][idIdx]) === APP_STATE.editingEventId) {
+                            newRow = APP_STATE.rawData.registro_diario[i];
+                            isUpdate = true;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                APP_STATE.rawData.registro_diario.push(newRow);
+            }
+
+            const setVal = (headerName, val) => {
+                const idx = findHeaderIndex(headers, headerName);
+                if (idx !== -1) newRow[idx] = val;
+            };
+
+            setVal('ID', newId);
+            setVal('Fecha Inicio', date);
+            setVal('Fecha Fin', dateEnd);
+            setVal('Hora Inicio', time);
+            setVal('Hora Fin', timeEnd);
+            setVal('Tipo Matriz', matriz);
+            setVal('Actividad', act);
+            setVal('Cantidad', qty);
+            setVal('Cantidad Analisis', qtyAnalisis);
+            setVal('Cantidad SAP', qtySap);
+            setVal('Lista participantes', participantes);
+            setVal('Observacion', obs);
+            
+            // Asignamos el link obtenido del webhook o 'procesando...'
+            if (imageBase64) {
+                setVal('url img', finalImageUrl || 'procesando...');
+            }
+        }
+
+        // Update Calendar UI
+        window.initScheduleX(APP_STATE.rawData.registro_diario);
+
+        // Update GERESA UI
+        window.renderGeresaTable();
+
+        APP_STATE.editingEventId = null;
+        window.closeCalendarModal();
+    } catch (e) {
+        console.error(e);
+        alert("Error al intentar guardar la actividad.");
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        if (window.lucide) window.lucide.createIcons();
+    }
+};
+
+window.refreshGeresa = () => {
+    preloadSAPData();
+};
+
+window.exportGeresaToExcel = () => {
+    if (typeof XLSX === 'undefined') {
+        alert("La librería de exportación aún no ha cargado.");
+        return;
+    }
+    const table = document.getElementById('geresa-table');
+    if (!table) return;
+    const wb = XLSX.utils.table_to_book(table, { sheet: "GERESA Actividades" });
+    XLSX.writeFile(wb, "Reporte_GERESA_Actividades.xlsx");
 };
 
 function renderDoughnutChart(data, labels, colors, title, containerId) {
