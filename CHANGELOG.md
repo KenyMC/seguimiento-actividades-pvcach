@@ -1,6 +1,12 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
-## [2026-07-20] - Mejoras en GERESA Actividades y Control de Acceso
+## [2026-07-21] - Inteligencia de Filtros y Autocompletado en Riesgos
+### Corregido / Mejorado
+- **Filtro de Red de Salud en Riesgos (2026):** Se solucionó un problema crítico donde el filtro de Red de Salud no funcionaba para el año 2026 debido a columnas vacías en la matriz `MAIN2`. Se programó una lógica inteligente que:
+  1. Extrae dinámicamente el `Id. SAP` que viene embebido dentro de la columna `Nombre SAP` (ej. `16269|CHACAMAYO`).
+  2. Cruza esa información internamente con el maestro de la matriz 2025 (`MAIN`).
+  3. Pre-llena (autocompleta) los campos vacíos de *Red de Salud*, *Código Ipress* y *Nombre Ipress* antes de procesar la tabla.
+  - Esto garantiza que los filtros de Riesgos (por Red y por Ámbito) funcionen perfectamente sin importar si la base de datos de origen omite esas columnas.
 ### Añadido
 - **Control de Acceso por Roles (Red de Salud):** Se implementó una lógica de permisos estricta basada en el valor de "Red de Salud" en el maestro de Usuarios:
   - **Acceso Total:** Los usuarios con el rol `GERESA` (o `TODAS`) tienen acceso completo a todas las secciones del sistema, incluyendo *Calendario*, *GERESA Act.* y *Usuarios*. También pueden ver todas las redes en los filtros.

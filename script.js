@@ -295,6 +295,7 @@ async function syncUsers(ld = false) {
 }
 
 window.applyUserRoleUI = () => {
+    // Si la Red de Salud del usuario actual es GERESA o TODAS, tiene acceso total.
     const uR = APP_STATE.currentUser?.red || 'TODAS'; 
     const isRestrictedRed = (uR !== 'TODAS' && uR !== 'GERESA');
     const iR = isRestrictedRed; 
@@ -325,7 +326,8 @@ window.applyUserRoleUI = () => {
         APP_STATE.sapFilterRed = 'Todos'; APP_STATE.resFilterRed = 'Todos'; APP_STATE.fedFilterRed = 'Todos'; 
     }
 
-    // Mostrar/Ocultar secciones según el rol
+    // Mostrar/Ocultar secciones según el rol:
+    // Los usuarios con roles restringidos (Ej. CUSCO NORTE) solo verán: Inicio, Actividades, Resultados y FED.
     const canSeeAll = (uR === 'TODAS' || uR === 'GERESA');
     const navCal = getEl('nav-calendario');
     const navGer = getEl('nav-geresa');
@@ -348,6 +350,32 @@ async function preloadSAPData() {
         const rM = parseCSVFast(m); const rM2 = parseCSVFast(m2); const th = rM[0] || [];
         APP_STATE.rawData.main = [th, ...window.alignRows(rM, th, '2025')];
         APP_STATE.rawData.main2 = [th, ...window.alignRows(rM2, th, '2026')];
+        
+        // AUTO-COMPLETAR RED DE SALUD PARA MAIN2 DESDE MAIN
+        const idIdx = findHeaderIndex(th, 'Id. SAP');
+        const redIdx = findHeaderIndex(th, 'Red de Salud');
+        const ubiIdx = findHeaderIndex(th, 'Ubigeo');
+        if (redIdx !== -1) {
+            const redDict = {}; const ubiDict = {};
+            for (let i = 1; i < APP_STATE.rawData.main.length; i++) {
+                const row = APP_STATE.rawData.main[i];
+                const redVal = String(row[redIdx] || '').trim();
+                if (redVal) {
+                    if (idIdx !== -1 && row[idIdx]) redDict[String(row[idIdx]).trim()] = redVal;
+                    if (ubiIdx !== -1 && row[ubiIdx]) ubiDict[formatUbigeo(row[ubiIdx])] = redVal;
+                }
+            }
+            for (let i = 1; i < APP_STATE.rawData.main2.length; i++) {
+                const row = APP_STATE.rawData.main2[i];
+                if (!row[redIdx] || String(row[redIdx]).trim() === '') {
+                    let foundRed = '';
+                    if (idIdx !== -1 && row[idIdx]) foundRed = redDict[String(row[idIdx]).trim()];
+                    if (!foundRed && ubiIdx !== -1 && row[ubiIdx]) foundRed = ubiDict[formatUbigeo(row[ubiIdx])];
+                    if (foundRed) row[redIdx] = foundRed;
+                }
+            }
+        }
+
         APP_STATE.rawData.main2022 = []; APP_STATE.main2022Loaded = false;
         APP_STATE.rawData.main2023 = []; APP_STATE.main2023Loaded = false;
         APP_STATE.rawData.main0 = []; APP_STATE.main0Loaded = false;
@@ -1223,23 +1251,11 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const idxRedR = findHeaderIndex(lH, 'Red de Salud');
         const idxUbiR = findHeaderIndex(lH, 'Ubigeo');
         const idxSapR = findHeaderIndex(lH, 'Id. SAP');
-
-        if (redFilter !== 'Todos' && idxRedR !== -1) lR = lR.filter(row => row[idxRedR] === redFilter);
-        // Corrección [2026-07-09]: La base de Riesgos no contiene 'Id. SAP'.
-        // Para que el filtro MEF funcione, usamos 'mefUbigeos' como respaldo al igual que en MIDIS y Meta 2025.
-        if (ambitoFilter === 'MEF') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.mefUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.mefSapIds.has(String(row[idxSapR]).trim()))); }
-        if (ambitoFilter === 'FED' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbiR])));
-        if (ambitoFilter === 'SAP REGULARES' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbiR])));
-        if (ambitoFilter === 'MIDIS') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.midisSapIds.has(String(row[idxSapR]).trim()))); }
-        if (ambitoFilter === 'Meta 2025') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.meta2025SapIds.has(String(row[idxSapR]).trim()))); }
-        if (ambitoFilter === 'APNOP') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.apnopSapIds.has(String(row[idxSapR]).trim()))); }
-        else if (ambitoFilter === 'IIEE') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.iieeUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.iieeSapIds.has(String(row[idxSapR]).trim()))); }
-
-        const mapRiesgos = {};
-        const iAR = findHeaderIndex(lH, 'Año');
         const lNomSAP = findHeaderIndex(lH, 'Nombre SAP');
         const lNomCCPP = findHeaderIndex(lH, 'Nombre CCPP');
+        const iAR = findHeaderIndex(lH, 'Año');
 
+        // Construir lookup desde la tabla principal (rM)
         const sapMetaLookup = {};
         const mIdIdx = findHeaderIndex(h, 'Id. SAP');
         const mIpressCodeIdx = findHeaderIndex(h, 'Código Ipress');
@@ -1258,6 +1274,36 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 }
             });
         }
+
+        // PRE-PROCESAR lR para completar Red de Salud e Id. SAP extraídos antes de filtrar
+        lR.forEach(r => {
+            let rawNom = lNomSAP !== -1 ? r[lNomSAP] : '';
+            let extractedId = '';
+            if (rawNom && String(rawNom).includes('|')) {
+                extractedId = String(rawNom).split('|')[0].trim();
+            }
+            if (extractedId && sapMetaLookup[extractedId]) {
+                if (idxRedR !== -1 && (!r[idxRedR] || String(r[idxRedR]).trim() === '')) {
+                    r[idxRedR] = sapMetaLookup[extractedId].red;
+                }
+                if (idxSapR !== -1 && (!r[idxSapR] || String(r[idxSapR]).trim() === '')) {
+                    r[idxSapR] = extractedId;
+                }
+            }
+        });
+
+        if (redFilter !== 'Todos' && idxRedR !== -1) lR = lR.filter(row => row[idxRedR] === redFilter);
+        // Corrección [2026-07-09]: La base de Riesgos no contiene 'Id. SAP'.
+        // Para que el filtro MEF funcione, usamos 'mefUbigeos' como respaldo al igual que en MIDIS y Meta 2025.
+        if (ambitoFilter === 'MEF') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.mefUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.mefSapIds.has(String(row[idxSapR]).trim()))); }
+        if (ambitoFilter === 'FED' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.fedUbigeos.has(formatUbigeo(row[idxUbiR])));
+        if (ambitoFilter === 'SAP REGULARES' && idxUbiR !== -1) lR = lR.filter(row => APP_STATE.sapRegularesUbigeos.has(formatUbigeo(row[idxUbiR])));
+        if (ambitoFilter === 'MIDIS') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.midisUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.midisSapIds.has(String(row[idxSapR]).trim()))); }
+        if (ambitoFilter === 'Meta 2025') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.meta2025Ubigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.meta2025SapIds.has(String(row[idxSapR]).trim()))); }
+        if (ambitoFilter === 'APNOP') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.apnopUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.apnopSapIds.has(String(row[idxSapR]).trim()))); }
+        else if (ambitoFilter === 'IIEE') { lR = lR.filter(row => (idxUbiR !== -1 && APP_STATE.iieeUbigeos.has(formatUbigeo(row[idxUbiR]))) || (idxSapR !== -1 && APP_STATE.iieeSapIds.has(String(row[idxSapR]).trim()))); }
+        
+        const mapRiesgos = {};
 
         lR.forEach(r => {
             // Corrección [2026-07-09]: Manejo de duplicados por años (2025 vs 2026)
