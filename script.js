@@ -520,7 +520,33 @@ window.changeResSubTab = id => {
     processActiveData();
 }
 
-function renderFedTabs() { getEl('fed-tabs-container').innerHTML = [{ id: 'ind1', label: 'AI-01.01' }, { id: 'ind2', label: 'AI-02.01' }, { id: 'ind3', label: 'AI-03.01' }, { id: 'ind4', label: 'AI-05.01' }].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+function renderFedTabs() {
+    getEl('fed-tabs-container').innerHTML = [{ id: 'ind1', label: 'AI-01.01' }, { id: 'ind2', label: 'AI-02.01' }, { id: 'ind3', label: 'AI-03.01' }, { id: 'ind4', label: 'AI-05.01' }, { id: 'consol', label: 'Consol. Ind.' }].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
+
+    // Documentación: Actualización dinámica de la descripción del Indicador FED seleccionado.
+    // Esta lógica se insertó aquí para asegurar que desde la primera vez que se carga la vista FED 
+    // se muestre correctamente el panel con el nombre completo y la descripción de cada indicador.
+    const d = getEl('fed-monitor-desc');
+    if (d) {
+        const id = APP_STATE.fedActiveTab;
+        if (id === 'ind1') {
+            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-01.01:</strong> Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas.</span>`;
+            d.classList.remove('hidden');
+        } else if (id === 'ind2') {
+            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-02.01:</strong> Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas.</span>`;
+            d.classList.remove('hidden');
+        } else if (id === 'ind3') {
+            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-03.01:</strong> Número de centros poblados con sistemas de agua que implementan medidas correctivas a partir de la identificación de riesgos sanitarios en la calidad del agua.</span>`;
+            d.classList.remove('hidden');
+        } else if (id === 'ind4') {
+            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-05.01:</strong> Número de Instituciones Educativas (II.EE) que realizaron mantenimiento de infraestructura sanitaria con control de calidad del agua.</span>`;
+            d.classList.remove('hidden');
+        } else {
+            d.classList.add('hidden');
+        }
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
 window.changeFedSubTab = id => {
     APP_STATE.fedActiveTab = id;
     APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {};
@@ -528,6 +554,7 @@ window.changeFedSubTab = id => {
     let fedMinMonth = '2025-12';
     if (id === 'ind2' || id === 'ind3') fedMinMonth = '2026-01';
     else if (id === 'ind4') fedMinMonth = '2026-06';
+    else if (id === 'consol') fedMinMonth = '2025-12';
 
     if (APP_STATE.globalDateFrom < fedMinMonth) {
         APP_STATE.globalDateFrom = fedMinMonth;
@@ -546,6 +573,7 @@ function updateGlobalDateDropdowns() {
     let fedMinMonth = '2025-12';
     if (APP_STATE.fedActiveTab === 'ind2' || APP_STATE.fedActiveTab === 'ind3') fedMinMonth = '2026-01';
     else if (APP_STATE.fedActiveTab === 'ind4') fedMinMonth = '2026-06';
+    else if (APP_STATE.fedActiveTab === 'consol') fedMinMonth = '2025-12';
 
     APP_STATE.availableMonitorMonths.forEach(m => {
         const l = `${NUM_MONTH[m.split('-')[1]]} ${m.split('-')[0]}`;
@@ -596,44 +624,73 @@ function processActiveData() {
     // CORRECCIÓN: Si es FED, filtramos el resultado crudo calculado en lugar de depender únicamente de una clave de cache única por tab.
     if (iF) {
         loader.classList.remove('hidden');
+        
+        if (t !== 'consol') {
+            const mainCont = getEl('fed-main-table-container'); if (mainCont) mainCont.innerHTML = '';
+            const consolCont = getEl('fed-consolidated-container'); if (consolCont) consolCont.innerHTML = '';
+            const chartCont = getEl('fed-chart-container'); if (chartCont) chartCont.innerHTML = '';
+            const filterCont = getEl('fed-active-filters'); if (filterCont) filterCont.innerHTML = '';
+            const vivCont = getEl('fed-vivienda-table-container'); if (vivCont) vivCont.innerHTML = '';
+            const p2Cont = getEl('fed-paso2-table-container'); if (p2Cont) p2Cont.innerHTML = '';
+        } else {
+            const cW = getEl('fed-consol-wrapper'); if (cW) cW.innerHTML = '';
+        }
+
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 setTimeout(() => {
                     try {
-                        if (!APP_STATE.fedCache[t]) APP_STATE.fedCache[t] = runFedLogic(APP_STATE.rawData, t);
+                        const mainWrapper = getEl('fed-main-table-container').parentElement;
+                        const consolRow = getEl('fed-consolidated-container')?.parentElement?.parentElement;
+                        let cW = getEl('fed-consol-wrapper');
 
-                        const rawResult = APP_STATE.fedCache[t];
-                        let filteredData = rawResult.data;
+                        if (t === 'consol') {
+                            if (mainWrapper) mainWrapper.style.display = 'none';
+                            if (consolRow) consolRow.style.display = 'none';
+                            const vW = getEl('fed-vivienda-table-wrapper'); if(vW) vW.style.display = 'none';
+                            const p2W = getEl('fed-paso2-table-wrapper'); if(p2W) p2W.style.display = 'none';
+                            if (cW) cW.style.display = 'block';
+                            
+                            renderFedConsolidadoTab();
+                        } else {
+                            if (mainWrapper) mainWrapper.style.display = 'flex';
+                            if (consolRow) consolRow.style.display = 'flex';
+                            if (cW) cW.style.display = 'none';
 
-                        const idxRed = rawResult.headers.indexOf('Red de Salud');
-                        if (r !== 'Todos' && idxRed !== -1) filteredData = filteredData.filter(x => x[idxRed] === r);
+                            if (!APP_STATE.fedCache[t]) APP_STATE.fedCache[t] = runFedLogic(APP_STATE.rawData, t);
 
-                        const mI = rawResult.headers.indexOf('MEF');
-                        const fI = rawResult.headers.indexOf('FED');
-                        const srI = rawResult.headers.indexOf('SAP REGULARES');
-                        const miI = rawResult.headers.indexOf('MIDIS');
-                        const ubiI = rawResult.headers.indexOf('Ubigeo');
-                        const sapI = rawResult.headers.indexOf('Id. SAP');
+                            const rawResult = APP_STATE.fedCache[t];
+                            let filteredData = rawResult.data;
 
-                        if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
-                        if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
-                        if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
-                        if (a === 'MIDIS' && miI !== -1) filteredData = filteredData.filter(x => x[miI] === 1);
+                            const idxRed = rawResult.headers.indexOf('Red de Salud');
+                            if (r !== 'Todos' && idxRed !== -1) filteredData = filteredData.filter(x => x[idxRed] === r);
 
-                        // Respaldo para filtros que no están en columnas como Meta 2025 y APNOP
-                        if (a === 'Meta 2025' || a === 'APNOP' || a === 'IIEE') {
-                            const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : (a === 'IIEE' ? APP_STATE.iieeUbigeos : APP_STATE.meta2025Ubigeos);
-                            const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : (a === 'IIEE' ? APP_STATE.iieeSapIds : APP_STATE.meta2025SapIds);
-                            filteredData = filteredData.filter(x => {
-                                const ubi = ubiI !== -1 ? formatUbigeo(x[ubiI]) : '';
-                                const sap = sapI !== -1 ? String(x[sapI]).trim() : '';
-                                return ubiSet.has(ubi) || sapSet.has(sap);
-                            });
+                            const mI = rawResult.headers.indexOf('MEF');
+                            const fI = rawResult.headers.indexOf('FED');
+                            const srI = rawResult.headers.indexOf('SAP REGULARES');
+                            const miI = rawResult.headers.indexOf('MIDIS');
+                            const ubiI = rawResult.headers.indexOf('Ubigeo');
+                            const sapI = rawResult.headers.indexOf('Id. SAP');
+
+                            if (a === 'MEF') filteredData = filteredData.filter(x => x[mI] === 1);
+                            if (a === 'FED') filteredData = filteredData.filter(x => x[fI] === 1);
+                            if (a === 'SAP REGULARES') filteredData = filteredData.filter(x => x[srI] === 1);
+                            if (a === 'MIDIS' && miI !== -1) filteredData = filteredData.filter(x => x[miI] === 1);
+
+                            if (a === 'Meta 2025' || a === 'APNOP' || a === 'IIEE') {
+                                const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : (a === 'IIEE' ? APP_STATE.iieeUbigeos : APP_STATE.meta2025Ubigeos);
+                                const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : (a === 'IIEE' ? APP_STATE.iieeSapIds : APP_STATE.meta2025SapIds);
+                                filteredData = filteredData.filter(x => {
+                                    const ubi = ubiI !== -1 ? formatUbigeo(x[ubiI]) : '';
+                                    const sap = sapI !== -1 ? String(x[sapI]).trim() : '';
+                                    return ubiSet.has(ubi) || sapSet.has(sap);
+                                });
+                            }
+
+                            const finalFedRes = { headers: rawResult.headers, data: filteredData };
+                            renderFedTable(finalFedRes);
+                            renderFedConsolidatedAndChart(finalFedRes);
                         }
-
-                        const finalFedRes = { headers: rawResult.headers, data: filteredData };
-                        renderFedTable(finalFedRes);
-                        renderFedConsolidatedAndChart(finalFedRes);
                         updateGlobalDateDropdowns();
                     } catch (error) {
                         console.error("Error al calcular FED:", error);
@@ -1605,6 +1662,9 @@ function runFedLogic(dO, ind) {
         const availableMonths = fM.filter(m => m >= '2026-06');
 
         r2.forEach(r => {
+            const u = formatUbigeo(r[iU2]);
+            if (!APP_STATE.iieeUbigeos.has(u)) return;
+
             const lug = (iLug !== -1 && r[iLug]) ? String(r[iLug]).trim() : '';
             if (!lug.toLowerCase().includes('colegio')) return;
 
@@ -1616,7 +1676,6 @@ function runFedLogic(dO, ind) {
             if (ym < '2026-06') return;
             if (ym < aF || ym > aT) return;
 
-            const u = formatUbigeo(r[iU2]);
             const origCcpp2 = iN2 !== -1 ? String(r[iN2]).trim().toUpperCase() : '';
             const n = nFst(origCcpp2);
             const sapId = iSap2 !== -1 ? String(r[iSap2]).trim() : '';
@@ -1627,7 +1686,7 @@ function runFedLogic(dO, ind) {
             if (!map[id]) {
                 map[id] = {
                     u: u,
-                    c: r[iN2] ? String(r[iN2]).trim() : '',
+                    c: origCcpp2,
                     idSap: sapId,
                     nomSap: iSapN2 !== -1 ? String(r[iSapN2]).trim() : '',
                     prov: iProv2 !== -1 ? String(r[iProv2]).trim() : '',
@@ -1656,7 +1715,7 @@ function runFedLogic(dO, ind) {
             return `Mon CL ${NUM_MONTH[m]}`;
         });
 
-        const fH = ['Ubigeo', 'Nombre CCPP', 'Id. SAP', 'Nombre SAP', 'Provincia', 'Distrito', 'Red de Salud', 'Nombre Lugar de Muestreo', 'Tot Mon.', ...dynamicHeaders];
+        const fH = ['Ubigeo', 'Nombre CCPP', 'Id. SAP', 'Nombre SAP', 'Provincia', 'Distrito', 'Red de Salud', 'Nombre Lugar de Muestreo', 'Tot Mon.', ...dynamicHeaders, 'Cumple >= 5 meses', 'MEF', 'FED', 'SAP REGULARES', 'MIDIS'];
 
         const fD = Object.values(map).map(item => {
             let totMon = 0;
@@ -1671,7 +1730,13 @@ function runFedLogic(dO, ind) {
                     mValues.push('');
                 }
             });
-            row.push(totMon, ...mValues);
+            const cumple = totMon >= 5 ? 1 : 0;
+            const iM = APP_STATE.mefUbigeos.has(item.u) ? 1 : 0;
+            const iF = APP_STATE.fedUbigeos.has(item.u) ? 1 : 0;
+            const iSR = APP_STATE.sapRegularesUbigeos.has(item.u) ? 1 : 0;
+            const iMidis = APP_STATE.midisUbigeos.has(item.u) ? 1 : 0;
+
+            row.push(totMon, ...mValues, cumple, iM, iF, iSR, iMidis);
             return row;
         });
 
@@ -3043,22 +3108,35 @@ function renderFedTable(result) {
 function renderFedConsolidatedAndChart(result) {
     if (APP_STATE.fedActiveTab === 'ind4') {
         const s = {};
-        let gTotCol = 0; let gTotMon = 0;
-        const monColsCount = result.headers.length - 9;
+        let gTotCol = 0; let gTotMon = 0; let gTotCumple = 0;
+        
+        const excludeCols = ['MEF', 'FED', 'SAP REGULARES', 'MIDIS', 'Cumple >= 5 meses'];
+        const monHeaders = result.headers.slice(9).filter(h => !excludeCols.includes(h));
+        const monColsCount = monHeaders.length;
+        
         let gMonCounts = Array(monColsCount).fill(0);
         let fD = result.data;
         if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
             fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); });
         }
+        
+        const idxCumple = result.headers.indexOf('Cumple >= 5 meses');
+
         fD.forEach(r => {
             const red = r[6] || 'Sin Red';
             const key = red;
-            if (!s[key]) s[key] = { red, cols: 0, mon: 0, mc: Array(monColsCount).fill(0) };
+            if (!s[key]) s[key] = { red, cols: 0, mon: 0, mc: Array(monColsCount).fill(0), cumple: 0 };
             s[key].cols++;
             const tM = parseInt(r[8]) || 0;
             s[key].mon += tM;
             gTotCol++;
             gTotMon += tM;
+            
+            if (idxCumple !== -1 && r[idxCumple] === 1) {
+                s[key].cumple++;
+                gTotCumple++;
+            }
+
             for (let i = 0; i < monColsCount; i++) {
                 if (String(r[9 + i]).trim() !== '') {
                     s[key].mc[i]++;
@@ -3066,20 +3144,30 @@ function renderFedConsolidatedAndChart(result) {
                 }
             }
         });
-        const monHeaders = result.headers.slice(9);
+        
         const sortedKeys = Object.keys(s).sort();
+        
         let html = `<div class="flex flex-col w-full p-4"><div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">  Por RED DE SALUD</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Red de Salud</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Colegio</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-100">Total Mon.</th>`;
         monHeaders.forEach(h => { html += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${h}</th>`; });
-        html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+        html += `<th class="px-4 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumple >= 5 meses</th></tr></thead><tbody class="divide-y divide-slate-100">`;
+        
         sortedKeys.forEach(k => {
             const obj = s[k];
             html += `<tr class="hover:bg-amber-50 transition-colors"><td class="px-5 py-2.5 text-[10px] font-bold text-slate-700">${obj.red}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.cols}</td><td class="px-5 py-2.5 text-center text-xs font-black text-slate-800 bg-slate-50/50">${obj.mon}</td>`;
             obj.mc.forEach(v => { html += `<td class="px-4 py-2 text-center text-[11px] font-bold text-slate-700">${v}</td>`; });
-            html += `</tr>`;
+            html += `<td class="px-4 py-2 text-center text-[11px] font-black text-emerald-600 bg-emerald-50/50">${obj.cumple}</td></tr>`;
         });
+        
         html += `</tbody><tfoot class="bg-indigo-50/80 border-t-2 border-indigo-200 font-black"><tr><td class="px-5 py-3 text-[10px] text-indigo-900 text-right uppercase tracking-widest">TOTAL GENERAL</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotCol}</td><td class="px-5 py-3 text-center text-sm text-indigo-700">${gTotMon}</td>`;
         gMonCounts.forEach(v => { html += `<td class="px-4 py-3 text-center text-sm text-indigo-700">${v}</td>`; });
-        html += `</tr></tfoot></table></div></div></div>`;
+        html += `<td class="px-4 py-3 text-center text-sm text-emerald-700">${gTotCumple}</td></tr></tfoot></table></div></div>`;
+        
+        html += `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-2 mb-6"><div class="bg-blue-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-blue-900 uppercase tracking-widest">→ Avance Total vs Meta Asumida</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr>`;
+        monHeaders.forEach(h => { html += `<th class="px-5 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">${h}</th>`; });
+        html += `<th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumple >= 5 meses</th><th class="px-5 py-3 text-center text-[10px] font-black text-slate-600 uppercase bg-slate-200">Meta Asumida</th></tr></thead><tbody class="divide-y divide-slate-100"><tr class="hover:bg-slate-50 transition-colors">`;
+        gMonCounts.forEach(v => { html += `<td class="px-5 py-4 text-sm text-center font-bold text-slate-700">${v}</td>`; });
+        html += `<td class="px-5 py-4 text-sm text-center font-black text-emerald-600 bg-emerald-50/50">${gTotCumple}</td><td class="px-5 py-4 text-lg text-center font-black text-slate-700 bg-slate-100">9</td></tr></tbody></table></div></div></div>`;
+
         getEl('fed-consolidated-container').innerHTML = html;
         getEl('fed-chart-container').innerHTML = '';
         return;
@@ -4850,6 +4938,113 @@ function renderDoughnutChart(data, labels, colors, title, containerId) {
         }
     });
 }
+
+window.renderFedConsolidadoTab = () => {
+    ['ind1', 'ind2', 'ind3', 'ind4'].forEach(k => {
+        if (!APP_STATE.fedCache[k]) APP_STATE.fedCache[k] = runFedLogic(APP_STATE.rawData, k);
+    });
+
+    const from = APP_STATE.globalDateFrom;
+    
+    const metas = {
+        'AI-01.01': (from >= '2026-06') ? 285 : 200,
+        'AI-02.01': (from >= '2026-06') ? 525 : 246,
+        'AI-03.01': (from >= '2026-06') ? 90 : 50,
+        'AI-05.01': 9
+    };
+
+    const getFilteredData = (ind) => {
+        let d = APP_STATE.fedCache[ind].data;
+        const h = APP_STATE.fedCache[ind].headers;
+        const a = getEl('fed-filter-ambito').value;
+        const r = getEl('fed-filter-red').value;
+        
+        const idxRed = h.indexOf('Red de Salud');
+        if (r !== 'Todos' && idxRed !== -1) d = d.filter(x => x[idxRed] === r);
+
+        const mI = h.indexOf('MEF'); const fI = h.indexOf('FED'); const srI = h.indexOf('SAP REGULARES'); const miI = h.indexOf('MIDIS');
+        if (a === 'MEF') d = d.filter(x => x[mI] === 1);
+        if (a === 'FED') d = d.filter(x => x[fI] === 1);
+        if (a === 'SAP REGULARES') d = d.filter(x => x[srI] === 1);
+        if (a === 'MIDIS' && miI !== -1) d = d.filter(x => x[miI] === 1);
+
+        const ubiI = h.indexOf('Ubigeo'); const sapI = h.indexOf('Id. SAP');
+        if (a === 'Meta 2025' || a === 'APNOP' || a === 'IIEE') {
+            const ubiSet = a === 'APNOP' ? APP_STATE.apnopUbigeos : (a === 'IIEE' ? APP_STATE.iieeUbigeos : APP_STATE.meta2025Ubigeos);
+            const sapSet = a === 'APNOP' ? APP_STATE.apnopSapIds : (a === 'IIEE' ? APP_STATE.iieeSapIds : APP_STATE.meta2025SapIds);
+            d = d.filter(x => {
+                const ubi = ubiI !== -1 ? formatUbigeo(x[ubiI]) : '';
+                const sap = sapI !== -1 ? String(x[sapI]).trim() : '';
+                return ubiSet.has(ubi) || sapSet.has(sap);
+            });
+        }
+        return { d, h };
+    };
+
+    const countCompliance = (indKey, colName, fallbackColName) => {
+        const { d, h } = getFilteredData(indKey);
+        let cIdx = h.indexOf(colName);
+        if (cIdx === -1 && fallbackColName) cIdx = h.indexOf(fallbackColName);
+        if (cIdx === -1) {
+            return 0;
+        }
+        return d.reduce((sum, row) => sum + (parseInt(row[cIdx]) === 1 ? 1 : 0), 0);
+    };
+
+    // Documentación: Función helper para mapear los códigos de indicador a sus descripciones completas.
+    // Esto permite que en la Tabla de Consolidación FED se lea de forma ejecutiva 
+    // el nombre integro del indicador en lugar de solo 'AI-XX.XX'
+    const getFullName = (lbl) => {
+        if (lbl === 'AI-01.01') return '<strong class="text-slate-800">01.01 :</strong> Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas';
+        if (lbl === 'AI-02.01') return '<strong class="text-slate-800">02.01 :</strong> Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas';
+        if (lbl === 'AI-03.01') return '<strong class="text-slate-800">03.01 :</strong> Número de centros poblados con sistemas de agua que implementan medidas correctivas a partir de la identificación de riesgos sanitarios en la calidad del agua';
+        if (lbl === 'AI-05.01') return '<strong class="text-slate-800">05.01 :</strong> Número de Instituciones Educativas (II.EE) que realizaron mantenimiento de infraestructura sanitaria con control de calidad del agua';
+        return lbl;
+    };
+
+    const results = [
+        { label: 'AI-01.01', name: getFullName('AI-01.01'), val: countCompliance('ind1', 'Cumple Ambos', 'Cumple Salud') },
+        { label: 'AI-02.01', name: getFullName('AI-02.01'), val: countCompliance('ind2', 'Cumplimiento Ind. 2') },
+        { label: 'AI-03.01', name: getFullName('AI-03.01'), val: countCompliance('ind3', 'Cumple paso 1 y 2') },
+        { label: 'AI-05.01', name: getFullName('AI-05.01'), val: countCompliance('ind4', 'Cumple >= 5 meses') }
+    ];
+
+    let html = `<div class="w-full max-w-5xl mx-auto bg-white rounded-3xl shadow-lg border border-slate-200 overflow-hidden relative z-10 mt-6">`;
+    html += `<div class="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-6 flex items-center justify-between"><h3 class="font-black text-2xl tracking-tight flex items-center gap-3"><i data-lucide="target" class="w-7 h-7 text-amber-100"></i> Consolidación de Indicadores FED</h3><span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase shadow-inner border border-white/10">RESUMEN</span></div>`;
+    html += `<div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead class="bg-slate-50 border-b border-slate-200"><tr>`;
+    ['Indicador', 'Ejecutado', 'Meta', '% Ejecución'].forEach((th, i) => {
+        html += `<th class="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest ${i > 0 ? 'text-center' : ''}">${th}</th>`;
+    });
+    html += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+    
+    results.forEach((r) => {
+        const meta = metas[r.label];
+        const pct = meta > 0 ? (r.val / meta * 100).toFixed(1) : 0;
+        let color = 'text-red-600 bg-red-50 border-red-200';
+        if (pct >= 100) color = 'text-emerald-700 bg-emerald-50 border-emerald-200 shadow-sm';
+        else if (pct >= 50) color = 'text-amber-700 bg-amber-50 border-amber-200 shadow-sm';
+
+        html += `<tr class="hover:bg-slate-50 transition-colors">
+            <td class="px-8 py-5 text-sm font-medium text-slate-600 border-l-4 ${pct >= 100 ? 'border-emerald-500' : (pct >= 50 ? 'border-amber-500' : 'border-red-500')} w-1/2">${r.name}</td>
+            <td class="px-8 py-5 font-black text-indigo-700 text-2xl text-center">${r.val}</td>
+            <td class="px-8 py-5 font-medium text-slate-500 text-center text-lg">${meta || '-'}</td>
+            <td class="px-8 py-5 font-black text-center"><span class="px-4 py-2 rounded-xl border ${color} inline-block shadow-sm">${meta > 0 ? pct + '%' : '-'}</span></td>
+        </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+    
+    let cW = getEl('fed-consol-wrapper');
+    if (!cW) {
+        cW = document.createElement('div');
+        cW.id = 'fed-consol-wrapper';
+        cW.className = 'w-full pb-10 px-2 sm:px-0';
+        const parent = getEl('fed-main-table-container').parentElement.parentElement;
+        parent.appendChild(cW);
+    }
+    cW.innerHTML = html;
+    
+    if (window.lucide) window.lucide.createIcons();
+};
 
 // Inicializar la aplicación de manera segura
 if (document.readyState === 'loading') {

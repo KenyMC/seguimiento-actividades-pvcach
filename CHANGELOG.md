@@ -1,5 +1,17 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-07-21] - Mejoras UI/UX en Módulo FED y Consolidación AI-05.01
+### Añadido
+- **Descripciones Dinámicas de Indicadores FED:** Al navegar por las pestañas de los indicadores (AI-01.01, AI-02.01, AI-03.01, AI-05.01), ahora se renderiza dinámicamente un panel informativo superior (`fed-monitor-desc`) que muestra la descripción oficial del indicador seleccionado. Se solucionó el problema de carga inicial asegurando que la descripción se inyecte directamente en `renderFedTabs()`.
+- **Alineación Vertical Mejorada:** Se ajustaron las clases de Tailwind CSS en el contenedor de descripciones (de `items-start` a `items-center`) y se removieron márgenes innecesarios (`mt-0.5`) garantizando que el icono de información y el texto extendido convivan centrados.
+
+### Modificado
+- **Lógica Consolidada de AI-05.01:** Se reestructuró la tabla de resumen *Consolidación de Indicadores FED*.
+  - El indicador **AI-05.01** ahora evalúa específicamente a las II.EE que han cumplido con el monitoreo (>= 5 meses), en lugar de realizar un conteo genérico.
+  - Se configuró la **Meta** predeterminada en 9.
+  - El **% de Ejecución** ahora refleja fielmente los colegios que logran el objetivo vs la meta fija de 9.
+- **Mejora Visual en Columna Indicador:** En la tabla consolidada principal, se expandió la columna "Indicador" reemplazando el código corto (ej. `AI-01.01`) por una combinación enriquecida del código seguido de su respectiva descripción textual amplia para mayor legibilidad ejecutiva.
+
 ## [2026-07-21] - Inteligencia de Filtros y Autocompletado en Riesgos
 ### Corregido / Mejorado
 - **Filtro de Red de Salud en Riesgos (2026):** Se solucionó un problema crítico donde el filtro de Red de Salud no funcionaba para el año 2026 debido a columnas vacías en la matriz `MAIN2`. Se programó una lógica inteligente que:
