@@ -9,6 +9,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/@schedule-x/theme-default@2.2.0/dist/index.css">
     <link rel="stylesheet" href="styles.css">
@@ -95,27 +97,281 @@
         <p id="sap-loader-text" class="mt-6 text-indigo-900 font-bold tracking-wide animate-pulse">SINCRONIZANDO BASE DE DATOS...</p>
       </div>
 
-      <!-- VISTA DASHBOARD -->
-      <div id="view-dashboard" class="view-section h-full overflow-y-auto custom-scroll p-6 lg:p-10 max-w-7xl mx-auto w-full">
-        <div class="mb-10">
-          <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight">Hola, <span id="welcome-user" class="text-indigo-600">Usuario</span> 👋</h1>
-          <p class="text-slate-500 mt-2 text-base">Aquí tienes el resumen operativo del sistema de vigilancia.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
-            <div class="p-4 bg-indigo-50 text-indigo-600 rounded-xl mr-5"><i data-lucide="activity" class="w-6 h-6"></i></div>
-            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monitoreados</p><p class="text-3xl font-black text-slate-800">1,245</p></div>
-          </div>
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
-            <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl mr-5"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
-            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cumplimiento</p><p class="text-3xl font-black text-slate-800">78%</p></div>
-          </div>
-          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center hover:shadow-md transition-shadow">
-            <div class="p-4 bg-red-50 text-red-600 rounded-xl mr-5"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
-            <div><p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alertas LMP</p><p class="text-3xl font-black text-slate-800">12</p></div>
+      <!-- VISTA DASHBOARD (INICIO - CENTRO DE MANDO REGIONAL) -->
+      <div id="view-dashboard" class="view-section h-full overflow-y-auto custom-scroll p-4 md:p-8 max-w-[1500px] mx-auto w-full relative">
+        <div id="dash-processing" class="hidden absolute inset-0 z-40 bg-slate-100/90 backdrop-blur-sm flex items-center justify-center h-full rounded-3xl">
+          <div class="flex flex-col items-center bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
+            <i data-lucide="loader" class="w-8 h-8 text-indigo-600 animate-spin mb-3"></i><p class="text-indigo-900 font-bold text-sm tracking-wider uppercase">ACTUALIZANDO TABLEROS...</p>
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Encabezado y Filtros Globales -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <span>Hola, <span id="welcome-user" class="text-indigo-600">Usuario</span></span>
+              <span class="text-lg font-bold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200">Vigilancia Agua</span>
+            </h1>
+            <p class="text-slate-500 text-xs md:text-sm mt-1.5 font-medium">Centro de Mando Regional • Estadísticas de Calidad de Agua y Riesgos Sanitarios</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <div class="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-inner">
+              <i data-lucide="calendar" class="w-4 h-4 text-indigo-600"></i>
+              <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Desde:</span>
+              <select id="dash-global-date-from" onchange="window.updateGlobalDateFilter(false, false, true)" class="bg-transparent text-xs font-black text-indigo-700 outline-none cursor-pointer">
+              </select>
+              <span class="text-xs font-black text-slate-300">|</span>
+              <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Hasta:</span>
+              <select id="dash-global-date-to" onchange="window.updateGlobalDateFilter(false, false, true)" class="bg-transparent text-xs font-black text-indigo-700 outline-none cursor-pointer">
+              </select>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200 shadow-inner">
+              <i data-lucide="filter" class="w-4 h-4 text-indigo-600"></i>
+              <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Red:</span>
+              <select id="dash-filter-red" onchange="if(window.renderExecutiveDashboard) window.renderExecutiveDashboard()" class="bg-transparent text-xs font-black text-indigo-700 outline-none cursor-pointer">
+                <option value="TODAS">Todas las Redes</option>
+              </select>
+            </div>
+            <button id="btn-dash-hist" onclick="if(window.loadDashboardHistData) window.loadDashboardHistData(this)" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer">
+              <i data-lucide="history" class="w-4 h-4"></i>
+              <span>Cargar Histórico (2022–2024)</span>
+            </button>
+            <button onclick="window.forceRefreshData()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer" title="Sincronizar datos">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- MÓDULO 1: Tarjetas KPI Ejecutivas (En Vivo) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <!-- SAPs Vigilados -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sistemas Vigilados</p>
+              <p id="dash-kpi-saps" class="text-3xl font-black text-slate-800 tracking-tight">-</p>
+              <p id="dash-kpi-saps-sub" class="text-[11px] font-bold text-indigo-600 mt-1 flex items-center gap-1"><i data-lucide="activity" class="w-3 h-3"></i> SAPs empadronados</p>
+            </div>
+            <div class="p-3.5 bg-indigo-50 group-hover:bg-indigo-600 group-hover:text-white text-indigo-600 rounded-2xl transition-colors"><i data-lucide="droplet" class="w-6 h-6"></i></div>
+          </div>
+          <!-- Centros Poblados -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Centros Poblados</p>
+              <p id="dash-kpi-ccpp" class="text-3xl font-black text-slate-800 tracking-tight">-</p>
+              <p id="dash-kpi-ccpp-sub" class="text-[11px] font-bold text-emerald-600 mt-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> CCPP monitoreados</p>
+            </div>
+            <div class="p-3.5 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 rounded-2xl transition-colors"><i data-lucide="map" class="w-6 h-6"></i></div>
+          </div>
+          <!-- Establecimientos IPRESS -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">E.S. Vigilancia</p>
+              <p id="dash-kpi-ipress" class="text-3xl font-black text-slate-800 tracking-tight">-</p>
+              <p id="dash-kpi-ipress-sub" class="text-[11px] font-bold text-blue-600 mt-1 flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3"></i> Establecimientos</p>
+            </div>
+            <div class="p-3.5 bg-blue-50 group-hover:bg-blue-600 group-hover:text-white text-blue-600 rounded-2xl transition-colors"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+          </div>
+          <!-- Prestadores de Servicio -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Prestadores (JASS)</p>
+              <p id="dash-kpi-jass" class="text-3xl font-black text-slate-800 tracking-tight">-</p>
+              <p id="dash-kpi-jass-sub" class="text-[11px] font-bold text-amber-600 mt-1 flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> JASS / Municipios</p>
+            </div>
+            <div class="p-3.5 bg-amber-50 group-hover:bg-amber-600 group-hover:text-white text-amber-600 rounded-2xl transition-colors"><i data-lucide="wrench" class="w-6 h-6"></i></div>
+          </div>
+          <!-- Cumplimiento Regional FED/MEF -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+            <div>
+              <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avance Cloración</p>
+              <p id="dash-kpi-fed" class="text-3xl font-black text-slate-800 tracking-tight">-</p>
+              <p id="dash-kpi-fed-sub" class="text-[11px] font-bold text-teal-600 mt-1 flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3"></i> % Calidad buena</p>
+            </div>
+            <div class="p-3.5 bg-teal-50 group-hover:bg-teal-600 group-hover:text-white text-teal-600 rounded-2xl transition-colors"><i data-lucide="award" class="w-6 h-6"></i></div>
+          </div>
+        </div>
+
+        <!-- MÓDULO 2: Evolución Temporal (Agua Clorada Año a Año) -->
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 mb-8">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2.5">
+                <span class="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><i data-lucide="line-chart" class="w-5 h-5"></i></span>
+                <span>Evolución Interanual de Centros Poblados con Agua Clorada</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-1 font-medium">Porcentaje y número de CCPP con cloro residual en rango óptimo (≥ 0.5 mg/L) en la región</p>
+            </div>
+            <div id="dash-evolucion-stats" class="flex flex-wrap items-center gap-3">
+              <!-- Celdas mini de resumen de rangos -->
+            </div>
+          </div>
+          <div class="w-full h-80 md:h-96 relative">
+            <canvas id="chart-dash-evolucion"></canvas>
+          </div>
+        </div>
+
+        <!-- MÓDULO 3: Riesgo Sanitario por Provincia & Prevalencia de Superación de LMPs -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <!-- Ranking de Riesgo Sanitario por Provincia -->
+          <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2.5">
+                  <span class="p-2 bg-red-50 text-red-600 rounded-xl"><i data-lucide="alert-triangle" class="w-5 h-5"></i></span>
+                  <span>Riesgo Sanitario por Provincia</span>
+                </h3>
+                <span class="text-[10px] font-black uppercase px-2.5 py-1 bg-red-100 text-red-700 rounded-full">% Riesgo Alto/Medio</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-6 font-medium">Clasificación regional de sistemas según inspecciones sanitarias en el año actual</p>
+            </div>
+            <div class="w-full h-72 relative">
+              <canvas id="chart-dash-riesgo-prov"></canvas>
+            </div>
+          </div>
+
+          <!-- Prevalencia de LMPs (Inorgánicos / Fecales) -->
+          <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2.5">
+                  <span class="p-2 bg-amber-50 text-amber-600 rounded-xl"><i data-lucide="pie-chart" class="w-5 h-5"></i></span>
+                  <span>Prevalencia de Superación de LMPs</span>
+                </h3>
+                <span class="text-[10px] font-black uppercase px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full">Metales / Fecales</span>
+              </div>
+              <p class="text-xs text-slate-500 mb-6 font-medium">Parámetros que exceden con mayor frecuencia el LMP según muestras analizadas</p>
+            </div>
+            <div class="w-full h-72 relative">
+              <canvas id="chart-dash-metales"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO 4: Monitor de Eficacia de Informes & Alerta de Reincidencia -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <!-- Eficacia Post-Informe (1 Col) -->
+          <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 flex flex-col justify-between lg:col-span-1">
+            <div>
+              <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <h3 class="text-base font-black text-slate-800 flex items-center gap-2">
+                  <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i data-lucide="clipboard-check" class="w-5 h-5"></i></span>
+                  <span>Eficacia de Informes</span>
+                </h3>
+              </div>
+              <p class="text-xs text-slate-500 mb-6 font-medium">Respuesta de prestadores tras notificación formal de informe de riesgo sanitario</p>
+            </div>
+            <div class="w-full h-64 relative flex items-center justify-center">
+              <canvas id="chart-dash-eficacia"></canvas>
+            </div>
+            <div id="dash-eficacia-summary" class="mt-4 pt-4 border-t border-slate-100 text-center">
+              <!-- Resumen de porcentajes -->
+            </div>
+          </div>
+
+          <!-- Top Prestadores Reincidentes (2 Cols) -->
+          <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 lg:col-span-2 flex flex-col">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-2">
+              <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2.5">
+                <span class="p-2 bg-red-50 text-red-600 rounded-xl"><i data-lucide="shield-alert" class="w-5 h-5"></i></span>
+                <span>Top Alertas Críticas: Prestadores Reincidentes</span>
+              </h3>
+              <span class="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-200">Requiere Acción Urgente</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4 font-medium">Prestadores (JASS / Municipalidad) que se mantienen en Riesgo Alto pese a haber recibido Informes de Riesgo Sanitario</p>
+            
+            <div class="overflow-x-auto flex-1">
+              <table class="min-w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-2.5 text-[10px] font-black text-slate-500 uppercase tracking-wider">SAP / Centro Poblado</th>
+                    <th class="px-4 py-2.5 text-[10px] font-black text-slate-500 uppercase tracking-wider">Provincia / Distrito</th>
+                    <th class="px-4 py-2.5 text-[10px] font-black text-slate-500 uppercase tracking-wider">Establecimiento Salud</th>
+                    <th class="px-4 py-2.5 text-[10px] font-black text-slate-500 uppercase tracking-wider text-center">Estado actual</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-reincidentes-table" class="divide-y divide-slate-100">
+                  <tr><td colspan="4" class="px-4 py-8 text-center text-xs text-slate-400 font-bold">Cargando prestadores reincidentes...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO 5: Semáforos de Compromisos Institucionales -->
+        <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 md:p-8 mb-8">
+          <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2.5">
+                <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><i data-lucide="target" class="w-5 h-5"></i></span>
+                <span>Semáforos de Compromisos Institucionales & Emparejamiento</span>
+              </h3>
+              <p class="text-xs text-slate-500 mt-1 font-medium">Avance regional en indicadores estratégicos intersectoriales</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="dash-gauges-container">
+            <!-- MEF -->
+            <div onclick="window.switchTab('fed')" class="p-5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 transition-all cursor-pointer group">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-[11px] font-black uppercase tracking-wider text-slate-600">Compromiso MEF</span>
+                <span id="dash-gauge-mef-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700">SI-01/02</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <span id="dash-gauge-mef-val" class="text-3xl font-black text-slate-800">-</span>
+                <span id="dash-gauge-mef-meta" class="text-xs font-bold text-slate-500">Meta Regional</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2.5 mt-4 overflow-hidden">
+                <div id="dash-gauge-mef-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- FED -->
+            <div onclick="window.switchTab('fed')" class="p-5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 transition-all cursor-pointer group">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-[11px] font-black uppercase tracking-wider text-slate-600">Avance FED</span>
+                <span id="dash-gauge-fed-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">MIDIS-FED</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <span id="dash-gauge-fed-val" class="text-3xl font-black text-slate-800">-</span>
+                <span id="dash-gauge-fed-meta" class="text-xs font-bold text-slate-500">Logro regional</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2.5 mt-4 overflow-hidden">
+                <div id="dash-gauge-fed-bar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- MIDIS / SAP REGULARES -->
+            <div onclick="window.switchTab('fed')" class="p-5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 transition-all cursor-pointer group">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-[11px] font-black uppercase tracking-wider text-slate-600">SAP Regulares</span>
+                <span id="dash-gauge-midis-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Regulares</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <span id="dash-gauge-midis-val" class="text-3xl font-black text-slate-800">-</span>
+                <span id="dash-gauge-midis-meta" class="text-xs font-bold text-slate-500">Comunidad</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2.5 mt-4 overflow-hidden">
+                <div id="dash-gauge-midis-bar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- EMPAREJAMIENTO SALUD - VIVIENDA -->
+            <div onclick="window.switchTab('fed')" class="p-5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 transition-all cursor-pointer group">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-[11px] font-black uppercase tracking-wider text-slate-600">Salud & Vivienda</span>
+                <span id="dash-gauge-ambos-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-700">Emparejado</span>
+              </div>
+              <div class="flex items-baseline justify-between">
+                <span id="dash-gauge-ambos-val" class="text-3xl font-black text-slate-800">-</span>
+                <span id="dash-gauge-ambos-meta" class="text-xs font-bold text-slate-500">Ambos Bueno</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2.5 mt-4 overflow-hidden">
+                <div id="dash-gauge-ambos-bar" class="bg-teal-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accesos Rápidos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
           <div onclick="window.switchTab('sap')" class="relative overflow-hidden bg-slate-900 rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left">
             <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-blue-500/30"></div>
             <div class="relative z-10 w-full"><h3 class="text-2xl font-black mb-3 flex items-center gap-3">Actividades SAP <i data-lucide="arrow-right" class="w-6 h-6 text-indigo-400 group-hover:translate-x-2 transition-transform"></i></h3><p class="text-slate-300 text-sm max-w-sm">Base de datos de monitoreos, inspecciones, metales pesados y riesgos.</p></div>
@@ -239,7 +495,7 @@
           </div>
           <div class="flex flex-col gap-6 max-w-full">
             <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="sap-tabs-container"></div>
-            <div id="sap-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-1 flex items-center gap-2"></div>
+            <div id="sap-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-1 flex items-start gap-2"></div>
             <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
               <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Registro Detallado</span>
@@ -301,7 +557,7 @@
           <div class="flex flex-col gap-6 max-w-full">
             <div class="flex flex-col gap-2 w-full">
               <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="fed-tabs-container"></div>
-              <div id="fed-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2"></div>
+              <div id="fed-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-start gap-2"></div>
             </div>
             <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
               <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
@@ -328,6 +584,101 @@
                 <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div><div id="fed-chart-container" class="w-full flex flex-col items-center"></div>
               </div>
             </div>
+
+
+            <!-- NUEVO: PRIMER TRAMO WRAPPER -->
+            <div id="fed-primer-tramo-wrapper" class="hidden flex flex-col gap-6 w-full pb-10">
+              <!-- Header / Subtabs para Primer Tramo -->
+              <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-4 flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-black text-lg text-slate-800 uppercase flex items-center"><i data-lucide="bar-chart-3" class="w-5 h-5 mr-2 text-indigo-600"></i> Dashboard Primer Tramo</h3>
+                  <div class="relative group">
+                    <button class="bg-[#b93233] text-white hover:bg-red-800 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm transition-all">
+                      <i data-lucide="presentation" class="w-4 h-4"></i> Presentación PPT <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </button>
+                    <div class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <button onclick="window.startPresentationMode()" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-3 border-b border-slate-100 rounded-t-xl font-semibold">
+                            <i data-lucide="play" class="w-4 h-4"></i> Modo Presentación
+                        </button>
+                        <button onclick="window.exportPrimerTramoPPT()" class="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-red-600 flex items-center gap-3 rounded-b-xl font-semibold">
+                            <i data-lucide="download" class="w-4 h-4"></i> Descargar Archivo PPTX
+                        </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-2" id="fed-pt-subtabs">
+                  <button onclick="window.renderPrimerTramoTab('ind1')" class="pt-btn px-4 py-2 rounded-lg text-xs font-bold transition-colors bg-indigo-600 text-white shadow-sm" data-id="ind1">AI-01.01</button>
+                  <button onclick="window.renderPrimerTramoTab('ind2')" class="pt-btn px-4 py-2 rounded-lg text-xs font-bold transition-colors bg-slate-100 text-slate-600 hover:bg-slate-200" data-id="ind2">AI-02.01</button>
+                  <button onclick="window.renderPrimerTramoTab('ind3')" class="pt-btn px-4 py-2 rounded-lg text-xs font-bold transition-colors bg-slate-100 text-slate-600 hover:bg-slate-200" data-id="ind3">AI-03.01</button>
+                </div>
+              </div>
+
+              <!-- ENCABEZADO INSTITUCIONAL Y TÍTULOS DEL INDICADOR -->
+              <div class="w-full flex flex-col bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden p-2">
+                <div class="flex flex-wrap justify-center items-stretch gap-1 w-full bg-white mb-2">
+                  <div class="flex items-center justify-center bg-white px-2 py-1">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Gran_Sello_de_la_Rep%C3%BAblica_del_Per%C3%BA.svg/1920px-Gran_Sello_de_la_Rep%C3%BAblica_del_Per%C3%BA.svg.png" class="h-10 object-contain" alt="Escudo del Perú">
+                  </div>
+                  <div class="flex items-center justify-center bg-white px-2 py-1">
+                      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3KU-5YMhb1Ee8FfD3Dd2bYTU3mecNLtGAaaAm1VhSdg&s" class="h-10 object-contain" alt="Logo Cusco">
+                  </div>
+                  <div class="flex items-center bg-[#b93233] text-white px-4 py-1 font-bold text-xs leading-tight min-h-[44px]">
+                      Gobierno Regional del<br>Cusco
+                  </div>
+                  <div class="flex items-center justify-center bg-white px-2 py-1">
+                      <img src="https://diresacusco.gob.pe/img/logo.png" class="h-10 object-contain" alt="Logo Geresa">
+                  </div>
+                  <div class="flex items-center bg-[#465b8e] text-white px-4 py-1 font-bold text-xs leading-tight min-h-[44px]">
+                      Gerencia Regional de<br>Salud
+                  </div>
+                  <div class="flex items-center bg-[#465b8e] text-white px-4 py-1 font-bold text-xs leading-tight min-h-[44px]">
+                      Dirección Ejecutiva de<br>Salud ambiental
+                  </div>
+                  <div class="flex items-center bg-[#465b8e] text-white px-4 py-1 font-bold text-xs leading-tight min-h-[44px]">
+                      Dirección de Saneamiento<br>Ambiental
+                  </div>
+                </div>
+                <div class="w-full flex flex-col">
+                   <div id="pt-title-red" class="bg-[#c24a40] text-white font-bold text-xs px-3 py-2 border border-white"></div>
+                   <div id="pt-title-yellow" class="bg-[#ebd06b] text-[#554e2d] font-semibold text-xs px-3 py-2 border border-white text-justify leading-tight"></div>
+                </div>
+              </div>
+
+              <!-- Main Grid para Gráficos y Tabla -->
+              <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
+                <!-- Columna Izquierda (Gráfico de Barras y Tabla) -->
+                <div class="col-span-1 xl:col-span-2 flex flex-col gap-6">
+                  
+                  <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-4 relative">
+                    <h4 class="font-bold text-sm text-slate-700 mb-2 uppercase text-center" id="pt-title-monthly">Avance Mensual</h4>
+                    
+                    <div id="pt-meta-badge" class="absolute top-4 left-4 bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-lg text-xs font-black border border-indigo-200 z-10 shadow-sm flex items-center gap-1.5"><i data-lucide="target" class="w-4 h-4"></i> Meta Primera Verificación: <span id="pt-meta-val">200</span> CCPP</div>
+
+                    <div class="w-full h-64 relative mt-6">
+                      <canvas id="pt-chart-monthly"></canvas>
+                    </div>
+                  </div>
+                  <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+                    <h4 class="font-bold text-sm text-slate-700 p-4 bg-slate-50 border-b border-slate-200 uppercase flex items-center justify-between"><span>Ranking de Cumplimiento Mensual por Red</span> <span class="text-xs text-slate-500 font-medium normal-case">Avance proporcional respecto a la meta global</span></h4>
+                    <div class="overflow-x-auto w-full" id="pt-table-container"></div>
+                    <div class="px-4 py-2 text-[10px] text-slate-500 font-bold bg-slate-50 border-t border-slate-200">
+                      Fuente: SIVICA 15-06-26
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Columna Derecha (Ranking Horizontal) -->
+                <div class="col-span-1 flex flex-col gap-6">
+                  <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-4 flex-1">
+                    <h4 class="font-bold text-sm text-slate-700 mb-2 uppercase text-center" id="pt-title-ranking">Ranking de Cumplimiento por Unidades Ejecutoras</h4>
+                    <div class="w-full relative h-[400px]">
+                      <canvas id="pt-chart-ranking"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- FIN PRIMER TRAMO WRAPPER -->
           </div>
         </div>
       </div>
@@ -419,7 +770,7 @@
   <div id="modal-calendar-event" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
     <div class="bg-white rounded-3xl shadow-2xl w-[90%] max-w-md overflow-hidden transform transition-all">
       <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-        <h3 class="text-xl font-black text-slate-800">Registrar Actividad</h3>
+        <h3 id="modal-cal-title" class="text-xl font-black text-slate-800">Registrar Actividad</h3>
         <button onclick="window.closeCalendarModal()" class="text-slate-400 hover:text-red-500 bg-white hover:bg-red-50 rounded-full p-2 transition-all shadow-sm"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scroll">
@@ -519,8 +870,9 @@
           </a>
         </div>
       </div>
-      <div class="p-5 bg-slate-50 border-t border-slate-200 flex flex-col gap-3">
-        <div class="flex gap-3">
+      <div class="p-5 bg-slate-50 border-t border-slate-200 flex flex-col gap-2.5">
+        <button onclick="window.duplicateCalendarEvent()" class="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"><i data-lucide="copy" class="w-4 h-4"></i> Duplicar</button>
+        <div class="flex gap-2.5">
             <button onclick="window.editCalendarEvent()" class="flex-1 px-4 py-2.5 bg-white text-indigo-600 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-50 transition-all active:scale-95 flex justify-center items-center gap-2"><i data-lucide="edit" class="w-4 h-4"></i> Actualizar</button>
             <button onclick="window.deleteCalendarEvent()" class="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4"></i> Eliminar</button>
         </div>
@@ -628,6 +980,57 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Sistemas No Monitoreados de la lista MEF_UB (Insp. Sanitaria) -->
+  <div id="modal-sanitaria-unmonitored" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-6xl w-full overflow-hidden transform transition-all border border-slate-200 flex flex-col max-h-[90vh]">
+      <div class="bg-gradient-to-r from-indigo-900 to-indigo-800 border-b border-indigo-700 px-6 py-5 flex justify-between items-center flex-shrink-0 text-white">
+        <div>
+          <h3 class="font-black text-lg flex items-center gap-2">
+            <div class="bg-indigo-700/60 p-2 rounded-xl"><i data-lucide="eye-off" class="w-5 h-5 text-indigo-300"></i></div>
+            <span id="msu-title">Sistemas No Monitoreados — Lista MEF_UB</span>
+          </h3>
+          <p id="msu-subtitle" class="text-xs text-indigo-200 mt-1 font-medium"></p>
+        </div>
+        <button onclick="window.closeSanitariaUnmonitoredModal()" class="text-indigo-300 hover:text-white hover:bg-indigo-800/60 rounded-xl p-2 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="p-6 bg-white flex-1 overflow-hidden flex flex-col gap-4">
+        <!-- Barra de Búsqueda y Exportación -->
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex-shrink-0">
+          <div class="relative w-full sm:w-80">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input id="msu-search-input" type="text" oninput="window.filterSanitariaUnmonitoredTable(this.value)" placeholder="Buscar por Nombre SAP, CCPP o Distrito..." class="w-full pl-9 pr-4 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button onclick="window.exportSanitariaUnmonitoredExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel</button>
+          </div>
+        </div>
+        <!-- Tabla de Sistemas Pendientes -->
+        <div class="overflow-x-auto overflow-y-auto custom-scroll border border-slate-200 rounded-2xl flex-1 relative">
+          <table class="min-w-full text-left whitespace-nowrap">
+            <thead class="bg-slate-100 sticky top-0 z-10 shadow-sm border-b border-slate-200">
+              <tr>
+                <th class="px-4 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">#</th>
+                <th class="px-4 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED DE SALUD</th>
+                <th class="px-4 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">PROVINCIA</th>
+                <th class="px-4 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">DISTRITO</th>
+                <th class="px-4 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">ID. SAP</th>
+                <th class="px-5 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">NOMBRE SAP</th>
+                <th class="px-5 py-3.5 text-[10px] font-black text-slate-500 uppercase tracking-widest">CENTRO POBLADO / UBIGEO</th>
+              </tr>
+            </thead>
+            <tbody id="msu-tbody" class="divide-y divide-slate-100">
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="p-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center flex-shrink-0">
+        <span id="msu-count-badge" class="text-xs font-bold text-slate-600"></span>
+        <button onclick="window.closeSanitariaUnmonitoredModal()" class="px-6 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 shadow-md transition-all active:scale-95">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Modal Detalle de Actividad GERESA -->
   <div id="modal-geresa-activity-detail" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 hidden overflow-y-auto">
