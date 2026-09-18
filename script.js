@@ -60,11 +60,11 @@ const CARACT_PILETA_OR = [['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coli
 
 const APP_STATE = {
     currentUser: null, usersList: [{ usuario: 'admin', password: '123', red: 'TODAS' }], rawData: { main2022: [], main2023: [], main0: [], main: [], main2: [], sanitaria: [], riesgos: [], observaciones: [], vivienda: [], sapEstado: [], midis: [], meta2025: [], apnop: [], iiee: [], calendar_activ: [], registro_diario: [] },
-    main2022Loaded: false, main2023Loaded: false, main0Loaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
+    main2022Loaded: false, main2023Loaded: false, main0Loaded: false, mainLoaded: false, sapDataLoaded: false, sapActiveTab: 'monitor', sapFilterRed: 'Todos', sapFilterAmbito: 'Vigilancia',
     sapCache: {}, resActiveTab: 'res_cloro', resFilterRed: 'Todos', resFilterAmbito: 'Vigilancia', resFilterUbicaciones: [], resCache: {},
     fedFilterRed: 'Todos', fedFilterAmbito: 'Vigilancia', fedActiveTab: 'ind1', fedCache: { ind1: null, ind2: null, ind3: null, ind4: null },
     mefUbigeos: new Set(), mefSapIds: new Set(), fedUbigeos: new Set(), sapRegularesIds: new Set(), sapRegularesUbigeos: new Set(), midisUbigeos: new Set(), midisSapIds: new Set(), meta2025Ubigeos: new Set(), meta2025SapIds: new Set(), apnopUbigeos: new Set(), apnopSapIds: new Set(), iieeUbigeos: new Set(), iieeSapIds: new Set(), uniqueRedes: new Set(), currentTableFilters: {},
-    globalDateFrom: '2025-12', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
+    globalDateFrom: '2026-01', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
     metaMefPorRed: {}
 };
 
@@ -132,6 +132,12 @@ window.alignRows = (src, tgt, def) => {
     if (!src || src.length <= 1 || !tgt) return [];
     const sh = src[0]; const map = tgt.map(th => findHeaderIndex(sh, th)); const ia = findHeaderIndex(tgt, 'Año');
     return src.slice(1).map(r => { const nr = map.map(i => i !== -1 ? r[i] : ''); if (ia !== -1 && !nr[ia]) nr[ia] = def; return nr; });
+};
+
+window.handleRegistroTiempoChange = function() {
+    APP_STATE.fedCache = {};
+    APP_STATE.ptCache = {};
+    if (window.processActiveData) window.processActiveData();
 };
 
 function parseCSVFast(txt) {
@@ -559,8 +565,8 @@ window.switchTab = id => {
     }
 }
 
-function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monitor', label: 'Monitoreo 5P' }, { id: 'sanitaria', label: 'Insp. Sanitaria' }, { id: 'caracterizacion', label: 'Caracterización' }, { id: 'metales', label: 'Inorgánicos' }, { id: 'fisico', label: 'Físico Químicos' }, { id: 'bacteriologico', label: 'Bacteriológico' }, { id: 'parasitologico', label: 'Parasitológico' }, { id: 'riesgos', label: 'Riesgos' }, { id: 'vigilancia', label: 'Vigilancia' }].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
-window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
+function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monitor', label: 'Monitoreo 5P' }, { id: 'sanitaria', label: 'Insp. Sanitaria' }, { id: 'caracterizacion', label: 'Caracterización' }, { id: 'metales', label: 'Inorgánicos' }, { id: 'fisico', label: 'Físico Químicos' }, { id: 'bacteriologico', label: 'Bacteriológico' }, { id: 'parasitologico', label: 'Parasitológico' }, { id: 'riesgos', label: 'Riesgos' }, { id: 'vigilancia', label: 'Vigilancia' }, { id: 'vigilancia_fed', label: 'Vigilancia (FED)' }].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia', 'vigilancia_fed'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else if (id === 'vigilancia_fed') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia FED:</strong> Evaluación estricta en el periodo de las 4 actividades (Insp, Caract, 5P, Riesgos).</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
 
 function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
 window.changeResSubTab = id => {
@@ -1006,7 +1012,8 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
 
         const orderLet = ['a. ', 'b. ', 'c. ', 'd. ', 'e. ', 'f. ', 'g. ', 'h. ', 'i. ', 'j. ', 'k. ', 'l. '];
         const getMesOrd = (m) => { const idx = MONITOR_MONTHS.findIndex(x => x.toLowerCase() === m.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")); if (idx !== -1) return orderLet[idx] + MONITOR_MONTHS[idx]; return m; };
-        const evalP = (ok, tot) => { if (tot === 0) return '-'; return ok >= 1 ? 'Cumple' : 'No Cumple'; };
+        // [2026-08-17] Se exige que >= 75% de las muestras mensuales cumplan con el LMP para evaluar como 'Cumple'
+        const evalP = (ok, tot) => { if (tot === 0) return '-'; return (ok / tot) >= 0.75 ? 'Cumple' : 'No Cumple'; };
 
         fD = Object.values(map).map(o => {
             const eCl = evalP(o.cloroOk, o.cloroTot); const eTu = evalP(o.turbOk, o.turbTot); const eCo = evalP(o.condOk, o.condTot); const ePh = evalP(o.phOk, o.phTot); const eTe = evalP(o.tempOk, o.tempTot);
@@ -1058,35 +1065,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const pIdx = {};
         paramsToExtract.forEach(p => pIdx[p] = findHeaderIndex(h1, p));
 
-        const map = {};
-
-        dRows.forEach(r => {
-            const id = r[idxId];
-            if (!id) return;
-
-            if (!map[id]) {
-                map[id] = {
-                    meta: getMeta(r, h),
-                    bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity
-                };
-                paramsToExtract.forEach(p => map[id][p] = -Infinity);
-            }
-            const parseVal = (idx) => {
-                if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
-                return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
-            };
-            const v1 = parseVal(iBcfNmp); if (!isNaN(v1) && v1 > map[id].bcfNmp) map[id].bcfNmp = v1;
-            const v2 = parseVal(iBcfUfc); if (!isNaN(v2) && v2 > map[id].bcfUfc) map[id].bcfUfc = v2;
-            const v3 = parseVal(iBctNmp); if (!isNaN(v3) && v3 > map[id].bctNmp) map[id].bctNmp = v3;
-            const v4 = parseVal(iBctUfc); if (!isNaN(v4) && v4 > map[id].bctUfc) map[id].bctUfc = v4;
-            const v5 = parseVal(iEcNmp); if (!isNaN(v5) && v5 > map[id].ecNmp) map[id].ecNmp = v5;
-            const v6 = parseVal(iEcUfc); if (!isNaN(v6) && v6 > map[id].ecUfc) map[id].ecUfc = v6;
-
-            paramsToExtract.forEach(p => {
-                const vx = parseVal(pIdx[p]);
-                if (!isNaN(vx) && vx > map[id][p]) map[id][p] = vx;
-            });
-        });
+        const iFecha1 = findHeaderIndex(h1, 'Fecha Muestreo');
+        const iFecha2 = findHeaderIndex(h1, 'Fecha');
+        const iLoc1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo');
+        const iLoc2 = findHeaderIndex(h1, 'Ubicación');
 
         const extraColsNames = [
             'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta) + Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
@@ -1094,6 +1076,76 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const limitsExtra = [
             15, 5, 8.5, 1500, 1000, 250, 250, 500, 0.3, 0.4, 0.2, 2, 3, 200, 0.02, 0.01, 0.7, 1.5, 0.003, 0.07, 5, 0.05, 0.001, 0.02, 50, 0.2, 0.01, 0.01, 0.07, 0.015
         ];
+
+        const limitsMap = {
+            'Bacterias Coliformes Fecales (NMP)': 1.8,
+            'Bacterias Coliformes Fecales (UFC)': 0,
+            'Bacterias Coliformes Totales (NMP)': 1.8,
+            'Bacterias Coliformes Totales (UFC)': 0,
+            'E. Coli (NMP)': 1.8,
+            'E. Coli (UFC)': 0
+        };
+        const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
+        pKeys.forEach((p, i) => limitsMap[p] = limitsExtra[i]);
+        const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
+        pKeys2.forEach((p, i) => limitsMap[p] = limitsExtra[pKeys.length + 1 + i]);
+
+        const map = {};
+
+        dRows.forEach(r => {
+            const id = r[idxId];
+            if (!id) return;
+            const rowDate = (iFecha1 !== -1 && !isCellEmpty(r[iFecha1])) ? String(r[iFecha1]).trim() :
+                            ((iFecha2 !== -1 && !isCellEmpty(r[iFecha2])) ? String(r[iFecha2]).trim() : '-');
+            const rowLoc = (iLoc1 !== -1 && !isCellEmpty(r[iLoc1])) ? String(r[iLoc1]).trim() :
+                           ((iLoc2 !== -1 && !isCellEmpty(r[iLoc2])) ? String(r[iLoc2]).trim() : '-');
+
+            if (!map[id]) {
+                map[id] = {
+                    meta: getMeta(r, h),
+                    bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity,
+                    exceeds: []
+                };
+                paramsToExtract.forEach(p => map[id][p] = -Infinity);
+            }
+            const parseVal = (idx) => {
+                if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
+                return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
+            };
+            const checkAndPush = (name, val, limit) => {
+                if (!isNaN(val) && val > limit) {
+                    map[id].exceeds.push({ name, val, date: rowDate, loc: rowLoc });
+                }
+            };
+
+            const v1 = parseVal(iBcfNmp); if (!isNaN(v1)) { if (v1 > map[id].bcfNmp) map[id].bcfNmp = v1; checkAndPush('Bacterias Coliformes Fecales (NMP)', v1, limitsMap['Bacterias Coliformes Fecales (NMP)']); }
+            const v2 = parseVal(iBcfUfc); if (!isNaN(v2)) { if (v2 > map[id].bcfUfc) map[id].bcfUfc = v2; checkAndPush('Bacterias Coliformes Fecales (UFC)', v2, limitsMap['Bacterias Coliformes Fecales (UFC)']); }
+            const v3 = parseVal(iBctNmp); if (!isNaN(v3)) { if (v3 > map[id].bctNmp) map[id].bctNmp = v3; checkAndPush('Bacterias Coliformes Totales (NMP)', v3, limitsMap['Bacterias Coliformes Totales (NMP)']); }
+            const v4 = parseVal(iBctUfc); if (!isNaN(v4)) { if (v4 > map[id].bctUfc) map[id].bctUfc = v4; checkAndPush('Bacterias Coliformes Totales (UFC)', v4, limitsMap['Bacterias Coliformes Totales (UFC)']); }
+            const v5 = parseVal(iEcNmp); if (!isNaN(v5)) { if (v5 > map[id].ecNmp) map[id].ecNmp = v5; checkAndPush('E. Coli (NMP)', v5, limitsMap['E. Coli (NMP)']); }
+            const v6 = parseVal(iEcUfc); if (!isNaN(v6)) { if (v6 > map[id].ecUfc) map[id].ecUfc = v6; checkAndPush('E. Coli (UFC)', v6, limitsMap['E. Coli (UFC)']); }
+
+            paramsToExtract.forEach(p => {
+                if (p === 'Nitritos (Exposición Corta)' || p === 'Nitritos (Exposición Larga)') return;
+                const vx = parseVal(pIdx[p]);
+                if (!isNaN(vx)) {
+                    if (vx > map[id][p]) map[id][p] = vx;
+                    if (limitsMap[p] !== undefined) checkAndPush(p, vx, limitsMap[p]);
+                }
+            });
+            
+            const nitC = parseVal(pIdx['Nitritos (Exposición Corta)']);
+            const nitL = parseVal(pIdx['Nitritos (Exposición Larga)']);
+            if (!isNaN(nitC) && nitC > map[id]['Nitritos (Exposición Corta)']) map[id]['Nitritos (Exposición Corta)'] = nitC;
+            if (!isNaN(nitL) && nitL > map[id]['Nitritos (Exposición Larga)']) map[id]['Nitritos (Exposición Larga)'] = nitL;
+            let nitSumRow = 0; let hasNit = false;
+            if (!isNaN(nitC)) { nitSumRow += nitC; hasNit = true; }
+            if (!isNaN(nitL)) { nitSumRow += nitL; hasNit = true; }
+            if (hasNit) {
+                nitSumRow = Math.round(nitSumRow * 100000) / 100000;
+                checkAndPush('Nitritos (Exposición Corta) + Nitritos (Exposición Larga)', nitSumRow, 0.2);
+            }
+        });
 
         const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
         fD = Array.from(aS.keys()).flatMap(id => {
@@ -1136,7 +1188,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             // Agrupación y suma aritmética obligatoria de Nitritos (Corta y Larga exposición) - Representan el índice 25
             const nitC = getPVal('Nitritos (Exposición Corta)'); const nitL = getPVal('Nitritos (Exposición Larga)');
             let nitSum = '';
-            if (nitC !== '' || nitL !== '') { nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); nitSum = Math.round(nitSum * 100000) / 100000; }
+            if (nitC !== '' || nitL !== '') { 
+                nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); 
+                nitSum = Math.round(nitSum * 100000) / 100000; 
+            }
             pValsArr.push(nitSum); rValsArr.push(getR(nitSum, limitsExtra[pKeys.length]));
             const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
             for (let i = 0; i < pKeys2.length; i++) {
@@ -1154,10 +1209,45 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             const tieneInorg = totInorg >= 1 ? 1 : 0;
 
             let detMetales = [];
-            for (let i = 0; i < rValsArr.length; i++) {
-                if (rValsArr[i] === 1) detMetales.push(`${extraColsNames[i]}: ${pValsArr[i]}`);
-            }
+            let detFechas = [];
+            let detLocs = [];
+
+            const orderedNames = [
+                'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)',
+                'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)',
+                'E. Coli (NMP)', 'E. Coli (UFC)',
+                ...extraColsNames
+            ];
+
+            const parseD = (dStr) => {
+                if (!dStr || dStr === '-') return 0;
+                const p = dStr.split(/[-/]/);
+                if (p.length >= 3) {
+                    // Asumiendo formato DD-MM-YYYY o DD/MM/YYYY
+                    const y = p[2].substring(0, 4); // En caso tenga horas anexadas
+                    return new Date(`${y}-${p[1]}-${p[0]}T00:00:00Z`).getTime();
+                }
+                return 0;
+            };
+
+            s.exceeds.sort((a, b) => {
+                const tA = parseD(a.date);
+                const tB = parseD(b.date);
+                if (tB !== tA) return tB - tA; // Fecha más actual (mayor timestamp) primero
+                const iA = orderedNames.indexOf(a.name);
+                const iB = orderedNames.indexOf(b.name);
+                return iA - iB;
+            });
+
+            s.exceeds.forEach(exc => {
+                detMetales.push(`${exc.name}: ${exc.val}`);
+                detFechas.push(exc.date || '-');
+                detLocs.push(exc.loc || '-');
+            });
+
             const detMetalesStr = detMetales.length > 0 ? detMetales.join(', ') : '-';
+            const detFechasStr = detFechas.length > 0 ? detFechas.join(', ') : '-';
+            const detLocsStr = detLocs.length > 0 ? detLocs.join(', ') : '-';
 
             // Matriz final concatenada (mtx) que se agregará como nuevas columnas a los metadatos base del sistema SAP.
             // Contiene en orden estricto: Valores bacteriológicos, binarios (1/0) bacteriológicos, cuenta de alertas fecales,
@@ -1166,7 +1256,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 bcfNmp, bcfUfc, bctNmp, bctUfc, ecNmp, ecUfc,
                 r_bcfNmp, r_bcfUfc, r_bctNmp, r_bctUfc, r_ecNmp, r_ecUfc,
                 totParam, tiene,
-                ...pValsArr, ...rValsArr, totParamMetales, tieneOrg, tieneInorg, detMetalesStr
+                ...pValsArr, ...rValsArr, totParamMetales, tieneOrg, tieneInorg, detMetalesStr, detFechasStr, detLocsStr
             ];
             return aS.get(id).map(mt => [...mt, ...mtx]);
         });
@@ -1183,7 +1273,9 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             'Total parametros organolepticos y/o inorganicos (metales pesados) que exceden el LMP',
             'Tiene al menos un parametro organolepticos que excede el LMP',
             'Tiene al menos un parametro inorganicos (metales pesados) que excede el LMP',
-            'Detalle parametro que excede LMP'
+            'Detalle parametro que excede LMP',
+            'Detalle Fecha del parametro que excede LMP',
+            'Ubicación Muestreo del parametro que excede LMP'
         ];
         pT = 'res_riesgo';
     } else if (subTab === 'caracterizacion') {
@@ -1441,13 +1533,25 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             if (st > 0) {
                 if (!map[id].dM[ym]._m[mK]) map[id].dM[ym]._m[mK] = [];
                 const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0;
-                map[id].dM[ym]._m[mK].push({ st: st, id: nMueId });
+                map[id].dM[ym]._m[mK].push({ st: st, id: nMueId, u: String(uMue).toLowerCase() });
                 let anyC = false;
                 for (let k in map[id].dM[ym]._m) {
                     const pts = map[id].dM[ym]._m[k].slice().sort((a, b) => a.id - b.id); let blks = [], cB = [];
                     pts.forEach(p => { if (cB.length === 0) cB.push(p); else if (p.id === 0 && cB[cB.length - 1].id === 0) cB.push(p); else if (p.id !== 0 && cB[cB.length - 1].id !== 0 && Math.abs(p.id - cB[cB.length - 1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } });
                     if (cB.length > 0) blks.push(cB);
-                    blks.forEach(b => { let bSt = 1; b.forEach(p => { if (p.st === 2) bSt = 2; }); if (bSt === 1) anyC = true; });
+                    blks.forEach(b => { 
+                        let bSt = 1; 
+                        let cRed = 0, cRes = 0;
+                        b.forEach(p => { 
+                            if (p.st === 2) bSt = 2; 
+                            if (p.st === 1) {
+                                if (p.u.includes('red') || p.u.includes('pileta') || p.u.includes('vivienda') || p.u.includes('domiciliaria')) cRed++;
+                                else if (p.u.includes('reservorio')) cRes++;
+                            }
+                        }); 
+                        if (cRed >= 3 && cRes >= 1) bSt = 1;
+                        if (bSt === 1) anyC = true; 
+                    });
                 }
                 map[id].dM[ym].status = anyC ? 1 : 2;
                 if (st === 2 && map[id].dM[ym].status === 2) map[id].dM[ym].params = pCnt;
@@ -1737,7 +1841,40 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             const key = getSanitariaKey(r, lH);
             if (!key) return;
             if (!map[key]) { map[key] = { s: {} }; sK.forEach(k => map[key].s[k] = 0); }
-            let ano = iA !== -1 && r[iA] ? String(r[iA]).trim() : ''; let mes = iM !== -1 ? r[iM] : ''; const mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()]; if (mm) { if (!ano) { if (mes.toLowerCase() === 'diciembre') ano = '2025'; else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero') ano = '2026'; else ano = '2025'; } const skey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`; if (sK.includes(skey) && !isCellEmpty(r[iF])) { map[key].s[skey] = 1; } }
+            
+            // [Insp. Sanitaria Rule]: Para que el filtro global por fechas aplique de manera exacta mes a mes (ej. Jun 2026 a Jun 2026),
+            // extraemos el mes directamente de la 'Fecha de inspección' en caso de que la columna 'Mes' no esté disponible.
+            const vF = iF !== -1 ? String(r[iF]).trim() : '';
+            let extMm = '', extA = '';
+            if (vF && vF.includes('/')) {
+                const parts = vF.split(/[-/]/);
+                if (parts.length >= 3) {
+                    if (parts[0].length === 4) { extA = parts[0]; extMm = String(parseInt(parts[1], 10)).padStart(2, '0'); }
+                    else { extA = parts[2].substring(0, 4); extMm = String(parseInt(parts[1], 10)).padStart(2, '0'); }
+                }
+            }
+            
+            let ano = iA !== -1 && r[iA] ? String(r[iA]).trim() : ''; 
+            let mes = iM !== -1 ? r[iM] : ''; 
+            let mm = MONTH_NUM[normalizeHeader(mes).toUpperCase()] || extMm;
+            
+            if (mm) { 
+                if (!ano) { 
+                    if (extA) ano = extA; 
+                    else if (mes.toLowerCase() === 'diciembre' || extMm === '12') ano = '2025'; 
+                    else if (mes.toLowerCase() === 'enero' || mes.toLowerCase() === 'febrero' || extMm === '01' || extMm === '02') ano = '2026'; 
+                    else ano = '2025'; 
+                } 
+                const skey = `${ano}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`; 
+                const ym = `${ano}-${mm}`;
+                
+                // [Insp. Sanitaria Rule]: Aunque la tabla se agrupa visualmente por semestres (S1/S2 <= 6), 
+                // requerimos que 'ym' pertenezca estrictamente al array de meses seleccionados (fM.includes)
+                // para que solo se cuenten las inspecciones de los meses exactos filtrados.
+                if (sK.includes(skey) && fM.includes(ym) && vF) { 
+                    map[key].s[skey] = 1; 
+                } 
+            }
         });
 
         const riesgosUbigeos = new Set();
@@ -1803,6 +1940,13 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             let ns = r[findHeaderIndex(h, 'Nombre SAP')];
             if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
             ns = ns || '';
+            
+            if (!ids && String(ns).includes('|')) {
+                const pts = String(ns).split('|');
+                ids = pts[0].trim();
+                ns = pts[1].trim();
+            }
+
             let exactId = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
 
             if (map[exactId]) return [exactId];
@@ -1903,6 +2047,238 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         }).filter(Boolean);
 
         pT = 'vigilancia';
+    } else if (subTab === 'vigilancia_fed') {
+        fH = [...CORE_HEADERS, 'Inspección', 'Caracterización', 'Monitoreo 5P', 'Riesgos', 'Vigilancia Completa'];
+        const map = {};
+        const sapToCcppId = {};
+        const sapNameToCcppId = {};
+
+        const getSapId = (r, h) => {
+            const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
+            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
+            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
+            if (!u && !ccpp) return null;
+
+            let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
+            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
+            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
+            ns = ns || '';
+            let id = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
+            if (!map[id]) {
+                map[id] = { meta: getMeta(r, h), u: u || '', c: ccpp || '', ids: ids || '', ns: ns || '', i: 0, caract: 0, meses5P: {}, ri: {} };
+                fM.forEach(ym => map[id].meses5P[ym] = { p5: 0 });
+            }
+            return id;
+        };
+
+        const matchSapIds = (r, h) => {
+            const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
+            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
+            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
+
+            let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
+            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
+            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
+            ns = ns || '';
+
+            // [FED Rule]: Si el Id. SAP está vacío pero Nombre SAP tiene formato "ID | NOMBRE" (ej. en sheet RIESGOS), extraemos el ID automáticamente para asegurar el cruce.
+            if (!ids && String(ns).includes('|')) {
+                const pts = String(ns).split('|');
+                ids = pts[0].trim();
+                ns = pts[1].trim();
+            }
+
+            let exactId = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
+
+            if (map[exactId]) return [exactId];
+            if (ids && sapToCcppId[String(ids).trim()]) return [sapToCcppId[String(ids).trim()]];
+            if (ns && u && sapNameToCcppId[u + '_' + normalizeHeader(ns)]) return [sapNameToCcppId[u + '_' + normalizeHeader(ns)]];
+
+            if (!ids && !ns && u && ccpp) {
+                const prefix = u + '_' + normalizeHeader(ccpp) + '_';
+                const matches = Object.keys(map).filter(k => k.startsWith(prefix));
+                if (matches.length > 0) return matches;
+            }
+            return [getSapId(r, h)];
+        };
+
+        const aS = new Map(); rM.forEach(r => { const id = getSapId(r, h); populateMeta(aS, id, r, h); });
+
+        // [FED Rule]: Según ficha técnica, el Primer Semestre para Caracterización comprende de Enero a Mayo (<= 5).
+        const sS = new Set(); fM.forEach(mStr => { const [y, mm] = mStr.split('-'); sS.add(`${y}-${parseInt(mm) <= 5 ? 'S1' : 'S2'}`); });
+        const sK = Array.from(sS);
+
+        // 1. Monitoreo 5P
+        dRows.forEach(r => {
+            const id = getSapId(r, h); if (!id) return;
+            const ubi = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+            if (findHeaderIndex(h, 'Id. SAP') !== -1) { const sId = r[findHeaderIndex(h, 'Id. SAP')]; if (sId) sapToCcppId[String(sId).trim()] = id; }
+            let sNom = r[findHeaderIndex(h, 'Nombre SAP')];
+            if (!sNom) sNom = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
+            if (sNom && ubi) sapNameToCcppId[ubi + '_' + normalizeHeader(sNom)] = id;
+
+            let me = findHeaderIndex(h, 'Mes') !== -1 ? normalizeHeader(r[findHeaderIndex(h, 'Mes')]) : '';
+            let a = findHeaderIndex(h, 'Año') !== -1 && r[findHeaderIndex(h, 'Año')] ? String(r[findHeaderIndex(h, 'Año')]).trim() : '';
+            const mm = MONTH_NUM[me.toUpperCase()];
+
+            if (mm) {
+                if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; else a = '2025'; }
+                const ym = `${a}-${mm}`;
+                if (map[id] && map[id].meses5P[ym]) {
+                    let st = 0; let pCnt = []; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) pCnt.push(p); });
+                    if (pCnt.length === 5) st = 1; else if (pCnt.length > 0) st = 2;
+                    if (st > 0) {
+                        const nMue = r[findHeaderIndex(h, '# Muestreo')] || ''; const fMue = r[findHeaderIndex(h, 'Fecha Muestreo')] || r[findHeaderIndex(h, 'Fecha')] || '';
+                        let mK = nMue || fMue || 'UNKNOWN';
+                        if (!map[id].meses5P[ym]._m) map[id].meses5P[ym]._m = {};
+                        if (!map[id].meses5P[ym]._m[mK]) map[id].meses5P[ym]._m[mK] = [];
+                        const uMue = r[findHeaderIndex(h, 'Ubicación Lugar de Muestreo')] || '';
+                        const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0;
+                        map[id].meses5P[ym]._m[mK].push({ st: st, id: nMueId, u: String(uMue).toLowerCase() });
+                    }
+                }
+            }
+        });
+
+        // 2. Inspección
+        // [FED Rule]: Inspección debe filtrar la cantidad de inspecciones realizadas *estrictamente* dentro de los meses seleccionados en el rango superior, utilizando la "Fecha de inspección".
+        const sH = dO.sanitaria[0] || []; const sR = dO.sanitaria.slice(1);
+        const iMS = findHeaderIndex(sH, 'Mes'); const iAS = findHeaderIndex(sH, 'Año'); const iFS = findHeaderIndex(sH, 'Fecha de inspección');
+        sR.forEach(r => {
+            const ids = matchSapIds(r, sH);
+            ids.forEach(id => {
+                if (!id) return;
+                const vFS = iFS !== -1 ? String(r[iFS]).trim() : '';
+                let extMm = '', extA = '';
+                if (vFS && vFS.includes('/')) {
+                    const parts = vFS.split(/[-/]/);
+                    if (parts.length >= 3) {
+                        if (parts[0].length === 4) { extA = parts[0]; extMm = String(parseInt(parts[1], 10)).padStart(2, '0'); }
+                        else { extA = parts[2].substring(0, 4); extMm = String(parseInt(parts[1], 10)).padStart(2, '0'); }
+                    }
+                }
+                
+                let me = iMS !== -1 ? normalizeHeader(r[iMS]) : '';
+                let a = iAS !== -1 ? String(r[iAS]).trim() : '';
+                let mm = MONTH_NUM[me.toUpperCase()] || extMm;
+                
+                if (mm) {
+                    if (!a) { if (extA) a = extA; else if (me === 'diciembre' || extMm === '12') a = '2025'; else if (me === 'enero' || me === 'febrero' || extMm === '01' || extMm === '02') a = '2026'; else a = '2025'; }
+                    const ym = `${a}-${mm}`;
+                    if (map[id] && fM.includes(ym) && vFS) { map[id].i++; }
+                }
+            });
+        });
+
+        // 3. Riesgos
+        const mNameMap = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Setiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+        const rH = dO.riesgos[0] || []; const rR = dO.riesgos.slice(1); const iAR = findHeaderIndex(rH, 'Año');
+        rR.forEach(r => {
+            const ids = matchSapIds(r, rH);
+            ids.forEach(id => {
+                if (!id) return;
+                const a = iAR !== -1 && r[iAR] ? String(r[iAR]).trim() : '';
+                fM.forEach(ym => {
+                    const [y, mm] = ym.split('-'); const mC = mNameMap[mm]; let curAno = a;
+                    if (!curAno) { if (mC === 'Diciembre') curAno = '2025'; else if (['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'].includes(mC)) curAno = '2026'; else curAno = '2025'; }
+                    if (curAno === y) {
+                        const iInf = findHeaderIndex(rH, `Informe ${mC}`); const iCar = findHeaderIndex(rH, `Cargo ${mC}`);
+                        const vInf = iInf !== -1 ? normalizeHeader(r[iInf]) : ''; const vCar = iCar !== -1 ? normalizeHeader(r[iCar]) : '';
+                        if (vInf === 'aprobado' && vCar === 'aprobado' && map[id]) { map[id].ri[ym] = true; }
+                    }
+                });
+            });
+        });
+
+        // 4. Caracterización
+        const evC = (r, h, sin, ors) => {
+            let ct = 0; let exp = (sin ? sin.length : 0) + (ors ? ors.length : 0);
+            if (sin) sin.forEach(x => { const i = findHeaderIndex(h, x); if (i !== -1 && !isCellEmpty(r[i])) { ct++; } });
+            if (ors) ors.forEach(pair => { const i1 = findHeaderIndex(h, pair[0]); const i2 = findHeaderIndex(h, pair[1]); if ((i1 !== -1 && !isCellEmpty(r[i1])) || (i2 !== -1 && !isCellEmpty(r[i2]))) { ct++; } });
+            return exp > 0 && ct === exp;
+        };
+        const cMapTemp = {}; 
+        dRows.forEach(r => {
+            const ids = matchSapIds(r, h);
+            ids.forEach(id => {
+                if (!id) return;
+                let me = findHeaderIndex(h, 'Mes') !== -1 ? normalizeHeader(r[findHeaderIndex(h, 'Mes')]) : '';
+                let a = findHeaderIndex(h, 'Año') !== -1 && r[findHeaderIndex(h, 'Año')] ? String(r[findHeaderIndex(h, 'Año')]).trim() : '';
+                const mm = MONTH_NUM[me.toUpperCase()];
+                if (mm) {
+                    if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; else a = '2025'; }
+                    const skey = `${a}-${parseInt(mm) <= 5 ? 'S1' : 'S2'}`;
+                    if (sK.includes(skey)) {
+                        if (!cMapTemp[id]) cMapTemp[id] = {};
+                        if (!cMapTemp[id][skey]) cMapTemp[id][skey] = { c: false, p: false };
+                        const icU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
+                        const u = icU !== -1 ? (r[icU] || '').toLowerCase() : '';
+                        const isC = u.includes('captación') || u.includes('captacion');
+                        const isP = u.includes('red') || u.includes('pileta');
+                        if (isC && evC(r, h, CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR)) cMapTemp[id][skey].c = true;
+                        if (isP && evC(r, h, CARACT_PILETA_SINGLE, CARACT_PILETA_OR)) cMapTemp[id][skey].p = true;
+                    }
+                }
+            });
+        });
+
+        Object.keys(cMapTemp).forEach(id => {
+            if (map[id]) {
+                sK.forEach(skey => {
+                    const ct = cMapTemp[id][skey];
+                    if (ct && ct.c && ct.p) {
+                        map[id].caract++;
+                    }
+                });
+            }
+        });
+
+        // [FED Rule]: La exigencia de meses para Monitoreo 5P y Riesgos es dinámica y debe igualar el número exacto de meses filtrados (fM.length).
+        const min5P = fM.length;
+        const minRiesgos = fM.length;
+
+        fD = Array.from(aS.keys()).map(id => {
+            const s = map[id]; if (!s) return null;
+            const insp = s.i;
+            const caract = s.caract;
+            
+            // [FED Rule]: Un mes es válido en 5P solo si tiene al menos 3 puntos evaluados en "Red/Pileta" y al menos 1 punto evaluado en "Reservorio", con todos los parámetros completos.
+            let p5m = 0; 
+            fM.forEach(ym => { 
+                let isMonthComplete = false;
+                const mObj = s.meses5P[ym];
+                if (mObj && mObj._m) {
+                    for (let k in mObj._m) {
+                        const pts = mObj._m[k].slice().sort((a, b) => a.id - b.id); let blks = [], cB = [];
+                        pts.forEach(p => { if (cB.length === 0) cB.push(p); else if (p.id === 0 && cB[cB.length - 1].id === 0) cB.push(p); else if (p.id !== 0 && cB[cB.length - 1].id !== 0 && Math.abs(p.id - cB[cB.length - 1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } });
+                        if (cB.length > 0) blks.push(cB);
+                        blks.forEach(b => { 
+                            let bSt = 1; 
+                            let cRed = 0, cRes = 0;
+                            b.forEach(p => { 
+                                if (p.st === 2) bSt = 2; 
+                                if (p.st === 1) {
+                                    if (p.u.includes('red') || p.u.includes('pileta') || p.u.includes('vivienda') || p.u.includes('domiciliaria')) cRed++;
+                                    else if (p.u.includes('reservorio')) cRes++;
+                                }
+                            }); 
+                            if (cRed >= 3 && cRes >= 1) bSt = 1;
+                            if (bSt === 1) isMonthComplete = true; 
+                        });
+                    }
+                }
+                if (isMonthComplete) p5m++; 
+            }); 
+            const mon5p = p5m >= min5P && min5P > 0 ? 1 : 0;
+            
+            let rim = 0; fM.forEach(ym => { if (s.ri[ym]) rim++; }); const riesg = rim >= minRiesgos && minRiesgos > 0 ? 1 : 0;
+            const vig = (insp >= 1 && caract >= 1 && mon5p === 1 && riesg === 1) ? 1 : 0;
+            return [...aS.get(id)[0], insp, caract, mon5p, riesg, vig];
+        }).filter(Boolean);
+
+        pT = 'vigilancia_fed';
     } else { fH = [...CORE_HEADERS]; fD = []; pT = 'status'; }
 
     if (subTab !== 'res_nivel_riesgo') {
@@ -1925,6 +2301,43 @@ function runFedLogic(dO, ind) {
         _nCache.set(t, r); return r;
     };
 
+    const filterRegistroTiempoEl = document.getElementById('fed-filter-registro-tiempo');
+    const filterRegistroTiempo = filterRegistroTiempoEl ? filterRegistroTiempoEl.checked : false;
+
+    function checkDateStrictLimit(dateStr, limitDate) {
+        if (!dateStr) return false;
+        const strVal = String(dateStr).trim();
+        let actualDate = null;
+        const match = strVal.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(AM|PM|am|pm)?)?/);
+        if (match) {
+            let [_, d, mn, y, hr, min, sec, ampm] = match;
+            hr = hr ? parseInt(hr, 10) : 0;
+            min = min ? parseInt(min, 10) : 0;
+            sec = sec ? parseInt(sec, 10) : 0;
+            if (ampm && ampm.toUpperCase() === 'PM' && hr < 12) hr += 12;
+            if (ampm && ampm.toUpperCase() === 'AM' && hr === 12) hr = 0;
+            actualDate = new Date(parseInt(y, 10), parseInt(mn, 10) - 1, parseInt(d, 10), hr, min, sec);
+        } else {
+            actualDate = new Date(strVal);
+        }
+        if (isNaN(actualDate.getTime())) return false;
+        return actualDate.getTime() <= limitDate.getTime();
+    }
+
+    function isRegisteredOnTime(mesStr, añoStr, fechaFinalizadoStr) {
+        if (!fechaFinalizadoStr) return false;
+        let m = MONTH_NUM[String(mesStr).toUpperCase()];
+        if (!m) return false;
+        let mesEval = parseInt(m, 10);
+        let anoEval = parseInt(añoStr, 10);
+        if (isNaN(anoEval)) anoEval = 2026;
+        let nextMes = mesEval + 1;
+        let nextAno = anoEval;
+        if (nextMes > 12) { nextMes = 1; nextAno++; }
+        const limitDate = new Date(nextAno, nextMes - 1, 15, 23, 59, 59);
+        return checkDateStrictLimit(fechaFinalizadoStr, limitDate);
+    }
+
     if (ind === 'ind4') {
         const h2 = dO.main2[0] || []; const r2 = dO.main2.slice(1);
         const iA2 = findHeaderIndex(h2, 'Año');
@@ -1938,11 +2351,19 @@ function runFedLogic(dO, ind) {
         const iRed2 = findHeaderIndex(h2, 'Red de Salud');
         const iLug = findHeaderIndex(h2, 'Nombre Lugar de Muestreo');
         const iCl2 = findHeaderIndex(h2, 'Cloro');
+        const iFin2 = findHeaderIndex(h2, 'Fecha Finalizado');
 
         const map = {};
         const availableMonths = fM.filter(m => m >= '2026-06');
 
         r2.forEach(r => {
+            const aVal = iA2 !== -1 && r[iA2] ? String(r[iA2]).trim() : '2026';
+            const mVal = iM2 !== -1 ? nFst(r[iM2]) : '';
+            if (filterRegistroTiempo) {
+                const fFin = iFin2 !== -1 ? r[iFin2] : '';
+                if (!isRegisteredOnTime(mVal, aVal, fFin)) return;
+            }
+            
             const u = formatUbigeo(r[iU2]);
             if (!APP_STATE.iieeUbigeos.has(u)) return;
 
@@ -2051,6 +2472,7 @@ function runFedLogic(dO, ind) {
         let iN1 = findHeaderIndex(h1, 'Nombre CCPP');
         const iM1 = findHeaderIndex(h1, 'Mes');
         const iA1 = findHeaderIndex(h1, 'Año');
+        const iFin1 = findHeaderIndex(h1, 'Fecha Finalizado');
 
         const paramsToExtract = [
             'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
@@ -2062,6 +2484,10 @@ function runFedLogic(dO, ind) {
         r1.forEach(r => {
             const a = iA1 !== -1 ? String(r[iA1]).trim() : '2025';
             const mesRaw = iM1 !== -1 ? nFst(r[iM1]) : '';
+            if (filterRegistroTiempo) {
+                const fFin = iFin1 !== -1 ? r[iFin1] : '';
+                if (!isRegisteredOnTime(mesRaw, a, fFin)) return;
+            }
             const mm = MONTH_NUM[mesRaw.toUpperCase()];
             if (is26) {
                 if (a !== '2026') return;
@@ -2185,8 +2611,16 @@ function runFedLogic(dO, ind) {
         let iN2 = findHeaderIndex(h2, 'Nombre CCPP');
         const iCl2 = findHeaderIndex(h2, 'Cloro');
         const iTu2 = findHeaderIndex(h2, 'Turbiedad');
+        const iFin2 = findHeaderIndex(h2, 'Fecha Finalizado');
 
         r2.forEach(r => {
+            const a = iA2 !== -1 && r[iA2] ? String(r[iA2]).trim() : '2026';
+            const me = iM2 !== -1 ? nFst(r[iM2]) : '';
+            if (filterRegistroTiempo) {
+                const fFin = iFin2 !== -1 ? r[iFin2] : '';
+                if (!isRegisteredOnTime(me, a, fFin)) return;
+            }
+            
             const u = formatUbigeo(r[iU2]);
             const origCcpp2 = iN2 !== -1 ? String(r[iN2]).trim().toUpperCase() : '';
             const n = nFst(origCcpp2);
@@ -2194,9 +2628,6 @@ function runFedLogic(dO, ind) {
             const id = u + '_' + n;
 
             if (!m3[id]) return;
-
-            const a = iA2 !== -1 && r[iA2] ? String(r[iA2]).trim() : '2026';
-            const me = iM2 !== -1 ? nFst(r[iM2]) : '';
             const mm = MONTH_NUM[me.toUpperCase()];
             if (!mm) return;
             const ym = `${a}-${mm}`;
@@ -2383,21 +2814,57 @@ function runFedLogic(dO, ind) {
         }
     };
 
-    const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo'); const iA1 = findHeaderIndex(h1, 'Año');
-    r1.forEach(r => { const id = iC(r, h1); if (!id) return; const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; const a = iA1 !== -1 && r[iA1] ? String(r[iA1]).trim() : '2025'; const mm = MONTH_NUM[me.toUpperCase()]; if (mm) { const ym = `${a}-${mm}`; if (m[id].meses[ym]) { const s = gS(r, h1); m[id].meses[ym].t++; if (s.is5p) m[id].meses[ym].p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk) m[id].meses[ym].cl++; if (tuOk) m[id].meses[ym].tu++; if (clOk && tuOk) m[id].meses[ym].cltu++; } if (ind === 'ind2' && iU1 !== -1 && fM.includes(ym)) { const ub = (r[iU1] || '').toLowerCase(); updateCaract(r, h1, id, ub); } } });
+    const iM1 = findHeaderIndex(h1, 'Mes'); const iU1 = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo'); const iA1 = findHeaderIndex(h1, 'Año'); const iFin1 = findHeaderIndex(h1, 'Fecha Finalizado');
+    r1.forEach(r => { 
+        const id = iC(r, h1); if (!id) return; 
+        const me = iM1 !== -1 ? normalizeHeader(r[iM1]) : ''; 
+        const a = iA1 !== -1 && r[iA1] ? String(r[iA1]).trim() : '2025'; 
+        if (filterRegistroTiempo) {
+            const fFin = iFin1 !== -1 ? r[iFin1] : '';
+            if (!isRegisteredOnTime(me, a, fFin)) return;
+        }
+        const mm = MONTH_NUM[me.toUpperCase()]; 
+        if (mm) { 
+            const ym = `${a}-${mm}`; 
+            if (m[id].meses[ym]) { 
+                const s = gS(r, h1); m[id].meses[ym].t++; 
+                if (s.is5p) m[id].meses[ym].p5++; 
+                const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; 
+                const tuOk = !isNaN(s.t) && s.t <= 5; 
+                if (clOk) m[id].meses[ym].cl++; 
+                if (tuOk) m[id].meses[ym].tu++; 
+                if (clOk && tuOk) m[id].meses[ym].cltu++; 
+            } 
+            if (ind === 'ind2' && iU1 !== -1 && fM.includes(ym)) { 
+                const ub = (r[iU1] || '').toLowerCase(); updateCaract(r, h1, id, ub); 
+            } 
+        } 
+    });
 
-    const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo'); const iA2 = findHeaderIndex(h2, 'Año');
+    const iM2 = findHeaderIndex(h2, 'Mes'); const iU2 = findHeaderIndex(h2, 'Ubicación Lugar de Muestreo'); const iA2 = findHeaderIndex(h2, 'Año'); const iFin2 = findHeaderIndex(h2, 'Fecha Finalizado');
     r2.forEach(r => {
         const id = matchId(r, h2); if (!id) return;
         const me = iM2 !== -1 ? normalizeHeader(r[iM2]) : '';
         const a = iA2 !== -1 && r[iA2] ? String(r[iA2]).trim() : '2026';
+        if (filterRegistroTiempo) {
+            const fFin = iFin2 !== -1 ? r[iFin2] : '';
+            if (!isRegisteredOnTime(me, a, fFin)) return;
+        }
         const mm = MONTH_NUM[me.toUpperCase()];
         if (mm) {
             const ym = `${a}-${mm}`;
             if (m[id].meses[ym]) {
-                const s = gS(r, h2); m[id].meses[ym].t++; if (s.is5p) m[id].meses[ym].p5++; const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; const tuOk = !isNaN(s.t) && s.t <= 5; if (clOk) m[id].meses[ym].cl++; if (tuOk) m[id].meses[ym].tu++; if (clOk && tuOk) m[id].meses[ym].cltu++;
+                const s = gS(r, h2); m[id].meses[ym].t++; 
+                if (s.is5p) m[id].meses[ym].p5++; 
+                const clOk = !isNaN(s.c) && s.c >= 0.5 && s.c <= 5; 
+                const tuOk = !isNaN(s.t) && s.t <= 5; 
+                if (clOk) m[id].meses[ym].cl++; 
+                if (tuOk) m[id].meses[ym].tu++; 
+                if (clOk && tuOk) m[id].meses[ym].cltu++;
             }
-            if (ind === 'ind2' && iU2 !== -1 && fM.includes(ym)) { const ub = (r[iU2] || '').toLowerCase(); updateCaract(r, h2, id, ub); }
+            if (ind === 'ind2' && iU2 !== -1 && fM.includes(ym)) { 
+                const ub = (r[iU2] || '').toLowerCase(); updateCaract(r, h2, id, ub); 
+            }
         }
     });
 
@@ -2428,7 +2895,15 @@ function runFedLogic(dO, ind) {
         const lIdS = findHeaderIndex(sH, 'Id. SAP');
         const lNomS = findHeaderIndex(sH, 'Nombre SAP');
         const lUbiS = findHeaderIndex(sH, 'Ubigeo');
+        const iCreaS = findHeaderIndex(sH, 'Fecha de creación');
+
         sR.forEach(r => {
+            if (filterRegistroTiempo && aT === '2026-05') {
+                const fCrea = iCreaS !== -1 ? r[iCreaS] : '';
+                const limitDate = new Date(2026, 5, 15, 23, 59, 59);
+                if (!checkDateStrictLimit(fCrea, limitDate)) return;
+            }
+
             let id = null;
             const ubi = lUbiS !== -1 ? formatUbigeo(r[lUbiS]) : '';
             if (lIdS !== -1) { const sapId = String(r[lIdS]).trim(); id = sapToCcppId[sapId]; }
@@ -2726,7 +3201,8 @@ function renderMainTable(result, prefix) {
         if (h === 'Cumple' || h === 'Consume Agua Clorada') return v == 1 || v === '1' ? 'SÍ' : (v == 0 || v === '0' ? 'NO' : '-');
         if (h.includes('Muestra') && !isNaN(parseInt(v))) return v == 1 ? 'CAPTACIÓN' : (v == 2 ? 'PILETA' : (v == 3 ? 'AMBOS' : '-'));
         if (h === 'Excede LMP') return v == 1 ? 'SÍ' : '-';
-        if (['Inspección', 'Bacteriológico', 'Parasitológico', 'Físico Químicos', 'Inorgánicos', 'Monitoreo 5P', 'Riesgos', 'Vigilancia Completa'].includes(h)) return v == 1 || v === '1' ? 'CUMPLE' : 'NO CUMPLE';
+        if (['Bacteriológico', 'Parasitológico', 'Físico Químicos', 'Inorgánicos', 'Monitoreo 5P', 'Riesgos', 'Vigilancia Completa'].includes(h)) return v == 1 || v === '1' ? 'CUMPLE' : 'NO CUMPLE';
+        if (h === 'Inspección' && result.type !== 'vigilancia_fed') return v == 1 || v === '1' ? 'CUMPLE' : 'NO CUMPLE';
         if (isJ && h !== 'Observación' && h !== 'Ver Detalle' && h !== 'Nivel de Riesgo' && !h.includes('Ev_')) return v == 1 ? 'COMPLETO' : (v == 2 ? 'INCOMPLETO' : 'SIN MONITOREO');
         if (isC) return v == 1 ? 'COMPLETO' : (v == 2 ? 'INCOMPLETO' : 'SIN MONITOREO');
         return String(v).substring(0, 30);
@@ -2992,6 +3468,12 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
                         }
                     } catch (e) { sum[red][cIdx].s++; grTot[cIdx].s++; }
                 }
+                else if (result.type === 'vigilancia_fed' && (result.headers[i] === 'Inspección' || result.headers[i] === 'Caracterización')) {
+                    let val = parseInt(r[i]) || 0;
+                    sum[red][cIdx] += val;
+                    grTot[cIdx] += val;
+                    if (val >= 1) sysC++;
+                }
                 else { let val = parseInt(r[i]) || 0; if (val >= 1) { sum[red][cIdx]++; grTot[cIdx]++; sysC++; } }
                 cIdx++;
             }
@@ -3011,7 +3493,9 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
             Object.keys(sum).forEach(red => {
                 const metaMefRed = APP_STATE.metaMefPorRed[red] || 0;
                 for (let i = 0; i < colC; i++) {
-                    sum[red][i].s = Math.max(0, metaMefRed - (sum[red][i].c + sum[red][i].i));
+                    if (isMefAmbito) {
+                        sum[red][i].s = Math.max(0, metaMefRed - (sum[red][i].c + sum[red][i].i));
+                    }
                 }
             });
             for (let i = 0; i < colC; i++) {
@@ -3080,8 +3564,8 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
             let avance = avanceR[red] || 0;
             vals.forEach((v, i) => {
                 let btnDet = '';
-                if ((currentTab === 'sanitaria' && (String(sumH[i]).includes('1ra Inspección') || String(sumH[i]).includes('2da Inspección'))) ||
-                    ((currentTab === 'monitor' || currentTab === 'riesgos') && String(sumH[i] || '').match(/^(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Set|Sep|Oct|Nov|Dic)\s+\d{4}$/i))) {
+                if (isMefAmbito && ((currentTab === 'sanitaria' && (String(sumH[i]).includes('1ra Inspección') || String(sumH[i]).includes('2da Inspección'))) ||
+                    ((currentTab === 'monitor' || currentTab === 'riesgos') && String(sumH[i] || '').match(/^(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Set|Sep|Oct|Nov|Dic)\s+\d{4}$/i)))) {
                     btnDet = `<button onclick="event.stopPropagation(); window.openSanitariaUnmonitoredModal('${safeEscape(red)}', '${safeEscape(sumH[i])}', '${currentTab}')" class="ml-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all shadow-sm border border-indigo-200 inline-flex items-center gap-1 active:scale-95" title="Ver sistemas no monitoreados de MEF_UB"><i data-lucide="eye" class="w-3 h-3"></i> Ver Detalle</button>`;
                 }
                 if (isJ || isC) { html += `<td class="px-4 py-3.5 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-600 font-bold mr-1.5 bg-emerald-50 px-1.5 py-0.5 rounded shadow-sm" title="Completo"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-600 font-bold mr-1.5 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm" title="Incompleto"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-bold bg-slate-50 px-1.5 py-0.5 rounded shadow-sm" title="Sin Monitoreo"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span>${btnDet}</td>`; } else { let st = "text-slate-600 font-medium"; if (isA) { if (i === 1 && v > 0) st = "text-red-600 font-bold bg-red-50/50 rounded-lg"; if (i === 2) st = "text-emerald-600 font-bold"; } html += `<td class="px-5 py-3.5 text-xs text-center ${st}">${v}</td>` }
@@ -3092,8 +3576,8 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
         html += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-4 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td>${isMefAmbito ? '' : `<td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTSap}</td>`}<td class="px-5 py-4 text-xs text-center text-blue-300 font-black bg-blue-900/50">${totalMetaMef}</td>`;
         grTot.forEach((v, i) => {
             let btnDetTot = '';
-            if ((currentTab === 'sanitaria' && (String(sumH[i]).includes('1ra Inspección') || String(sumH[i]).includes('2da Inspección'))) ||
-                ((currentTab === 'monitor' || currentTab === 'riesgos') && String(sumH[i] || '').match(/^(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Set|Sep|Oct|Nov|Dic)\s+\d{4}$/i))) {
+            if (isMefAmbito && ((currentTab === 'sanitaria' && (String(sumH[i]).includes('1ra Inspección') || String(sumH[i]).includes('2da Inspección'))) ||
+                ((currentTab === 'monitor' || currentTab === 'riesgos') && String(sumH[i] || '').match(/^(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Set|Sep|Oct|Nov|Dic)\s+\d{4}$/i)))) {
                 btnDetTot = `<button onclick="event.stopPropagation(); window.openSanitariaUnmonitoredModal('TOTAL GENERAL', '${safeEscape(sumH[i])}', '${currentTab}')" class="ml-2.5 bg-indigo-900 text-indigo-200 hover:bg-indigo-600 hover:text-white px-2.5 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all shadow-sm border border-indigo-700 inline-flex items-center gap-1 active:scale-95" title="Ver todos los sistemas no monitoreados de MEF_UB"><i data-lucide="eye" class="w-3 h-3"></i> Ver Detalle</button>`;
             }
             if (isJ || isC) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-black"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span>${btnDetTot}</td>`; } else { html += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`; }
@@ -3881,11 +4365,9 @@ function renderFedConsolidatedAndChart(result) {
             h += `<th class="px-4 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50">Cumple Paso 2</th><th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50">Cumple paso 1 y 2</th>`;
         }
         else {
-            if (lbl === 'RED DE SALUD') h += `<th class="px-5 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50">META MEF</th><th class="px-5 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50">Meta Caract. 1er Tramo</th>`;
             h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Inspección</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Caracterización</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Monitoreo 5P</th><th class="px-4 py-3 text-center text-[10px] font-bold text-slate-500 uppercase">Riesgos</th><th class="px-5 py-3 text-center text-[10px] font-black text-emerald-600 uppercase bg-emerald-50/50">Cumplen Ind. 2</th>`;
         }
         h += `</tr></thead><tbody class="divide-y divide-slate-100">`;
-        let gMetaMef = 0; let gMetaCaract = 0;
         Object.entries(obj).sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, v]) => {
             h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td><td class="px-5 py-2.5 text-xs text-center font-bold text-slate-600 bg-slate-50">${v.cp}</td>`;
             if (isI1) { 
@@ -3904,18 +4386,6 @@ function renderFedConsolidatedAndChart(result) {
                 h += `<td class="px-4 py-2.5 text-xs text-center text-blue-700 font-bold bg-blue-50/50">${v.p2}</td><td class="px-5 py-2.5 text-xs text-center text-indigo-700 font-black bg-indigo-50/50">${v.p1y2}</td>`;
             }
             else {
-                if (lbl === 'RED DE SALUD') {
-                    const metaMef = APP_STATE.metaMefPorRed[k] || 0; gMetaMef += metaMef;
-                    const redU = String(k).toUpperCase().trim(); let mCaract = 0;
-                    if (redU.includes('CANAS') && redU.includes('ESPINAR')) mCaract = 67;
-                    else if (redU.includes('CHUMBIVILCAS')) mCaract = 70;
-                    else if (redU.includes('NORTE')) mCaract = 100;
-                    else if (redU.includes('SUR')) mCaract = 162;
-                    else if (redU.includes('KIMBIRI')) mCaract = 46;
-                    else if (redU.includes('CONVENCION') || redU.includes('CONVENCIÓN')) mCaract = 43;
-                    gMetaCaract += mCaract;
-                    h += `<td class="px-5 py-2.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${metaMef}</td><td class="px-5 py-2.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${mCaract || '-'}</td>`;
-                }
                 h += `<td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.i}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ca}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.m}</td><td class="px-4 py-2.5 text-xs text-center text-slate-500">${v.ri}</td><td class="px-5 py-2.5 text-xs text-center font-black text-emerald-600 bg-emerald-50/50">${v.c}</td>`;
             }
             h += `</tr>`;
@@ -3937,7 +4407,6 @@ function renderFedConsolidatedAndChart(result) {
             h += `<td class="px-4 py-3 text-xs text-center text-blue-400 font-bold bg-blue-900/50">${gP2}</td><td class="px-5 py-3 text-xs text-center text-indigo-400 font-black bg-indigo-900/50">${gP1y2}</td>`;
         }
         else {
-            if (lbl === 'RED DE SALUD') h += `<td class="px-5 py-3 text-xs text-center font-black text-blue-300 bg-blue-900/50">${gMetaMef}</td><td class="px-5 py-3 text-xs text-center font-black text-indigo-300 bg-indigo-900/50">${gMetaCaract}</td>`;
             h += `<td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gI}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gC}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gM}</td><td class="px-4 py-3 text-xs text-center text-slate-300 font-bold">${gRi}</td><td class="px-5 py-3 text-xs text-center text-emerald-400 font-black bg-emerald-900/50">${gCI}</td>`;
         }
         h += `</tr></tbody></table></div></div>`; return h;
@@ -4147,7 +4616,15 @@ window.exportToExcel = (prefix) => {
         const evCols = []; result.headers.forEach((h, i) => { if (h.startsWith('Ev_')) evCols.push(i); });
         const ev5pCols = []; result.headers.forEach((h, i) => { if (h.startsWith('EV_5p')) ev5pCols.push(i); });
         const sumCols = []; result.headers.forEach((h, i) => { if (h.startsWith('Tot Mon') || h.startsWith('Mon 5P') || h.includes('(Cl>=0.5)') || h.includes('(Turb<=5)')) sumCols.push(i); });
-        const flagCols = ['MEF', 'FED', 'SAP REGULARES', 'MIDIS', 'Cumple Salud'].map(h => result.headers.indexOf(h)).filter(i => i !== -1);
+        const flagCols = [];
+        // [2026-08-29] Corrección Excel (FED AI-01.01): Capturamos dinámicamente las columnas mensuales (ej: "Amb. Jun E. Bueno", "Cumple Salud Junio") 
+        // para aplicarles una agrupación de tipo OR (si al menos 1 SAP cumple, el CCPP completo cumple). 
+        // Esto elimina el desfase de conteos entre el aplicativo web y el Excel descargado.
+        result.headers.forEach((h, i) => {
+            if (['MEF', 'FED', 'SAP REGULARES', 'MIDIS'].includes(h) || h.startsWith('Cumple ') || h.startsWith('Amb. ') || h === 'Estado Bueno') {
+                flagCols.push(i);
+            }
+        });
 
         const idxSalud = result.headers.indexOf('Cumple Salud');
         const idxViv = result.headers.indexOf('Cumple Vivienda');
@@ -4206,12 +4683,34 @@ window.exportToExcel = (prefix) => {
 
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dH, ...dD_eval]), "Evaluacion");
 
+        const dD_resultado = Object.values(mapCcpp).map(x => {
+            const row = x.r;
+            return result.headers.map((h, i) => {
+                if (h === 'Detalles' || h === 'Ver Detalle') return null;
+                if (h.startsWith('Cumple ') || h.startsWith('Amb. ') || h === 'MEF' || h === 'FED' || h === 'SAP REGULARES' || h === 'MIDIS' || h.startsWith('Ev_') || h.startsWith('EV_5p') || h === 'Estado Bueno') {
+                    return row[i] === 1 ? 1 : 0;
+                }
+                if (h === 'Seguimiento') {
+                    return (row[i] === 'Verde') ? 1 : 0;
+                }
+                if (sumCols.includes(i)) {
+                    return (row[i] < 3) ? 0 : 1;
+                }
+                return row[i];
+            }).filter(v => v !== null);
+        });
+
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dH, ...dD_resultado]), "Resultado FED");
+
         const sumR = {};
         let grandCcpp = 0;
         const evColIdxsEval = evCols.map(c => dH.indexOf(result.headers[c]));
-        const idxSaludEval = dH.indexOf('Cumple Salud');
-        const idxVivEval = dH.indexOf('Cumple Vivienda');
-        const idxAmbEval = dH.indexOf('Cumple Ambos');
+        // [2026-08-29] Corrección Excel (FED AI-01.01): Para la pestaña "Consolidado", buscamos los índices de forma condicional 
+        // según el periodo global, permitiendo emparejar las columnas estáticas viejas vs las nuevas dinámicas (ej: "Estado Bueno").
+        const isNewFmtExport = (APP_STATE.globalDateFrom >= '2026-06');
+        const idxSaludEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses SALUD' : 'Cumple Salud');
+        const idxVivEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses VIVIENDA' : 'Cumple Vivienda');
+        const idxAmbEval = dH.indexOf(isNewFmtExport ? 'Estado Bueno' : 'Cumple Ambos');
 
         dD_eval.forEach(r => {
             const red = r[dH.indexOf('Red de Salud')] || 'Sin Red';
@@ -4548,17 +5047,22 @@ window.openSanitariaUnmonitoredModal = (red, headerName, tab = 'sanitaria') => {
             if (ano === targetYear) {
                 const vInf = iInf !== -1 ? normalizeHeader(r[iInf]) : '';
                 const vCar = iCar !== -1 ? normalizeHeader(r[iCar]) : '';
-                if (vInf !== '' || vCar !== '') {
-                    let rawNom = iNomRies !== -1 ? r[iNomRies] : '';
-                    let extractedId = '';
-                    if (rawNom && String(rawNom).includes('|')) {
-                        const pts = String(rawNom).split('|');
-                        extractedId = pts[0].trim();
-                        rawNom = pts[1].trim();
-                    }
-                    const nom = rawNom ? normalizeHeader(rawNom) : '';
+                let rawNom = iNomRies !== -1 ? r[iNomRies] : '';
+                let extractedId = '';
+                if (rawNom && String(rawNom).includes('|')) {
+                    const pts = String(rawNom).split('|');
+                    extractedId = pts[0].trim();
+                    rawNom = pts[1].trim();
+                }
+                const nom = rawNom ? normalizeHeader(rawNom) : '';
+                const ubi = iUbiRies !== -1 && r[iUbiRies] ? formatUbigeo(r[iUbiRies]) : '';
+                
+                const isRevCar = Boolean(APP_STATE.revCargo && Object.values(APP_STATE.revCargo).some(
+                    rc => rc.ubigeo === ubi && rc.system === (rawNom || nom) && String(rc.year) === String(targetYear) && rc.month.toLowerCase() === targetMonthName.toLowerCase() && rc.status
+                ));
+
+                if (vInf === 'aprobado' && (vCar === 'aprobado' || isRevCar)) {
                     if (extractedId) monitoredIds.add(extractedId);
-                    const ubi = iUbiRies !== -1 && r[iUbiRies] ? formatUbigeo(r[iUbiRies]) : '';
                     if (ubi && nom) monitoredUbiNames.add(`${ubi}_${nom}`);
                 }
             }
@@ -4742,29 +5246,23 @@ window.exportSanitariaUnmonitoredExcel = () => {
     const red = APP_STATE.currentSanitariaUnmonitoredRed || 'MEF_UB';
     const hdr = APP_STATE.currentSanitariaUnmonitoredHeader || 'Periodo';
     const tabName = APP_STATE.currentSanitariaUnmonitoredTab === 'monitor' ? 'Monitoreo_5P' : (APP_STATE.currentSanitariaUnmonitoredTab === 'riesgos' ? 'Riesgos' : 'Insp_Sanitaria');
-    let csv = "Nro,Red de Salud,Provincia,Distrito,Id. SAP,Nombre SAP,Centro Poblado,Ubigeo\n";
-    list.forEach((item, idx) => {
-        const row = [
-            idx + 1,
-            `"${String(item.red).replace(/"/g, '""')}"`,
-            `"${String(item.prov).replace(/"/g, '""')}"`,
-            `"${String(item.dist).replace(/"/g, '""')}"`,
-            `"${String(item.idSap).replace(/"/g, '""')}"`,
-            `"${String(item.nomSap).replace(/"/g, '""')}"`,
-            `"${String(item.ccpp).replace(/"/g, '""')}"`,
-            `"${String(item.ubi).replace(/"/g, '""')}"`
-        ];
-        csv += row.join(",") + "\n";
-    });
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Sistemas_No_Monitoreados_${red.replace(/\s+/g, '_')}_${hdr.replace(/\s+/g, '_')}_${tabName}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    
+    const headerRow = ["Nro", "Red de Salud", "Provincia", "Distrito", "Id. SAP", "Nombre SAP", "Centro Poblado", "Ubigeo"];
+    const dataRows = list.map((item, idx) => [
+        idx + 1,
+        item.red,
+        item.prov,
+        item.dist,
+        item.idSap,
+        item.nomSap,
+        item.ccpp,
+        item.ubi
+    ]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
+    XLSX.utils.book_append_sheet(wb, ws, "Sistemas_No_Monitoreados");
+    XLSX.writeFile(wb, `Sistemas_No_Monitoreados_${red.replace(/\s+/g, '_')}_${hdr.replace(/\s+/g, '_')}_${tabName}.xlsx`);
 };
 
 window.closeMonitorDetailModal = () => { getEl('modal-monitor-detail').classList.add('hidden'); };
