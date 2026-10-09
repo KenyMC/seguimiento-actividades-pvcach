@@ -1315,9 +1315,25 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
 
         const map = {};
 
+        const idxU = findHeaderIndex(h1, 'Ubicación Lugar de Muestreo');
+        const ev = (r, sin, ors) => {
+            let ct = 0; let exp = (sin ? sin.length : 0) + (ors ? ors.length : 0); let mis = [];
+            if (sin) sin.forEach(x => { const i = findHeaderIndex(h1, x); if (i !== -1 && !isCellEmpty(r[i])) ct++; else mis.push(x); });
+            if (ors) ors.forEach(pair => { const i1 = findHeaderIndex(h1, pair[0]); const i2 = findHeaderIndex(h1, pair[1]); if ((i1 !== -1 && !isCellEmpty(r[i1])) || (i2 !== -1 && !isCellEmpty(r[i2]))) ct++; else mis.push(pair[0]); });
+            return { ct, mis };
+        };
+
         dRows.forEach(r => {
             const id = r[idxId];
             if (!id) return;
+
+            let hasCaract = false;
+            const u = idxU !== -1 ? String(r[idxU] || '').toLowerCase() : '';
+            const iC = u.includes('captación') || u.includes('captacion');
+            const iP = u.includes('red') || u.includes('pileta');
+            if (iC) { const eC = ev(r, CARACT_CAPTACION_SINGLE, CARACT_CAPTACION_OR); if (eC.ct > 0 && eC.mis.length <= 15) hasCaract = true; }
+            if (iP) { const eP = ev(r, CARACT_PILETA_SINGLE, CARACT_PILETA_OR); if (eP.ct > 0 && eP.mis.length <= 15) hasCaract = true; }
+            if (!hasCaract) return;
 
             if (!map[id]) {
                 map[id] = {
