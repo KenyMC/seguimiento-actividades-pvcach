@@ -1440,7 +1440,17 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             return aS.get(id).map(mt => [...mt, cloroLMP, ...rData]);
         }); pT = 'caract_points';
     } else if (['metales', 'parasitologico', 'fisico'].includes(subTab)) {
-        fH = [...CORE_HEADERS, '1ra Insp. Pileta', '1ra Insp. Captación', '2da Insp. Pileta', '2da Insp. Captación']; const map = {}; const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
+        // [2026-10-09] Lógica de filtrado de columnas por semestre: 
+        // Si el usuario filtra de Enero a Junio, solo mostramos las columnas de la 1ra Inspección.
+        // Si filtra de Julio a Diciembre, mostramos solo las de la 2da Inspección.
+        let showS1 = fM.length === 0 || fM.some(m => parseInt(m.split('-')[1]) <= 6);
+        let showS2 = fM.length === 0 || fM.some(m => parseInt(m.split('-')[1]) >= 7);
+        let dynH = [];
+        
+        // [2026-10-09] Se incluye la columna "(Total)" para que consolide el cumplimiento si Pileta o Captación cumplen.
+        if (showS1) dynH.push('1ra Insp. Pileta', '1ra Insp. Captación', '1ra Insp. (Total)');
+        if (showS2) dynH.push('2da Insp. Pileta', '2da Insp. Captación', '2da Insp. (Total)');
+        fH = [...CORE_HEADERS, ...dynH]; const map = {}; const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
         dRows.forEach(r => { const id = getSystemKey(r, h); if (!id) return; if (!map[id]) map[id] = { meta: getMeta(r, h), s1p: { status: 0, params: [] }, s1c: { status: 0, params: [] }, s2p: { status: 0, params: [] }, s2c: { status: 0, params: [] } }; let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return; let isS1 = parseInt(mm) >= 1 && parseInt(mm) <= 6; let isS2 = parseInt(mm) >= 7 && parseInt(mm) <= 12; const u = idxU !== -1 ? (r[idxU] || '').toLowerCase() : ''; const isCap = u.includes('captación') || u.includes('captacion'); const isPil = u.includes('red') || u.includes('pileta'); const ev = (pSet) => { let ct = 0; let exp = pSet ? pSet.length : 0; let mis = []; let fnd = []; if (pSet) { pSet.forEach(x => { let f = false; if (Array.isArray(x)) { let match = x.find(sub => { const i = findHeaderIndex(h, sub); return i !== -1 && !isCellEmpty(r[i]); }); if (match) { f = true; fnd.push(match); } } else { const i = findHeaderIndex(h, x); if (i !== -1 && !isCellEmpty(r[i])) { f = true; fnd.push(x); } } if (!f) mis.push(Array.isArray(x) ? x[0] : x); else ct++; }); } return { isC: exp > 0 && ct === exp, ct, exp, mis, fnd }; }; const cSet = ANALYSIS_SETS[subTab]; const eP = ev(cSet?.A); const eC = ev(cSet?.B); const up = (sl, e, isValid) => { if (isValid && e.ct > 0) { let st = e.isC ? 1 : 2; let pm = st === 1 ? e.fnd : e.mis.map(m => `Falta: ${m.replace(/_/g, '')}`); if (sl.status === 0 || (sl.status === 2 && st === 1) || (sl.status === st && sl.params.length > pm.length)) { sl.status = st; sl.params = pm; } } }; up(map[id].s1p, eP, isS1 && isPil); up(map[id].s1c, eC, isS1 && isCap); up(map[id].s2p, eP, isS2 && isPil); up(map[id].s2c, eC, isS2 && isCap); });
         const aS = new Map();
         if (ambitoFilter === 'MEF' && APP_STATE.rawData.mef_ub && APP_STATE.rawData.mef_ub.length > 1) {
@@ -1459,7 +1469,22 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 populateMeta(aS, id, r, h);
             }
         });
-        fD = Array.from(aS.keys()).flatMap(id => { const s = map[id] || { s1p: { status: 0, params: [] }, s1c: { status: 0, params: [] }, s2p: { status: 0, params: [] }, s2c: { status: 0, params: [] } }; if (s.s1p.status === 0 && s.s1c.status === 0 && s.s2p.status === 0 && s.s2c.status === 0 && ambitoFilter !== 'MEF') return []; return aS.get(id).map(mt => [...mt, JSON.stringify(s.s1p), JSON.stringify(s.s1c), JSON.stringify(s.s2p), JSON.stringify(s.s2c)]); }); pT = 'status_json';
+        fD = Array.from(aS.keys()).flatMap(id => { 
+            const s = map[id] || { s1p: { status: 0, params: [] }, s1c: { status: 0, params: [] }, s2p: { status: 0, params: [] }, s2c: { status: 0, params: [] } }; 
+            if (s.s1p.status === 0 && s.s1c.status === 0 && s.s2p.status === 0 && s.s2c.status === 0 && ambitoFilter !== 'MEF') return []; 
+            let dArr = [];
+            if (showS1) {
+                // [2026-10-09] La columna (Total) asume "Completo" (1) si al menos Pileta (s1p) o Captación (s1c) es 1.
+                // Si ninguno es 1, pero al menos uno es Incompleto (2), asume 2. Sino queda Sin Datos (0).
+                let st1 = (s.s1p.status === 1 || s.s1c.status === 1) ? 1 : (s.s1p.status === 2 || s.s1c.status === 2) ? 2 : 0;
+                dArr.push(JSON.stringify(s.s1p), JSON.stringify(s.s1c), JSON.stringify({ status: st1, params: [] }));
+            }
+            if (showS2) {
+                let st2 = (s.s2p.status === 1 || s.s2c.status === 1) ? 1 : (s.s2p.status === 2 || s.s2c.status === 2) ? 2 : 0;
+                dArr.push(JSON.stringify(s.s2p), JSON.stringify(s.s2c), JSON.stringify({ status: st2, params: [] }));
+            }
+            return aS.get(id).map(mt => [...mt, ...dArr]); 
+        }); pT = 'status_json';
     } else if (subTab.startsWith('res_')) {
         const bT = subTab.replace('res_', ''); fH = [...CORE_HEADERS, '1ra Muestra', '2da Muestra', 'Excede LMP', 'Cumple', 'Detalles']; const map = {}; const sLMP = LMP_SCOPES[bT]; const cSet = ANALYSIS_SETS[bT];
         dRows.forEach(r => { const id = r[idxId]; if (!id) return; if (!map[id]) map[id] = { meta: getMeta(r, h), tS: 0, cS: 0, exc: [], ubi: [] }; const hasD = checkComplianceSet(h, cSet?.A, r) || checkComplianceSet(h, cSet?.B, r); if (hasD) { map[id].tS++; map[id].ubi.push(classifyAnalysisByLoc(h, r, cSet?.A, cSet?.B)); const issues = sLMP ? checkParamLMPExceeded(h, r, sLMP) : []; if (issues.length > 0) { let mName = "Sin Mes"; if (idxMes !== -1 && r[idxMes]) { mName = r[idxMes]; } map[id].exc.push(...issues.map(i => ({ ...i, month: mName }))); } else { map[id].cS++; } } });
@@ -1584,7 +1609,7 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         fM.forEach(m => { const mN = NUM_MONTH[m.split('-')[1]]; const yN = m.split('-')[0]; fH.push(`${mN} Red`); fH.push(`${mN} Captacion`); fH.push(`${mN} ${yN} (Total)`); });
         const map = {};
         dRows.forEach(r => {
-            const id = r[idxId]; if (!id) return;
+            const id = getSystemKey(r, h); if (!id) return;
             let mRaw = idxMes !== -1 ? r[idxMes] : ''; const mm = MONTH_NUM[normalizeHeader(mRaw).toUpperCase()]; if (!mm) return;
             let a = idxAno !== -1 ? r[idxAno] : '2025'; const ym = `${String(a).trim()}-${mm}`;
             if (!map[id]) map[id] = { dM: {} }; if (!map[id].dM[ym]) map[id].dM[ym] = { red: { st: 0, p: [] }, cap: { st: 0, p: [] } };
@@ -1912,54 +1937,36 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const sapNameToCcppId = {};
 
         const getSapId = (r, h) => {
-            const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
-            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            if (!u && !ccpp) return null;
-
-            let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
-            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            ns = ns || '';
-            let id = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
+            const id = getSystemKey(r, h);
+            if (!id) return null;
             if (!map[id]) {
-                map[id] = { meta: getMeta(r, h), u: u || '', c: ccpp || '', ids: ids || '', ns: ns || '', meses: {}, i: 0, ri: {}, bact: 0, para: 0, fisi: 0, metaPes: 0 };
-                fM.forEach(ym => map[id].meses[ym] = { p5: 0 });
+                const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+                let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')] || r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
+                let ns = r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
+                map[id] = { meta: getMeta(r, h), u: u || '', c: ccpp || '', ids: id.split('|')[1] || '', ns: ns || '', meses: {}, i: 0, ri: {}, bactM: {}, paraM: {}, fisiM: {}, metaPesM: {}, bact: 0, para: 0, fisi: 0, metaPes: 0 };
+                fM.forEach(ym => { map[id].meses[ym] = { _m: {}, status: 0 }; map[id].bactM[ym] = 0; map[id].paraM[ym] = 0; map[id].fisiM[ym] = 0; map[id].metaPesM[ym] = 0; });
             }
             return id;
         };
 
         const matchSapIds = (r, h) => {
+            const id = getSystemKey(r, h);
+            if (id && map[id]) return [id];
+            
+            // Fallback si no está el id pero tenemos ubi y ns en sapNameToCcppId o sapToCcppId
             const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
-            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-
             let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
-            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            ns = ns || '';
+            let ns = r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
             
             if (!ids && String(ns).includes('|')) {
                 const pts = String(ns).split('|');
                 ids = pts[0].trim();
                 ns = pts[1].trim();
             }
-
-            let exactId = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
-
-            if (map[exactId]) return [exactId];
             if (ids && sapToCcppId[String(ids).trim()]) return [sapToCcppId[String(ids).trim()]];
             if (ns && u && sapNameToCcppId[u + '_' + normalizeHeader(ns)]) return [sapNameToCcppId[u + '_' + normalizeHeader(ns)]];
 
-            if (!ids && !ns && u && ccpp) {
-                const prefix = u + '_' + normalizeHeader(ccpp) + '_';
-                const matches = Object.keys(map).filter(k => k.startsWith(prefix));
-                if (matches.length > 0) return matches;
-            }
-
-            return [getSapId(r, h)];
+            return id ? [id] : [];
         };
 
         dRows.forEach(r => {
@@ -1977,22 +1984,63 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             if (mm) {
                 if (!a) { if (me === 'diciembre') a = '2025'; else if (me === 'enero' || me === 'febrero') a = '2026'; else a = '2025'; }
                 const ym = `${a}-${mm}`;
-                if (map[id].meses[ym]) { if (classifyMonitoringStatus(h, r) === 1) map[id].meses[ym].p5++; }
+                
+                if (map[id].meses[ym]) { 
+                    let st = 0; let pCnt = []; MONITOR_5P_PARAMS.forEach(p => { if (!isCellEmpty(r[findHeaderIndex(h, p)])) pCnt.push(p); });
+                    if (pCnt.length === 5) st = 1; else if (pCnt.length > 0) st = 2;
+                    
+                    const nMue = r[findHeaderIndex(h, '# Muestreo')] || ''; const fMue = r[findHeaderIndex(h, 'Fecha Muestreo')] || r[findHeaderIndex(h, 'Fecha')] || '';
+                    const uMue = r[findHeaderIndex(h, 'Ubicacin Lugar de Muestreo')] || '';
+                    
+                    if (st > 0) {
+                        let mK = nMue || fMue || 'UNKNOWN';
+                        if (!map[id].meses[ym]._m[mK]) map[id].meses[ym]._m[mK] = [];
+                        const nMueStr = r[findHeaderIndex(h, '# Muestra')] || ''; const nMueId = parseInt(String(nMueStr).replace(/\D/g, '')) || 0;
+                        map[id].meses[ym]._m[mK].push({ st: st, id: nMueId, u: String(uMue).toLowerCase() });
+                        let anyC = false;
+                        for (let k in map[id].meses[ym]._m) {
+                            const pts = map[id].meses[ym]._m[k].slice().sort((a, b) => a.id - b.id); let blks = [], cB = [];
+                            pts.forEach(p => { if (cB.length === 0) cB.push(p); else if (p.id === 0 && cB[cB.length - 1].id === 0) cB.push(p); else if (p.id !== 0 && cB[cB.length - 1].id !== 0 && Math.abs(p.id - cB[cB.length - 1].id) <= 30) cB.push(p); else { blks.push(cB); cB = [p]; } });
+                            if (cB.length > 0) blks.push(cB);
+                            blks.forEach(b => { 
+                                let bSt = 1; 
+                                let cRed = 0, cRes = 0;
+                                b.forEach(p => { 
+                                    if (p.st === 2) bSt = 2; 
+                                    if (p.st === 1) {
+                                        if (p.u.includes('red') || p.u.includes('pileta') || p.u.includes('vivienda') || p.u.includes('domiciliaria')) cRed++;
+                                        else if (p.u.includes('reservorio')) cRes++;
+                                    }
+                                }); 
+                                if (cRed >= 3 && cRes >= 1) bSt = 1;
+                                if (bSt === 1) anyC = true; 
+                            });
+                        }
+                        map[id].meses[ym].status = anyC ? 1 : 2;
+                    }
+                }
+
+                const check = (keys) => { for (let k of keys) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) return k; } return null; };
+
+                const f_fec = check(['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)']);
+                const f_tot = check(['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)']);
+                const f_eco = check(['E. Coli (NMP)', 'E. Coli (UFC)']);
+                const pR_pres = [f_fec, f_tot, f_eco].filter(Boolean);
+                let r_st = pR_pres.length === 3 ? 1 : 0;
+
+                const c_ter = check(['Coliformes Termotolerantes _']);
+                const c_tot_c = check(['Coliformes Totales _']);
+                const c_eco_c = check(['Escherichia Coli _']);
+                const pC_pres = [c_ter, c_tot_c, c_eco_c].filter(Boolean);
+                let c_st = pC_pres.length === 3 ? 1 : 0;
+                
+                if (fM.includes(ym)) {
+                    if (r_st === 1 || c_st === 1) { map[id].bact = 1; map[id].bactM[ym] = 1; }
+                    if (checkComplianceSet(h, ANALYSIS_SETS.parasitologico.A, r) || checkComplianceSet(h, ANALYSIS_SETS.parasitologico.B, r)) { map[id].para = 1; map[id].paraM[ym] = 1; }
+                    if (checkComplianceSet(h, ANALYSIS_SETS.fisico.A, r) || checkComplianceSet(h, ANALYSIS_SETS.fisico.B, r)) { map[id].fisi = 1; map[id].fisiM[ym] = 1; }
+                    if (checkComplianceSet(h, ANALYSIS_SETS.metales.A, r) || checkComplianceSet(h, ANALYSIS_SETS.metales.B, r)) { map[id].metaPes = 1; map[id].metaPesM[ym] = 1; }
+                }
             }
-
-            const check = (keys) => { for (let k of keys) { const idx = findHeaderIndex(h, k); if (idx !== -1 && !isCellEmpty(r[idx])) return k; } return null; };
-
-            const f_fec = check(['Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)']);
-            const f_tot = check(['Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)']);
-            const f_eco = check(['E. Coli (NMP)', 'E. Coli (UFC)']);
-            const c_ter = check(['Coliformes Termotolerantes _']);
-            const c_tot_c = check(['Coliformes Totales _']);
-            const c_eco_c = check(['Escherichia Coli _']);
-            if ((f_fec && f_tot && f_eco) || (c_ter && c_tot_c && c_eco_c)) map[id].bact = 1;
-
-            if (checkComplianceSet(h, ANALYSIS_SETS.parasitologico.A, r) || checkComplianceSet(h, ANALYSIS_SETS.parasitologico.B, r)) map[id].para = 1;
-            if (checkComplianceSet(h, ANALYSIS_SETS.fisico.A, r) || checkComplianceSet(h, ANALYSIS_SETS.fisico.B, r)) map[id].fisi = 1;
-            if (checkComplianceSet(h, ANALYSIS_SETS.metales.A, r) || checkComplianceSet(h, ANALYSIS_SETS.metales.B, r)) map[id].metaPes = 1;
         });
 
         const sS = new Set(); fM.forEach(mStr => { const [y, mm] = mStr.split('-'); sS.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`); });
@@ -2036,15 +2084,82 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
 
         const aS = new Map(); rM.forEach(r => { const id = getSapId(r, h); populateMeta(aS, id, r, h); });
 
+        const vMensual = {};
+        const initRed = (red) => {
+            if (!vMensual[red]) {
+                vMensual[red] = { insp: {}, bact: {}, para: {}, fisi: {}, metaPes: {}, mon5p: {}, riesg: {} };
+                fM.forEach(ym => {
+                    vMensual[red].bact[ym]=0; vMensual[red].mon5p[ym]=0; vMensual[red].riesg[ym]=0;
+                    vMensual[red].para[ym]=0; vMensual[red].fisi[ym]=0; vMensual[red].metaPes[ym]=0; vMensual[red].insp[ym]=0;
+                });
+            }
+        };
+
+        const aggregateActivity = (tId, keyName) => {
+            const res = runSapLogic(tId, dO, redFilter, ambitoFilter);
+            const isJ = res.type === 'status_json'; const isC = res.type === 'status_json_complex';
+            const vIdx = CORE_HEADERS.length;
+            
+            res.data.forEach(r => {
+                const red = r[findHeaderIndex(res.headers, 'Red de Salud')] || 'Sin Red';
+                initRed(red);
+
+                for (let i = vIdx; i < r.length; i++) {
+                    const h = res.headers[i];
+                    if (h === 'Detalles' || h === 'Observación' || h === 'Observacion' || h.startsWith('Ver Detalle')) continue;
+                    if (tId === 'bacteriologico' && !h.includes('(Total)')) continue;
+                    if (['parasitologico', 'fisico', 'metales'].includes(tId) && !h.includes('(Total)')) continue;
+                    
+                    let ym = null;
+                    if (tId === 'sanitaria') {
+                        if (h.includes('1ra Insp')) { const y = h.split(' ').pop(); ym = `${y}-06`; }
+                        else if (h.includes('2da Insp')) { const y = h.split(' ').pop(); ym = `${y}-12`; }
+                        if (!fM.includes(ym)) ym = null;
+                    } else if (['parasitologico', 'fisico', 'metales'].includes(tId)) {
+                        if (h.includes('1ra Insp')) ym = fM.find(m => m.endsWith('-06'));
+                        else if (h.includes('2da Insp')) ym = fM.find(m => m.endsWith('-12'));
+                    } else {
+                        let mStr = h.replace('(Total)', '').trim();
+                        const pts = mStr.split(' ');
+                        if (pts.length >= 2) {
+                            const mName = pts[0]; const yStr = pts[1];
+                            const mIdx = Object.keys(NUM_MONTH).find(k => NUM_MONTH[k] === mName);
+                            if (mIdx && yStr) ym = `${yStr}-${mIdx}`;
+                        }
+                        if (!fM.includes(ym)) ym = null;
+                    }
+                    if (!ym) continue;
+
+                    let c = 0;
+                    if (isJ) { try { const d = JSON.parse(r[i]); if (d.status === 1) c = 1; } catch (e) { } }
+                    else if (isC) { try { const pts = JSON.parse(r[i]); const keys = Object.keys(pts); if (keys.length > 0) { let hasI = false; keys.forEach(k => { if (pts[k].status === 2) hasI = true; }); if (!hasI) c = 1; } } catch (e) { } }
+                    else { const v = parseInt(r[i]) || 0; if (v >= 1) c = 1; }
+                    
+                    if (c === 1) vMensual[red][keyName][ym]++;
+                }
+            });
+        };
+
+        aggregateActivity('sanitaria', 'insp');
+        aggregateActivity('bacteriologico', 'bact');
+        aggregateActivity('riesgos', 'riesg');
+        aggregateActivity('parasitologico', 'para');
+        aggregateActivity('fisico', 'fisi');
+        aggregateActivity('metales', 'metaPes');
+        aggregateActivity('monitor', 'mon5p');
+
         fD = Array.from(aS.keys()).map(id => {
             const s = map[id]; if (!s) return null;
             const insp = s.i > 0 ? 1 : 0;
-            let p5m = 0; fM.forEach(ym => { if (s.meses[ym]?.p5 > 0) p5m++; }); const mon5p = p5m >= 4 ? 1 : 0;
+            let p5m = 0; fM.forEach(ym => { if (s.meses[ym]?.status === 1) p5m++; }); const mon5p = p5m >= 4 ? 1 : 0;
             let rim = 0; fM.forEach(ym => { if (s.ri[ym]) rim++; }); const riesg = rim >= 3 ? 1 : 0;
 
             const vig = (insp === 1 && s.bact === 1 && s.para === 1 && s.fisi === 1 && s.metaPes === 1 && mon5p === 1 && riesg === 1) ? 1 : 0;
-            return [...aS.get(id)[0], insp, s.bact, s.para, s.fisi, s.metaPes, mon5p, riesg, vig];
+            
+            const mt = aS.get(id)[0];
+            return [...mt, insp, s.bact, s.para, s.fisi, s.metaPes, mon5p, riesg, vig];
         }).filter(Boolean);
+        APP_STATE.vigilanciaMensual = vMensual;
 
         pT = 'vigilancia';
     } else if (subTab === 'vigilancia_fed') {
@@ -2054,34 +2169,25 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const sapNameToCcppId = {};
 
         const getSapId = (r, h) => {
-            const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
-            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            if (!u && !ccpp) return null;
-
-            let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
-            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            ns = ns || '';
-            let id = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
+            const id = getSystemKey(r, h);
+            if (!id) return null;
             if (!map[id]) {
-                map[id] = { meta: getMeta(r, h), u: u || '', c: ccpp || '', ids: ids || '', ns: ns || '', i: 0, caract: 0, meses5P: {}, ri: {} };
+                const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
+                let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')] || r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
+                let ns = r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
+                map[id] = { meta: getMeta(r, h), u: u || '', c: ccpp || '', ids: id.split('|')[1] || '', ns: ns || '', i: 0, caract: 0, meses5P: {}, ri: {} };
                 fM.forEach(ym => map[id].meses5P[ym] = { p5: 0 });
             }
             return id;
         };
 
         const matchSapIds = (r, h) => {
+            const id = getSystemKey(r, h);
+            if (id && map[id]) return [id];
+            
             const u = formatUbigeo(r[findHeaderIndex(h, 'Ubigeo')]);
-            let ccpp = r[findHeaderIndex(h, 'Nombre CCPP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ccpp) ccpp = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-
             let ids = r[findHeaderIndex(h, 'Id. SAP')] || '';
-            let ns = r[findHeaderIndex(h, 'Nombre SAP')];
-            if (!ns) ns = r[findHeaderIndex(h, 'Sistema de Abastecimiento')];
-            ns = ns || '';
+            let ns = r[findHeaderIndex(h, 'Nombre SAP')] || r[findHeaderIndex(h, 'Sistema de Abastecimiento')] || '';
 
             // [FED Rule]: Si el Id. SAP está vacío pero Nombre SAP tiene formato "ID | NOMBRE" (ej. en sheet RIESGOS), extraemos el ID automáticamente para asegurar el cruce.
             if (!ids && String(ns).includes('|')) {
@@ -2089,19 +2195,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 ids = pts[0].trim();
                 ns = pts[1].trim();
             }
-
-            let exactId = u + '_' + normalizeHeader(ccpp) + '_' + (ids ? String(ids).trim() : normalizeHeader(ns));
-
-            if (map[exactId]) return [exactId];
             if (ids && sapToCcppId[String(ids).trim()]) return [sapToCcppId[String(ids).trim()]];
             if (ns && u && sapNameToCcppId[u + '_' + normalizeHeader(ns)]) return [sapNameToCcppId[u + '_' + normalizeHeader(ns)]];
 
-            if (!ids && !ns && u && ccpp) {
-                const prefix = u + '_' + normalizeHeader(ccpp) + '_';
-                const matches = Object.keys(map).filter(k => k.startsWith(prefix));
-                if (matches.length > 0) return matches;
-            }
-            return [getSapId(r, h)];
+            return id ? [id] : [];
         };
 
         const aS = new Map(); rM.forEach(r => { const id = getSapId(r, h); populateMeta(aS, id, r, h); });
@@ -3098,6 +3195,7 @@ function runFedLogic(dO, ind) {
                     dynamicVals.push(ev, vv, am, amBueno);
                 });
 
+                dynamicVals.push(saludCount >= 3 ? 1 : 0);
                 dynamicVals.push(saludCount >= 5 ? 1 : 0);
                 dynamicVals.push(vivCount >= 5 ? 1 : 0);
                 dynamicVals.push(isEstadoBueno ? 1 : 0);
@@ -3110,7 +3208,7 @@ function runFedLogic(dO, ind) {
                 const s3 = mStr.substring(0,3);
                 return [`Cumple Salud ${mStr}`, `Cumple Vivienda ${mStr}`, `Cumple Ambos ${mStr}`, `Amb. ${s3} E. Bueno`];
             });
-            dynamicHeaders.push('Cumple >=5 Meses SALUD', 'Cumple >=5 Meses VIVIENDA', 'Estado Bueno');
+            dynamicHeaders.push('Cumple >=3 Meses SALUD', 'Cumple >=5 Meses SALUD', 'Cumple >=5 Meses VIVIENDA', 'Estado Bueno');
 
             fH1 = ['Ubigeo', 'Nombre CCPP', 'Id. SAP', 'Nombre SAP', 'Provincia', 'Distrito', 'Red de Salud', ...mHeaders, 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES', 'MIDIS', ...dynamicHeaders];
         }
@@ -3583,8 +3681,66 @@ function renderConsolidatedAndChart(result, prefix, currentTab) {
             if (isJ || isC) { html += `<td class="px-4 py-4 text-xs text-center whitespace-nowrap"><span class="inline-flex items-center gap-1 text-emerald-400 font-black mr-1.5"><i data-lucide="check" class="w-3 h-3"></i> ${v.c}</span><span class="inline-flex items-center gap-1 text-amber-400 font-black mr-1.5"><i data-lucide="info" class="w-3 h-3"></i> ${v.i}</span><span class="inline-flex items-center gap-1 text-slate-400 font-black"><i data-lucide="minus" class="w-3 h-3"></i> ${v.s}</span>${btnDetTot}</td>`; } else { html += `<td class="px-5 py-4 text-xs text-center text-white font-bold">${v}</td>`; }
         });
         if (showAvance) html += `<td class="px-5 py-4 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gAvance}</td>`;
-        html += `</tr></tbody></table>`;
+        html += `</tr></tbody></table></div></div>`;
     }
+
+    if (result.type === 'vigilancia' && APP_STATE.vigilanciaMensual) {
+        html += `<div class="mt-8 space-y-6">`;
+        html += `<h4 class="text-sm font-black text-slate-700 uppercase tracking-widest border-b border-slate-200 pb-2">Consolidado Mensual por Red</h4>`;
+        
+        const mNameMap = { '01': 'Ene', '02': 'Feb', '03': 'Mar', '04': 'Abr', '05': 'May', '06': 'Jun', '07': 'Jul', '08': 'Ago', '09': 'Set', '10': 'Oct', '11': 'Nov', '12': 'Dic' };
+        
+        Object.keys(sum).forEach(red => {
+            const rData = APP_STATE.vigilanciaMensual[red];
+            if (!rData) return;
+            
+            html += `<div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <div class="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                            <h5 class="font-black text-[11px] text-slate-800 uppercase tracking-widest">${red}</h5>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left">
+                                <thead class="bg-white sticky top-0 shadow-sm border-b border-slate-200">
+                                    <tr>
+                                        <th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Actividad</th>`;
+            
+            const from = APP_STATE.globalDateFrom; const to = APP_STATE.globalDateTo; const aF = from <= to ? from : to; const aT = from <= to ? to : from;
+            const months = APP_STATE.availableMonitorMonths.filter(m => m >= aF && m <= aT);
+            
+            months.forEach(ym => {
+                const mm = ym.split('-')[1];
+                html += `<th class="px-5 py-3 text-center text-[10px] font-black text-slate-500 uppercase tracking-widest">${mNameMap[mm]}</th>`;
+            });
+            
+            html += `               </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">`;
+
+            const addRow = (name, key) => {
+                html += `<tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-5 py-3 text-xs font-semibold text-slate-700 whitespace-nowrap">${name}</td>`;
+                months.forEach(ym => {
+                    html += `<td class="px-5 py-3 text-xs text-center font-medium text-slate-600">${rData[key][ym] || 0}</td>`;
+                });
+                html += `</tr>`;
+            };
+
+            addRow('Insp. Sanitaria', 'insp');
+            addRow('Bacteriológico', 'bact');
+            addRow('Riesgos', 'riesg');
+            addRow('Parasitológico', 'para');
+            addRow('Físico Químicos (Organoléptico)', 'fisi');
+            addRow('Inorgánicos', 'metaPes');
+            addRow('Monitoreo 5P', 'mon5p');
+
+            html += `           </tbody>
+                            </table>
+                        </div>
+                    </div>`;
+        });
+        html += `</div>`;
+    }
+
     getEl(`${prefix}-consolidated-container`).innerHTML = html;
 
     const cnt = [0, 0, 0, 0]; let lbl = [], col = [];
@@ -4249,8 +4405,10 @@ function renderFedConsolidatedAndChart(result) {
                     row[col.idxAmbBueno] = (row[col.idxAmb] === 1 && isEstadoBueno) ? 1 : 0;
                 });
                 
+                const idx3Salud = result.headers.indexOf('Cumple >=3 Meses SALUD');
                 const idx5Salud = result.headers.indexOf('Cumple >=5 Meses SALUD');
                 const idx5Viv = result.headers.indexOf('Cumple >=5 Meses VIVIENDA');
+                if (idx3Salud !== -1) row[idx3Salud] = (totalSalud >= 3) ? 1 : 0;
                 if (idx5Salud !== -1) row[idx5Salud] = (totalSalud >= 5) ? 1 : 0;
                 if (idx5Viv !== -1) row[idx5Viv] = (totalViv >= 5) ? 1 : 0;
             } else {
@@ -4651,6 +4809,33 @@ window.exportToExcel = (prefix) => {
             flagCols.forEach(idx => { if (r[idx] === 1) mapCcpp[key].r[idx] = 1; });
         });
 
+        // Recalcular >=3 y >=5 meses a nivel de CCPP basado en los meses individuales agregados
+        const mapMesCompletoLocal = {'01':'Enero', '02':'Febrero', '03':'Marzo', '04':'Abril', '05':'Mayo', '06':'Junio', '07':'Julio', '08':'Agosto', '09':'Setiembre', '10':'Octubre', '11':'Noviembre', '12':'Diciembre'};
+        const fromD = APP_STATE.globalDateFrom; const toD = APP_STATE.globalDateTo;
+        const aF = fromD <= toD ? fromD : toD; const aT = fromD <= toD ? toD : fromD;
+        const fM_eval = APP_STATE.availableMonitorMonths.filter(m => m >= aF && m <= aT);
+        const dynCols = fM_eval.map(ym => {
+            const mStr = mapMesCompletoLocal[ym.split('-')[1]];
+            return {
+                idxSalud: result.headers.indexOf(`Cumple Salud ${mStr}`),
+                idxViv: result.headers.indexOf(`Cumple Vivienda ${mStr}`)
+            };
+        });
+        const idx3SaludExp = result.headers.indexOf('Cumple >=3 Meses SALUD');
+        const idx5SaludExp = result.headers.indexOf('Cumple >=5 Meses SALUD');
+        const idx5VivExp = result.headers.indexOf('Cumple >=5 Meses VIVIENDA');
+
+        Object.values(mapCcpp).forEach(x => {
+            let tSalud = 0, tViv = 0;
+            dynCols.forEach(col => {
+                if (col.idxSalud !== -1 && x.r[col.idxSalud] === 1) tSalud++;
+                if (col.idxViv !== -1 && x.r[col.idxViv] === 1) tViv++;
+            });
+            if (idx3SaludExp !== -1) x.r[idx3SaludExp] = tSalud >= 3 ? 1 : 0;
+            if (idx5SaludExp !== -1) x.r[idx5SaludExp] = tSalud >= 5 ? 1 : 0;
+            if (idx5VivExp !== -1) x.r[idx5VivExp] = tViv >= 5 ? 1 : 0;
+        });
+
         const dD_eval = Object.values(mapCcpp).map(x => {
             const row = x.r;
             row[idxIdSap] = '-';
@@ -4708,15 +4893,17 @@ window.exportToExcel = (prefix) => {
         // [2026-08-29] Corrección Excel (FED AI-01.01): Para la pestaña "Consolidado", buscamos los índices de forma condicional 
         // según el periodo global, permitiendo emparejar las columnas estáticas viejas vs las nuevas dinámicas (ej: "Estado Bueno").
         const isNewFmtExport = (APP_STATE.globalDateFrom >= '2026-06');
+        const idx3SaludEval = dH.indexOf('Cumple >=3 Meses SALUD');
         const idxSaludEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses SALUD' : 'Cumple Salud');
         const idxVivEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses VIVIENDA' : 'Cumple Vivienda');
         const idxAmbEval = dH.indexOf(isNewFmtExport ? 'Estado Bueno' : 'Cumple Ambos');
 
         dD_eval.forEach(r => {
             const red = r[dH.indexOf('Red de Salud')] || 'Sin Red';
-            if (!sumR[red]) { sumR[red] = { ccpp: 0, evs: Array(evCols.length).fill(0), salud: 0, viv: 0, ambos: 0 }; }
+            if (!sumR[red]) { sumR[red] = { ccpp: 0, evs: Array(evCols.length).fill(0), salud3: 0, salud: 0, viv: 0, ambos: 0 }; }
             sumR[red].ccpp++;
             evColIdxsEval.forEach((colIdx, i) => { if (r[colIdx] === 'CUMPLE') sumR[red].evs[i]++; });
+            if (idx3SaludEval !== -1 && r[idx3SaludEval] === 'CUMPLE') sumR[red].salud3++;
             if (r[idxSaludEval] === 'CUMPLE') sumR[red].salud++;
             if (r[idxVivEval] === 'CUMPLE') sumR[red].viv++;
             if (r[idxAmbEval] === 'CUMPLE') sumR[red].ambos++;
@@ -4726,16 +4913,23 @@ window.exportToExcel = (prefix) => {
         const consHeaders = ['Red de Salud', 'Total CCPP'];
         evColIdxsEval.forEach(c => consHeaders.push(dH[c].replace('Ev_', '') + ' (Eval. Completa)'));
         let labelMesesExport = (APP_STATE.globalDateFrom >= '2026-06') ? "5" : "3";
+        if (isNewFmtExport && idx3SaludEval !== -1) {
+            consHeaders.push(`Cumplen >=3 Meses SALUD`);
+        }
         consHeaders.push(`Cumplen >=${labelMesesExport} Meses SALUD`, `Cumplen >=${labelMesesExport} Meses VIVIENDA`, 'Cumple Ambas', 'Meta Asumida');
 
         const consData = [consHeaders];
         const grandEvs = Array(evCols.length).fill(0);
-        let grandSalud = 0, grandViv = 0, grandAmbos = 0;
+        let grandSalud3 = 0, grandSalud = 0, grandViv = 0, grandAmbos = 0;
 
         Object.keys(sumR).sort().forEach(red => {
             const v = sumR[red];
             const row = [red, v.ccpp];
             v.evs.forEach((evC, i) => { row.push(evC); grandEvs[i] += evC; });
+            if (isNewFmtExport && idx3SaludEval !== -1) {
+                row.push(v.salud3);
+                grandSalud3 += v.salud3;
+            }
             row.push(v.salud, v.viv, v.ambos, APP_STATE.metaMefPorRed[red] || 0);
             grandSalud += v.salud; grandViv += v.viv; grandAmbos += v.ambos;
             consData.push(row);
@@ -4746,6 +4940,9 @@ window.exportToExcel = (prefix) => {
 
         const grandRow = ['TOTAL GENERAL', grandCcpp];
         grandEvs.forEach(evC => grandRow.push(evC));
+        if (isNewFmtExport && idx3SaludEval !== -1) {
+            grandRow.push(grandSalud3);
+        }
         grandRow.push(grandSalud, grandViv, grandAmbos, totalMeta);
         consData.push(grandRow);
 
@@ -4867,7 +5064,115 @@ window.exportToExcel = (prefix) => {
             const grandPct = grandTotCcpp > 0 ? ((grandConsCcpp / grandTotCcpp) * 100).toFixed(1) : '0.0';
             ccppSheetData.push(['TOTAL GENERAL', '', grandTotCcpp, grandConsCcpp, `${grandPct}%`]);
             XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ccppSheetData), "Consol. Centros Poblados");
+
+            const provSheetData = [['Provincia', 'N° Centros Poblados', 'N° CCPP Consumen Agua Clorada', 'Porcentaje']];
+            Object.keys(provMap).sort().forEach(prov => {
+                const pData = provMap[prov];
+                const pct = pData.totCcpp > 0 ? ((pData.consCcpp / pData.totCcpp) * 100).toFixed(1) : '0.0';
+                provSheetData.push([prov, pData.totCcpp, pData.consCcpp, `${pct}%`]);
+            });
+            provSheetData.push(['TOTAL GENERAL', grandTotCcpp, grandConsCcpp, `${grandPct}%`]);
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(provSheetData), "Resumen Provincia");
+        } else if (t === 'res_nivel_riesgo') {
+            const provMap = {};
+            let globalAno = '-';
+
+            dE.forEach(r => {
+                const prov = r[2] || 'Sin Provincia';
+                const riesgo = r[15];
+                const ano = r[17];
+                if (ano && globalAno === '-') globalAno = ano;
+
+                if (!provMap[prov]) {
+                    provMap[prov] = { countFalla: 0, countBajo: 0, ano: ano || globalAno };
+                }
+                
+                // Contamos cada evaluación mensual de cada CCPP
+                if (riesgo === 'Alto' || riesgo === 'Medio') provMap[prov].countFalla++;
+                if (riesgo === 'Bajo') provMap[prov].countBajo++;
+                // Nota: 'Sin Monitoreo' no suma ni a Cumple ni a Falla en este conteo estricto de cumplimiento,
+                // pero si queremos que sumen al total evaluado como falla, lo podemos incluir.
+                // Lo ideal es que "Evaluados" sean solo los que tienen datos (Bajo, Medio, Alto).
+            });
+
+            const provSheetData = [['Provincia', 'Año', 'N° Evaluaciones (CCPP-Mes)', 'N° Evaluaciones que Cumplen LMP', 'N° Evaluaciones que No Cumplen LMP', '% Incumple LMP']];
+            let grandTotEval = 0, grandTotCumple = 0, grandTotNoCumple = 0;
+
+            Object.keys(provMap).sort().forEach(prov => {
+                const p = provMap[prov];
+                const cumple = p.countBajo;
+                const noCumple = p.countFalla;
+                const totEval = cumple + noCumple;
+                
+                const pct = totEval > 0 ? ((noCumple / totEval) * 100).toFixed(1) : '0.0';
+                
+                grandTotEval += totEval;
+                grandTotCumple += cumple;
+                grandTotNoCumple += noCumple;
+
+                provSheetData.push([prov, p.ano, totEval, cumple, noCumple, `${pct}%`]);
+            });
+
+            const grandPct = grandTotEval > 0 ? ((grandTotNoCumple / grandTotEval) * 100).toFixed(1) : '0.0';
+            provSheetData.push(['TOTAL GENERAL', globalAno, grandTotEval, grandTotCumple, grandTotNoCumple, `${grandPct}%`]);
+
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(provSheetData), "Resumen Provincia");
         }
+    }
+
+    if (isF && t === 'ind2') {
+        const idxRed = result.headers.indexOf('Red de Salud');
+        let idxInsp = result.headers.indexOf('Cumple Inspección');
+        if (idxInsp === -1) idxInsp = result.headers.findIndex(h => h && h.startsWith('Cumple Inspecci'));
+        let idxCaract = result.headers.indexOf('Cumple Caracterizacion');
+        if (idxCaract === -1) idxCaract = result.headers.findIndex(h => h && h.startsWith('Cumple Caracteriza'));
+        
+        const m5pCols = []; result.headers.forEach((h, i) => { if (h && h.startsWith('M5P ')) m5pCols.push(i); });
+        const mRiCols = []; result.headers.forEach((h, i) => { if (h && h.startsWith('Riesgo ')) mRiCols.push(i); });
+
+        const consolidadoMap = {};
+        dE.forEach(r => {
+            let red = idxRed !== -1 ? r[idxRed] : 'SIN RED';
+            if (!red || String(red).trim() === '') red = 'SIN RED';
+            red = String(red).trim().toUpperCase();
+
+            if (!consolidadoMap[red]) {
+                consolidadoMap[red] = { total: 0, insp: 0, caract: 0, m5p3: 0, mRi2: 0, ind2: 0 };
+            }
+
+            const c = consolidadoMap[red];
+            c.total++;
+            
+            const ei = (idxInsp !== -1 && r[idxInsp] === 1) ? 1 : 0;
+            const ec = (idxCaract !== -1 && r[idxCaract] === 1) ? 1 : 0;
+            
+            let countM5P = 0; m5pCols.forEach(idx => { if (r[idx] === 1) countM5P++; });
+            let countMRi = 0; mRiCols.forEach(idx => { if (r[idx] === 1) countMRi++; });
+            
+            const m5p3 = countM5P >= 3 ? 1 : 0;
+            const mRi2 = countMRi >= 2 ? 1 : 0;
+            const ind2 = (ei === 1 && ec === 1 && m5p3 === 1 && mRi2 === 1) ? 1 : 0;
+            
+            c.insp += ei;
+            c.caract += ec;
+            c.m5p3 += m5p3;
+            c.mRi2 += mRi2;
+            c.ind2 += ind2;
+        });
+
+        const sortedReds = Object.keys(consolidadoMap).sort((a,b) => a.localeCompare(b));
+        let totalGeneral = { total: 0, insp: 0, caract: 0, m5p3: 0, mRi2: 0, ind2: 0 };
+        
+        const consRows = sortedReds.map(red => {
+            const c = consolidadoMap[red];
+            totalGeneral.total += c.total; totalGeneral.insp += c.insp; totalGeneral.caract += c.caract; totalGeneral.m5p3 += c.m5p3; totalGeneral.mRi2 += c.mRi2; totalGeneral.ind2 += c.ind2;
+            return [red, c.total, c.insp, c.caract, c.m5p3, c.mRi2, c.ind2];
+        });
+        
+        consRows.push(['TOTAL GENERAL', totalGeneral.total, totalGeneral.insp, totalGeneral.caract, totalGeneral.m5p3, totalGeneral.mRi2, totalGeneral.ind2]);
+        
+        const consHeaders = ['RED DE SALUD', 'Total CCPP', 'Inspección', 'Caracterización', 'Monitoreo 5P >= 3 meses', 'Riesgos >= 2 meses', 'Cumplen Ind. 2'];
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([consHeaders, ...consRows]), "Consolidado");
     }
 
     XLSX.writeFile(wb, `Reporte_${prefix.toUpperCase()}_${t}.xlsx`);

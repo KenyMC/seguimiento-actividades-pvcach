@@ -1,5 +1,12 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-09] - Dinamismo Semestral y Unificación de Consolidado (Columna Total)
+### Añadido / Modificado
+- **Columnas Semestrales Dinámicas:** En las pestañas correspondientes a actividades semestrales (Parasitológico, Físico Químico e Inorgánicos), el sistema ahora evalúa el rango de fechas seleccionado en el filtro superior. Si se selecciona de "Enero a Junio", solo se dibujan las columnas de "1ra Inspección". Si se filtra "Julio a Diciembre", se dibujan exclusivamente las columnas de "2da Inspección", ocultando de inmediato las que no correspondan al rango.
+- **Inclusión de Columna "1ra/2da Insp. (Total)":** Se incorporó una nueva columna condicional en las pestañas semestrales. Esta columna "(Total)" evalúa de forma inteligente si la fuente cumple los requerimientos: asume el estado "Completo" si *al menos una* de las supervisiones correspondientes (sea en "Pileta" o en "Captación") tiene el estado "Completo". 
+- **Consistencia Visual en "Resumen Consolidado":** La nueva columna "(Total)" se inyecta y contabiliza de forma automática en la tabla resumen superior (Cabecera) de la respectiva pestaña de actividad.
+- **Eliminación de Doble Conteo en Pestaña Vigilancia:** Se refactorizó el extractor de datos `aggregateActivity` de la pestaña Vigilancia (la matriz "Consolidado Mensual por Red"). Anteriormente el algoritmo leía indistintamente ambas sub-columnas (Pileta y Captación) ocasionando que los sistemas se contabilizaran por duplicado (ej. 248 + 253 = 501). Ahora el código localiza exclusivamente la nueva columna "(Total)", arrastrando la cifra unificada perfecta (ej. 248) sin alteraciones y logrando que la pestaña de Vigilancia coincida exactamente (100%) con lo observado en las pestañas individuales.
+
 ## [2026-09-18] - Mejoras en Lógica de Detalles de Riesgo Sanitario (Excedencias de LMP)
 ### Añadido / Modificado
 - **Nuevas Columnas de Detalle y Trazabilidad:** Se incorporaron las columnas "Detalle Fecha del parametro que excede LMP" y "Ubicación Muestreo del parametro que excede LMP" en la pestaña de Riesgos Sanitarios. Esto permite que la tabla web y el Excel vinculen cada violación de calidad de agua con la fecha exacta y la ubicación específica (Reservorio, Red de distribución, etc.) donde se tomó la muestra.
