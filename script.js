@@ -568,7 +568,7 @@ window.switchTab = id => {
 function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monitor', label: 'Monitoreo 5P' }, { id: 'sanitaria', label: 'Insp. Sanitaria' }, { id: 'caracterizacion', label: 'Caracterización' }, { id: 'metales', label: 'Inorgánicos' }, { id: 'fisico', label: 'Físico Químicos' }, { id: 'bacteriologico', label: 'Bacteriológico' }, { id: 'parasitologico', label: 'Parasitológico' }, { id: 'riesgos', label: 'Riesgos' }, { id: 'vigilancia', label: 'Vigilancia' }, { id: 'vigilancia_fed', label: 'Vigilancia (FED)' }].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
 window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia', 'vigilancia_fed'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else if (id === 'vigilancia_fed') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia FED:</strong> Evaluación estricta en el periodo de las 4 actividades (Insp, Caract, 5P, Riesgos).</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
 
-function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_caracterizacion', label: 'Caracterización' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
 window.changeResSubTab = id => {
     if (APP_STATE.resActiveTab === id) return;
     APP_STATE.resActiveTab = id;
@@ -1278,6 +1278,145 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
             'Ubicación Muestreo del parametro que excede LMP'
         ];
         pT = 'res_riesgo';
+    } else if (subTab === 'res_caracterizacion') {
+        const h1 = h;
+        const iBcfNmp = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (NMP)');
+        const iBcfUfc = findHeaderIndex(h1, 'Bacterias Coliformes Fecales (UFC)');
+        const iBctNmp = findHeaderIndex(h1, 'Bacterias Coliformes Totales (NMP)');
+        const iBctUfc = findHeaderIndex(h1, 'Bacterias Coliformes Totales (UFC)');
+        const iEcNmp = findHeaderIndex(h1, 'E. Coli (NMP)');
+        const iEcUfc = findHeaderIndex(h1, 'E. Coli (UFC)');
+
+        const paramsToExtract = [
+            'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta)', 'Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+        ];
+        const pIdx = {};
+        paramsToExtract.forEach(p => pIdx[p] = findHeaderIndex(h1, p));
+
+        const extraColsNames = [
+            'Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos', 'Nitritos (Exposición Corta) + Nitritos (Exposición Larga)', 'Plomo', 'Selenio', 'Molibdeno', 'Uranio'
+        ];
+        const limitsExtra = [
+            15, 5, 8.5, 1500, 1000, 250, 250, 500, 0.3, 0.4, 0.2, 2, 3, 200, 0.02, 0.01, 0.7, 1.5, 0.003, 0.07, 5, 0.05, 0.001, 0.02, 50, 0.2, 0.01, 0.01, 0.07, 0.015
+        ];
+
+        const limitsMap = {
+            'Bacterias Coliformes Fecales (NMP)': 1.8,
+            'Bacterias Coliformes Fecales (UFC)': 0,
+            'Bacterias Coliformes Totales (NMP)': 1.8,
+            'Bacterias Coliformes Totales (UFC)': 0,
+            'E. Coli (NMP)': 1.8,
+            'E. Coli (UFC)': 0
+        };
+        const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
+        pKeys.forEach((p, i) => limitsMap[p] = limitsExtra[i]);
+        const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
+        pKeys2.forEach((p, i) => limitsMap[p] = limitsExtra[pKeys.length + 1 + i]);
+
+        const map = {};
+
+        dRows.forEach(r => {
+            const id = r[idxId];
+            if (!id) return;
+
+            if (!map[id]) {
+                map[id] = {
+                    meta: getMeta(r, h),
+                    bcfNmp: -Infinity, bcfUfc: -Infinity, bctNmp: -Infinity, bctUfc: -Infinity, ecNmp: -Infinity, ecUfc: -Infinity
+                };
+                paramsToExtract.forEach(p => map[id][p] = -Infinity);
+            }
+            const parseVal = (idx) => {
+                if (idx === -1) return NaN; const v = r[idx]; if (isCellEmpty(v)) return NaN;
+                return parseFloat(String(v).replace(/</g, '').replace(/>/g, '').trim());
+            };
+
+            const v1 = parseVal(iBcfNmp); if (!isNaN(v1) && v1 > map[id].bcfNmp) map[id].bcfNmp = v1;
+            const v2 = parseVal(iBcfUfc); if (!isNaN(v2) && v2 > map[id].bcfUfc) map[id].bcfUfc = v2;
+            const v3 = parseVal(iBctNmp); if (!isNaN(v3) && v3 > map[id].bctNmp) map[id].bctNmp = v3;
+            const v4 = parseVal(iBctUfc); if (!isNaN(v4) && v4 > map[id].bctUfc) map[id].bctUfc = v4;
+            const v5 = parseVal(iEcNmp); if (!isNaN(v5) && v5 > map[id].ecNmp) map[id].ecNmp = v5;
+            const v6 = parseVal(iEcUfc); if (!isNaN(v6) && v6 > map[id].ecUfc) map[id].ecUfc = v6;
+
+            paramsToExtract.forEach(p => {
+                if (p === 'Nitritos (Exposición Corta)' || p === 'Nitritos (Exposición Larga)') return;
+                const vx = parseVal(pIdx[p]);
+                if (!isNaN(vx) && vx > map[id][p]) map[id][p] = vx;
+            });
+            
+            const nitC = parseVal(pIdx['Nitritos (Exposición Corta)']);
+            const nitL = parseVal(pIdx['Nitritos (Exposición Larga)']);
+            if (!isNaN(nitC) && nitC > map[id]['Nitritos (Exposición Corta)']) map[id]['Nitritos (Exposición Corta)'] = nitC;
+            if (!isNaN(nitL) && nitL > map[id]['Nitritos (Exposición Larga)']) map[id]['Nitritos (Exposición Larga)'] = nitL;
+        });
+
+        const aS = new Map(); rM.forEach(r => { const id = r[idxId]; populateMeta(aS, id, r, h); });
+        fD = Array.from(aS.keys()).flatMap(id => {
+            const s = map[id];
+            if (!s) return [];
+
+            let hasAnyData = false;
+            if (s.bcfNmp !== -Infinity || s.bcfUfc !== -Infinity || s.bctNmp !== -Infinity || s.bctUfc !== -Infinity || s.ecNmp !== -Infinity || s.ecUfc !== -Infinity) hasAnyData = true;
+            paramsToExtract.forEach(p => { if (s[p] !== -Infinity) hasAnyData = true; });
+
+            if (!hasAnyData) return [];
+
+            const bcfNmp = s.bcfNmp !== -Infinity ? s.bcfNmp : '';
+            const bcfUfc = s.bcfUfc !== -Infinity ? s.bcfUfc : '';
+            const bctNmp = s.bctNmp !== -Infinity ? s.bctNmp : '';
+            const bctUfc = s.bctUfc !== -Infinity ? s.bctUfc : '';
+            const ecNmp = s.ecNmp !== -Infinity ? s.ecNmp : '';
+            const ecUfc = s.ecUfc !== -Infinity ? s.ecUfc : '';
+
+            const getR = (v, limit) => v === '' ? 0 : (v > limit ? 1 : 0);
+
+            const r_bcfNmp = getR(bcfNmp, 1.8);
+            const r_bcfUfc = getR(bcfUfc, 0);
+            const r_bctNmp = getR(bctNmp, 1.8);
+            const r_bctUfc = getR(bctUfc, 0);
+            const r_ecNmp = getR(ecNmp, 1.8);
+            const r_ecUfc = getR(ecUfc, 0);
+
+            const totParam = r_bcfNmp + r_bcfUfc + r_bctNmp + r_bctUfc + r_ecNmp + r_ecUfc;
+
+            const getPVal = (p) => s[p] !== undefined && s[p] !== -Infinity ? s[p] : '';
+            const pValsArr = []; const rValsArr = [];
+            const pKeys = ['Color', 'Turbiedad', 'pH', 'Conductividad', 'Sólidos Totales disueltos', 'Cloruros', 'Sulfatos', 'Dureza total', 'Hierro', 'Manganeso', 'Aluminio', 'Cobre', 'Zinc', 'Sodio', 'Antimonio', 'Arsénico', 'Bario', 'Boro', 'Cadmio', 'Cianuro', 'Cloro', 'Cromo total', 'Mercurio', 'Niquel', 'Nitratos'];
+            for (let i = 0; i < pKeys.length; i++) {
+                const v = getPVal(pKeys[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[i]));
+            }
+            const nitC = getPVal('Nitritos (Exposición Corta)'); const nitL = getPVal('Nitritos (Exposición Larga)');
+            let nitSum = '';
+            if (nitC !== '' || nitL !== '') { 
+                nitSum = (nitC !== '' ? nitC : 0) + (nitL !== '' ? nitL : 0); 
+                nitSum = Math.round(nitSum * 100000) / 100000; 
+            }
+            pValsArr.push(nitSum); rValsArr.push(getR(nitSum, limitsExtra[pKeys.length]));
+            const pKeys2 = ['Plomo', 'Selenio', 'Molibdeno', 'Uranio'];
+            for (let i = 0; i < pKeys2.length; i++) {
+                const v = getPVal(pKeys2[i]); pValsArr.push(v); rValsArr.push(getR(v, limitsExtra[pKeys.length + 1 + i]));
+            }
+
+            const totParamMetales = rValsArr.reduce((a, b) => a + b, 0);
+
+            const mtx = [
+                bcfNmp, bcfUfc, bctNmp, bctUfc, ecNmp, ecUfc,
+                r_bcfNmp, r_bcfUfc, r_bctNmp, r_bctUfc, r_ecNmp, r_ecUfc,
+                ...pValsArr, ...rValsArr,
+                (totParam === 0 && totParamMetales === 0) ? 'Cumple' : 'Incumple'
+            ];
+            return aS.get(id).map(mt => [...mt, ...mtx]);
+        });
+
+        fH = [
+            ...CORE_HEADERS,
+            'Bacterias Coliformes Fecales (NMP)', 'Bacterias Coliformes Fecales (UFC)', 'Bacterias Coliformes Totales (NMP)', 'Bacterias Coliformes Totales (UFC)', 'E. Coli (NMP)', 'E. Coli (UFC)',
+            'Bacterias Coliformes Fecales (NMP) Resultado', 'Bacterias Coliformes Fecales (UFC) Resultado', 'Bacterias Coliformes Totales (NMP) Resultado', 'Bacterias Coliformes Totales (UFC) Resultado', 'E. Coli (NMP) Resultado', 'E. Coli (UFC) Resultado',
+            ...extraColsNames,
+            ...extraColsNames.map(n => n + ' Resultado'),
+            'Cumple LMP'
+        ];
+        pT = 'res_caract';
     } else if (subTab === 'caracterizacion') {
         const sS = new Set(); fM.forEach(m => { const [y, mm] = m.split('-'); sS.add(`${y}-${parseInt(mm) <= 6 ? 'S1' : 'S2'}`); });
         const sK = Array.from(sS).sort();
@@ -3447,6 +3586,10 @@ function renderMainTable(result, prefix) {
                 if (v >= 1) ctt = `<span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-100 text-[10px]"><i data-lucide="check-circle-2" class="w-3 h-3"></i> ${v}</span>`; else ctt = `<span class="text-slate-300">-</span>`; tdA = tdA.replace('class="', 'class="text-center ');
             } else if (result.type === 'analysis' && h.includes('Muestra')) {
                 if (v === 1) ctt = `<span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-blue-200">Captación</span>`; else if (v === 2) ctt = `<span class="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-amber-200">Pileta</span>`; else if (v === 3) ctt = `<span class="bg-purple-50 text-purple-700 px-2.5 py-1 rounded-lg font-bold text-[10px] border border-purple-200">Pileta y Captación</span>`; else ctt = `<span class="text-slate-300">-</span>`; tdA = tdA.replace('class="', 'class="text-center ');
+            } else if (result.type === 'res_caract' && h === 'Cumple LMP') {
+                if (c === 'Cumple') ctt = `<span class="bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm inline-flex items-center gap-1"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Cumple</span>`;
+                else ctt = `<span class="bg-red-50 border border-red-200 text-red-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm inline-flex items-center gap-1"><i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Incumple</span>`;
+                tdA = tdA.replace('class="', 'class="text-center ');
             } else if (!stC) { tdA = tdA.replace('class="', 'class="text-slate-600 max-w-[150px] truncate '); }
             html += `<td ${tdA}>${ctt}</td>`;
         }); html += `</tr>`;
@@ -3484,6 +3627,16 @@ function renderMainTable(result, prefix) {
                 } else {
                     ctt = `<span class="text-indigo-700 font-bold">${sum}</span>`;
                 }
+            }
+        } else if (result.type === 'res_caract' && idx >= CORE_HEADERS.length) {
+            if (h === 'Cumple LMP') {
+                let c = 0, nc = 0; fD.forEach(r => { if (r[idx] === 'Cumple') c++; else if (r[idx] === 'Incumple') nc++; });
+                ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center" title="Cumple"><i data-lucide="check-circle" class="w-3 h-3 mr-0.5"></i>${c}</span> <span class="text-red-500 flex items-center" title="Incumple"><i data-lucide="x-circle" class="w-3 h-3 mr-0.5"></i>${nc}</span></div>`;
+            } else {
+                let sum = 0;
+                fD.forEach(r => { let val = parseFloat(r[idx]); if (!isNaN(val)) sum += val; });
+                sum = Math.round(sum * 1000) / 1000;
+                ctt = `<span class="text-indigo-700 font-bold">${sum}</span>`;
             }
         } else if (idx >= CORE_HEADERS.length) {
             if (result.type === 'status_json') { let c = 0, inc = 0, s = 0; fD.forEach(r => { try { const d = JSON.parse(r[idx]); if (d.status === 1) c++; else if (d.status === 2) inc++; else s++; } catch (e) { } }); ctt = `<div class="flex justify-center gap-2 text-[10px]"><span class="text-emerald-600 flex items-center" title="Completos"><i data-lucide="check" class="w-3 h-3 mr-0.5"></i>${c}</span> <span class="text-amber-600 flex items-center" title="Incompletos"><i data-lucide="info" class="w-3 h-3 mr-0.5"></i>${inc}</span> <span class="text-red-500 flex items-center" title="Sin Monitoreo"><i data-lucide="x" class="w-3 h-3 mr-0.5"></i>${s}</span></div>`; }
