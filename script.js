@@ -3950,8 +3950,9 @@ function renderCloroConsolidatedAndChart(result, prefix) {
         const ubi = r[2] || ''; const ccpp = r[3] || '';
         const prov = r[5] || 'Sin Provincia'; const dist = r[4] || 'Sin Distrito';
         const key = `${ubi}_${ccpp}`;
-        if (!mapCcpp[key]) mapCcpp[key] = { prov, dist, consume: 0 };
-        if (parseInt(r[14]) === 1) mapCcpp[key].consume = 1;
+        if (!mapCcpp[key]) mapCcpp[key] = { prov, dist, consume: 1 };
+        // Si tiene más de un sistema, basta que uno de sus sistemas no cumpla para que el CCPP no consuma agua clorada
+        if (parseInt(r[14]) !== 1) mapCcpp[key].consume = 0;
     });
 
     const distMap = {};
@@ -5300,8 +5301,9 @@ window.exportToExcel = (prefix) => {
                 const ubi = r[2] || ''; const ccpp = r[3] || '';
                 const prov = r[5] || 'Sin Provincia'; const dist = r[4] || 'Sin Distrito';
                 const key = `${ubi}_${ccpp}`;
-                if (!mapCcpp[key]) mapCcpp[key] = { prov, dist, consume: 0 };
-                if (parseInt(r[14]) === 1) mapCcpp[key].consume = 1;
+                if (!mapCcpp[key]) mapCcpp[key] = { prov, dist, consume: 1 };
+                // Si tiene más de un sistema, basta que uno de sus sistemas no cumpla para que el CCPP no consuma agua clorada
+                if (parseInt(r[14]) !== 1) mapCcpp[key].consume = 0;
             });
 
             const distMap = {};
