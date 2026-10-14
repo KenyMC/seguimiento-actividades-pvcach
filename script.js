@@ -3691,6 +3691,7 @@ function renderMainTable(result, prefix) {
 function renderConsolidatedAndChart(result, prefix, currentTab) {
     if (currentTab === 'res_cloro') { renderCloroConsolidatedAndChart(result, prefix); return; }
     if (currentTab === 'res_riesgo') { renderRiesgoConsolidatedAndChart(result, prefix); return; }
+    if (currentTab === 'res_caracterizacion') { renderCaracterizacionConsolidatedAndChart(result, prefix); return; }
     if (currentTab === 'res_nivel_riesgo') { renderNivelRiesgoConsolidated(result, prefix); return; }
     const vIdx = CORE_HEADERS.length; const idxR = CORE_HEADERS.indexOf('Red de Salud'); const sum = {}; const sapsR = {};
     const avanceR = {}; let gAvance = 0;
@@ -4009,6 +4010,65 @@ function renderNivelRiesgoConsolidated(result, prefix) {
     };
     getEl(`${prefix}-consolidated-container`).innerHTML = '<div class="flex flex-col w-full p-4">' + bHtml(sR, "RED DE SALUD") + bHtml(sP, "PROVINCIA") + bHtml(sD, "DISTRITO") + '</div>';
     renderDoughnutChart([gAlto, gMedio, gBajo, gSin], ['Alto', 'Medio', 'Bajo', 'Sin Monitoreo'], ['#ef4444', '#f59e0b', '#10b981', '#e2e8f0'], 'NIVEL DE RIESGO', `${prefix}-chart-container`);
+}
+
+function renderCaracterizacionConsolidatedAndChart(result, prefix) {
+    let fD = result.data;
+    if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => String(r[i] ?? '').trim() === String(v)); }); }
+    
+    const sR = {}; 
+    let gTS = 0, gCumple = 0, gMetaMef = 0;
+    
+    const iCumple = result.headers.indexOf('Cumple LMP');
+    
+    const isMefAmbito = (prefix === 'res' ? APP_STATE.resFilterAmbito : (prefix === 'fed' ? APP_STATE.fedFilterAmbito : APP_STATE.sapFilterAmbito)) === 'MEF';
+    fD.forEach(r => {
+        const idxUbi = result.headers.indexOf('Ubigeo');
+        const ubi = idxUbi !== -1 && r[idxUbi] ? formatUbigeo(r[idxUbi]) : '';
+        const sapId = String(r[0] || '').trim();
+        const officialRed = (ubi && sapId && APP_STATE.mefUbigeoSapRedLookup && APP_STATE.mefUbigeoSapRedLookup[`${ubi}|${sapId}`]) || (APP_STATE.mefSapRedLookup && APP_STATE.mefSapRedLookup[sapId]);
+        if (isMefAmbito && !officialRed) return;
+        
+        const red = (isMefAmbito && officialRed) || r[8] || 'Sin Red';
+        if (!sR[red]) sR[red] = { sap: 0, cumple: 0 };
+        sR[red].sap++;
+        if (r[iCumple] === 'Cumple') sR[red].cumple++;
+        
+        gTS++;
+        if (r[iCumple] === 'Cumple') gCumple++;
+    });
+
+    const activeRedFilter = prefix === 'res' ? APP_STATE.resFilterRed : (prefix === 'fed' ? APP_STATE.fedFilterRed : APP_STATE.sapFilterRed);
+    
+    Object.keys(APP_STATE.metaMefPorRed).forEach(red => {
+        if (activeRedFilter === 'Todos' || activeRedFilter === red) {
+            if (!sR[red] && isMefAmbito) sR[red] = { sap: 0, cumple: 0 };
+            gMetaMef += APP_STATE.metaMefPorRed[red] || 0;
+        }
+    });
+
+    let h = `<div class="w-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-6 last:mb-0"><div class="bg-indigo-50/80 px-4 py-2.5 border-b border-slate-200 flex justify-between items-center"><h5 class="font-bold text-xs text-indigo-900 uppercase tracking-widest">→ Por RED DE SALUD</h5></div><div class="overflow-x-auto"><table class="min-w-full text-left"><thead class="bg-slate-50 sticky top-0 shadow-sm border-b border-slate-200"><tr><th class="px-5 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">RED</th>`;
+    
+    h += `<th class="px-4 py-3 text-center text-[10px] font-black text-indigo-600 uppercase bg-indigo-50/50 tracking-widest">CANT. SAP Caract.</th>`;
+    h += `<th class="px-4 py-3 text-center text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 tracking-widest">META MEF</th>`;
+    h += `<th class="px-4 py-3 text-center text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50/50 tracking-widest">CUMPLE LMP</th>`;
+    h += `</tr></thead><tbody class="divide-y divide-slate-100">`;
+    
+    Object.entries(sR).sort((a, b) => a[0].localeCompare(b[0])).forEach(([k, v]) => { 
+        h += `<tr class="hover:bg-slate-50 transition-colors"><td class="px-5 py-2.5 text-[10px] text-left font-bold text-slate-700 uppercase whitespace-nowrap">${k}</td>`;
+        h += `<td class="px-4 py-2.5 text-xs text-center font-bold text-indigo-700 bg-indigo-50/50">${v.sap}</td>`;
+        h += `<td class="px-4 py-2.5 text-xs text-center font-bold text-blue-700 bg-blue-50/50">${APP_STATE.metaMefPorRed[k] || 0}</td>`;
+        h += `<td class="px-4 py-2.5 text-xs text-center font-bold text-emerald-700 bg-emerald-50/50">${v.cumple}</td></tr>`; 
+    });
+    
+    h += `<tr class="bg-slate-800 border-t border-slate-700"><td class="px-5 py-3 text-[10px] text-left text-white font-black uppercase tracking-widest">TOTAL GENERAL</td>`;
+    h += `<td class="px-4 py-3 text-xs text-center text-indigo-300 font-black bg-indigo-900/50">${gTS}</td>`;
+    h += `<td class="px-4 py-3 text-xs text-center text-blue-300 font-black bg-blue-900/50">${gMetaMef}</td>`;
+    h += `<td class="px-4 py-3 text-xs text-center text-emerald-400 font-bold bg-emerald-900/50">${gCumple}</td></tr></tbody></table></div></div>`;
+    
+    getEl(`${prefix}-consolidated-container`).innerHTML = '<div class="flex flex-col w-full p-4">' + h + '</div>';
+    
+    renderDoughnutChart([gCumple, gTS - gCumple], ['Cumple LMP', 'No Cumple LMP'], ['#10b981', '#ef4444'], 'CUMPLIMIENTO LMP', `${prefix}-chart-container`);
 }
 
 function renderRiesgoConsolidatedAndChart(result, prefix) {
@@ -5116,6 +5176,45 @@ window.exportToExcel = (prefix) => {
         consData.push(grandRow);
 
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(consData), "Consolidado");
+    }
+    // --- HOJA RESUMEN (Para res_caracterizacion) ---
+    else if (t === 'res_caracterizacion') {
+        const sum = {};
+        const isMefAmbito = (prefix === 'res' ? APP_STATE.resFilterAmbito : (prefix === 'fed' ? APP_STATE.fedFilterAmbito : APP_STATE.sapFilterAmbito)) === 'MEF';
+        const iCumple = result.headers.indexOf('Cumple LMP');
+        const iUbi = result.headers.indexOf('Ubigeo');
+        dE.forEach(r => {
+            const ubi = iUbi !== -1 && r[iUbi] ? formatUbigeo(r[iUbi]) : '';
+            const sapId = String(r[0] || '').trim();
+            const officialRed = (ubi && sapId && APP_STATE.mefUbigeoSapRedLookup && APP_STATE.mefUbigeoSapRedLookup[`${ubi}|${sapId}`]) || (APP_STATE.mefSapRedLookup && APP_STATE.mefSapRedLookup[sapId]);
+            if (isMefAmbito && !officialRed) return;
+            const red = (isMefAmbito && officialRed) || r[8] || 'Sin Red';
+            if (!sum[red]) sum[red] = { sap: 0, cumple: 0 };
+            sum[red].sap++;
+            if (r[iCumple] === 'Cumple') sum[red].cumple++;
+        });
+
+        const summaryHeaders = ['RED', 'CANT. SAP Caract.', 'META MEF', 'CUMPLE LMP'];
+        const summaryData = [summaryHeaders];
+        
+        let grandSap = 0, grandMeta = 0, grandCumple = 0;
+        
+        const activeRedFilter = prefix === 'res' ? APP_STATE.resFilterRed : (prefix === 'fed' ? APP_STATE.fedFilterRed : APP_STATE.sapFilterRed);
+        Object.keys(APP_STATE.metaMefPorRed).forEach(red => {
+            if (activeRedFilter === 'Todos' || activeRedFilter === red) {
+                if (!sum[red] && isMefAmbito) sum[red] = { sap: 0, cumple: 0 };
+            }
+        });
+
+        Object.entries(sum).sort((a, b) => a[0].localeCompare(b[0])).forEach(([red, vals]) => {
+            const meta = APP_STATE.metaMefPorRed[red] || 0;
+            grandSap += vals.sap; grandMeta += meta; grandCumple += vals.cumple;
+            summaryData.push([red, vals.sap, meta, vals.cumple]);
+        });
+        
+        summaryData.push(['TOTAL GENERAL', grandSap, grandMeta, grandCumple]);
+        
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryData), "Consolidado");
     }
     // --- HOJA RESUMEN (Para las demás pestañas) ---
     else if (!isF) {
