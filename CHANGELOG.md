@@ -1,5 +1,12 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-16] - Actualización Umbral Salud (>= 4 Meses) en FED AI-01.01 y Exportación Excel
+### Modificado
+- **Columna Cumple >=4 Meses (Salud) en FED AI-01.01:** Se actualizó la columna intermedia de cumplimiento de monitoreo de salud para centros poblados en la pestaña AI-01.01 (formato dinámico semestral post-Junio):
+  - Anteriormente evaluaba un umbral de 3 meses bajo el encabezado `Cumple >=3 Meses SALUD`.
+  - Ahora se renombra a `Cumple >=4 Meses` y evalúa que el centro poblado cumpla al menos 4 meses de monitoreo de salud (`totalSalud >= 4`).
+  - El ajuste se encuentra sincronizado en la interfaz web y en las 4 hojas del archivo Excel descargado: **"Detalle"**, **"Evaluacion"**, **"Resultado FED"** y **"Consolidado"** (con la columna `Cumple >=4 Meses` y sus respectivas sumatorias por Red de Salud y Total General).
+
 ## [2026-10-14] - Resumen Consolidado en Caracterización, Integración de Bacteriológico y Exportación Excel
 ### Añadido / Modificado
 - **Inclusión de Fila "Bacteriológico" en Matriz de Vigilancia:** Se subsanó la omisión de la fila "Bacteriológico" en la matriz mensual ("Consolidado Mensual por Red") de la pestaña Vigilancia. Se incorporó su extracción mensual (`aggregateActivity('bacteriologico', 'bact')`) y su renderizado visual (`addRow('Bacteriológico', 'bact')`), permitiendo visualizar el conteo mensual consolidado por Red de Salud.

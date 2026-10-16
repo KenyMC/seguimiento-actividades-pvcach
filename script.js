@@ -3350,7 +3350,7 @@ function runFedLogic(dO, ind) {
                     dynamicVals.push(ev, vv, am, amBueno);
                 });
 
-                dynamicVals.push(saludCount >= 3 ? 1 : 0);
+                dynamicVals.push(saludCount >= 4 ? 1 : 0);
                 dynamicVals.push(saludCount >= 5 ? 1 : 0);
                 dynamicVals.push(vivCount >= 5 ? 1 : 0);
                 dynamicVals.push(isEstadoBueno ? 1 : 0);
@@ -3363,7 +3363,7 @@ function runFedLogic(dO, ind) {
                 const s3 = mStr.substring(0,3);
                 return [`Cumple Salud ${mStr}`, `Cumple Vivienda ${mStr}`, `Cumple Ambos ${mStr}`, `Amb. ${s3} E. Bueno`];
             });
-            dynamicHeaders.push('Cumple >=3 Meses SALUD', 'Cumple >=5 Meses SALUD', 'Cumple >=5 Meses VIVIENDA', 'Estado Bueno');
+            dynamicHeaders.push('Cumple >=4 Meses', 'Cumple >=5 Meses SALUD', 'Cumple >=5 Meses VIVIENDA', 'Estado Bueno');
 
             fH1 = ['Ubigeo', 'Nombre CCPP', 'Id. SAP', 'Nombre SAP', 'Provincia', 'Distrito', 'Red de Salud', ...mHeaders, 'Seguimiento', 'MEF', 'FED', 'SAP REGULARES', 'MIDIS', ...dynamicHeaders];
         }
@@ -4635,10 +4635,10 @@ function renderFedConsolidatedAndChart(result) {
                     row[col.idxAmbBueno] = (row[col.idxAmb] === 1 && isEstadoBueno) ? 1 : 0;
                 });
                 
-                const idx3Salud = result.headers.indexOf('Cumple >=3 Meses SALUD');
+                const idx4Salud = result.headers.findIndex(h => h === 'Cumple >=4 Meses' || h === 'Cumple >=4 Meses SALUD' || h === 'Cumple >=3 Meses SALUD');
                 const idx5Salud = result.headers.indexOf('Cumple >=5 Meses SALUD');
                 const idx5Viv = result.headers.indexOf('Cumple >=5 Meses VIVIENDA');
-                if (idx3Salud !== -1) row[idx3Salud] = (totalSalud >= 3) ? 1 : 0;
+                if (idx4Salud !== -1) row[idx4Salud] = (totalSalud >= 4) ? 1 : 0;
                 if (idx5Salud !== -1) row[idx5Salud] = (totalSalud >= 5) ? 1 : 0;
                 if (idx5Viv !== -1) row[idx5Viv] = (totalViv >= 5) ? 1 : 0;
             } else {
@@ -5051,7 +5051,7 @@ window.exportToExcel = (prefix) => {
                 idxViv: result.headers.indexOf(`Cumple Vivienda ${mStr}`)
             };
         });
-        const idx3SaludExp = result.headers.indexOf('Cumple >=3 Meses SALUD');
+        const idx4SaludExp = result.headers.findIndex(h => h === 'Cumple >=4 Meses' || h === 'Cumple >=4 Meses SALUD' || h === 'Cumple >=3 Meses SALUD');
         const idx5SaludExp = result.headers.indexOf('Cumple >=5 Meses SALUD');
         const idx5VivExp = result.headers.indexOf('Cumple >=5 Meses VIVIENDA');
 
@@ -5061,7 +5061,7 @@ window.exportToExcel = (prefix) => {
                 if (col.idxSalud !== -1 && x.r[col.idxSalud] === 1) tSalud++;
                 if (col.idxViv !== -1 && x.r[col.idxViv] === 1) tViv++;
             });
-            if (idx3SaludExp !== -1) x.r[idx3SaludExp] = tSalud >= 3 ? 1 : 0;
+            if (idx4SaludExp !== -1) x.r[idx4SaludExp] = tSalud >= 4 ? 1 : 0;
             if (idx5SaludExp !== -1) x.r[idx5SaludExp] = tSalud >= 5 ? 1 : 0;
             if (idx5VivExp !== -1) x.r[idx5VivExp] = tViv >= 5 ? 1 : 0;
         });
@@ -5123,17 +5123,17 @@ window.exportToExcel = (prefix) => {
         // [2026-08-29] Corrección Excel (FED AI-01.01): Para la pestaña "Consolidado", buscamos los índices de forma condicional 
         // según el periodo global, permitiendo emparejar las columnas estáticas viejas vs las nuevas dinámicas (ej: "Estado Bueno").
         const isNewFmtExport = (APP_STATE.globalDateFrom >= '2026-06');
-        const idx3SaludEval = dH.indexOf('Cumple >=3 Meses SALUD');
+        const idx4SaludEval = dH.findIndex(h => h === 'Cumple >=4 Meses' || h === 'Cumple >=4 Meses SALUD' || h === 'Cumple >=3 Meses SALUD');
         const idxSaludEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses SALUD' : 'Cumple Salud');
         const idxVivEval = dH.indexOf(isNewFmtExport ? 'Cumple >=5 Meses VIVIENDA' : 'Cumple Vivienda');
         const idxAmbEval = dH.indexOf(isNewFmtExport ? 'Estado Bueno' : 'Cumple Ambos');
 
         dD_eval.forEach(r => {
             const red = r[dH.indexOf('Red de Salud')] || 'Sin Red';
-            if (!sumR[red]) { sumR[red] = { ccpp: 0, evs: Array(evCols.length).fill(0), salud3: 0, salud: 0, viv: 0, ambos: 0 }; }
+            if (!sumR[red]) { sumR[red] = { ccpp: 0, evs: Array(evCols.length).fill(0), salud4: 0, salud: 0, viv: 0, ambos: 0 }; }
             sumR[red].ccpp++;
             evColIdxsEval.forEach((colIdx, i) => { if (r[colIdx] === 'CUMPLE') sumR[red].evs[i]++; });
-            if (idx3SaludEval !== -1 && r[idx3SaludEval] === 'CUMPLE') sumR[red].salud3++;
+            if (idx4SaludEval !== -1 && r[idx4SaludEval] === 'CUMPLE') sumR[red].salud4++;
             if (r[idxSaludEval] === 'CUMPLE') sumR[red].salud++;
             if (r[idxVivEval] === 'CUMPLE') sumR[red].viv++;
             if (r[idxAmbEval] === 'CUMPLE') sumR[red].ambos++;
@@ -5143,22 +5143,22 @@ window.exportToExcel = (prefix) => {
         const consHeaders = ['Red de Salud', 'Total CCPP'];
         evColIdxsEval.forEach(c => consHeaders.push(dH[c].replace('Ev_', '') + ' (Eval. Completa)'));
         let labelMesesExport = (APP_STATE.globalDateFrom >= '2026-06') ? "5" : "3";
-        if (isNewFmtExport && idx3SaludEval !== -1) {
-            consHeaders.push(`Cumplen >=3 Meses SALUD`);
+        if (isNewFmtExport && idx4SaludEval !== -1) {
+            consHeaders.push(`Cumple >=4 Meses`);
         }
         consHeaders.push(`Cumplen >=${labelMesesExport} Meses SALUD`, `Cumplen >=${labelMesesExport} Meses VIVIENDA`, 'Cumple Ambas', 'Meta Asumida');
 
         const consData = [consHeaders];
         const grandEvs = Array(evCols.length).fill(0);
-        let grandSalud3 = 0, grandSalud = 0, grandViv = 0, grandAmbos = 0;
+        let grandSalud4 = 0, grandSalud = 0, grandViv = 0, grandAmbos = 0;
 
         Object.keys(sumR).sort().forEach(red => {
             const v = sumR[red];
             const row = [red, v.ccpp];
             v.evs.forEach((evC, i) => { row.push(evC); grandEvs[i] += evC; });
-            if (isNewFmtExport && idx3SaludEval !== -1) {
-                row.push(v.salud3);
-                grandSalud3 += v.salud3;
+            if (isNewFmtExport && idx4SaludEval !== -1) {
+                row.push(v.salud4);
+                grandSalud4 += v.salud4;
             }
             row.push(v.salud, v.viv, v.ambos, APP_STATE.metaMefPorRed[red] || 0);
             grandSalud += v.salud; grandViv += v.viv; grandAmbos += v.ambos;
@@ -5170,8 +5170,8 @@ window.exportToExcel = (prefix) => {
 
         const grandRow = ['TOTAL GENERAL', grandCcpp];
         grandEvs.forEach(evC => grandRow.push(evC));
-        if (isNewFmtExport && idx3SaludEval !== -1) {
-            grandRow.push(grandSalud3);
+        if (isNewFmtExport && idx4SaludEval !== -1) {
+            grandRow.push(grandSalud4);
         }
         grandRow.push(grandSalud, grandViv, grandAmbos, totalMeta);
         consData.push(grandRow);
