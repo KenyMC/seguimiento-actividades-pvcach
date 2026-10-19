@@ -67,6 +67,7 @@ const APP_STATE = {
     globalDateFrom: '2026-01', globalDateTo: null, availableMonitorMonths: [], canvas: null, isDrawing: false,
     metaMefPorRed: {}
 };
+window.APP_STATE = APP_STATE;
 
 const generateMonthsUpTo = (l) => { const m = []; if (!l) return m; const [y, mx] = l.split('-').map(Number); for (let i = 2022; i <= y; i++) { const k = (i === y) ? mx : 12; for (let j = 1; j <= k; j++) { const ym = `${i}-${String(j).padStart(2, '0')}`; if (ym >= '2022-01') m.push(ym); } } return m; };
 
@@ -183,50 +184,9 @@ document.addEventListener('click', e => { if (!e.target.closest('.filter-wrapper
 
 function reRenderCurrentTable() { processActiveData(); }
 
-const SESSION_KEY = 'sap_app_session';
-const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hora de inactividad
-
-function setupSessionManagement() {
-    const checkSession = () => {
-        const sessionData = localStorage.getItem(SESSION_KEY);
-        if (sessionData && APP_STATE.currentUser) {
-            try {
-                const { lastActivity } = JSON.parse(sessionData);
-                if (Date.now() - lastActivity > SESSION_TIMEOUT_MS) {
-                    window.logout(true); // true = expirado por inactividad
-                }
-            } catch (e) { }
-        }
-    };
-
-    const updateActivity = () => {
-        if (APP_STATE.currentUser) {
-            const sessionData = localStorage.getItem(SESSION_KEY);
-            if (sessionData) {
-                try { const data = JSON.parse(sessionData); data.lastActivity = Date.now(); localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) { }
-            }
-        }
-    };
-
-    let activityTimeout;
-    const handleActivity = () => { if (!activityTimeout) { activityTimeout = setTimeout(() => { updateActivity(); activityTimeout = null; }, 5000); } };
-
-    window.addEventListener('mousemove', handleActivity); window.addEventListener('keydown', handleActivity); window.addEventListener('click', handleActivity); window.addEventListener('scroll', handleActivity); window.addEventListener('touchstart', handleActivity, { passive: true });
-    setInterval(checkSession, 60000); // Revisar expiración cada 1 minuto
-}
-
-function restoreSession() {
-    const sessionData = localStorage.getItem(SESSION_KEY);
-    if (sessionData) {
-        try {
-            const { user, lastActivity } = JSON.parse(sessionData);
-            if (Date.now() - lastActivity <= SESSION_TIMEOUT_MS) {
-                APP_STATE.currentUser = user; getEl('welcome-user').textContent = user.usuario; if (typeof window.applyUserRoleUI === 'function') window.applyUserRoleUI(); getEl('login-view').classList.add('hidden'); getEl('app-view').classList.remove('hidden'); if (typeof window.renderUserTable === 'function') window.renderUserTable(); window.switchTab('dashboard'); const data = JSON.parse(sessionData); data.lastActivity = Date.now(); localStorage.setItem(SESSION_KEY, JSON.stringify(data)); return true;
-            } else { localStorage.removeItem(SESSION_KEY); }
-        } catch (e) { localStorage.removeItem(SESSION_KEY); }
-    }
-    return false;
-}
+// Gestión de sesión modularizada en login.js
+const setupSessionManagement = () => { if (typeof window.setupSessionManagement === 'function') window.setupSessionManagement(); };
+const restoreSession = () => { if (typeof window.restoreSession === 'function') return window.restoreSession(); return false; };
 
 function init() {
     const initLucide = () => {
@@ -508,34 +468,8 @@ window.forceRefreshData = async () => {
     await preloadSAPData(); processActiveData();
 }
 
-window.handleLogin = async e => {
-    if (e) e.preventDefault();
-    const u = getEl('login-user').value.trim();
-    const p = getEl('login-pass').value.trim();
-    const er = getEl('login-error');
-    getEl('btn-login-text').classList.add('hidden'); getEl('btn-login-loader').classList.remove('hidden');
+// Autenticación (window.handleLogin y window.logout) modularizada en login.js
 
-    try { if (window.syncUsersPromise) await window.syncUsersPromise; } catch (err) { }
-
-    setTimeout(() => {
-        const f = APP_STATE.usersList.find(x => x.usuario.toLowerCase() === u.toLowerCase() && x.password === p);
-        if (f) {
-            APP_STATE.currentUser = f;
-            localStorage.setItem(SESSION_KEY, JSON.stringify({ user: f, lastActivity: Date.now() }));
-            getEl('welcome-user').textContent = f.usuario;
-            window.applyUserRoleUI();
-            APP_STATE.sapCache = {}; APP_STATE.resCache = {}; APP_STATE.fedCache = { ind1: null, ind2: null, ind3: null, ind4: null };
-            getEl('login-view').classList.add('hidden');
-            getEl('app-view').classList.remove('hidden');
-            if (typeof window.renderUserTable === 'function') window.renderUserTable();
-            window.switchTab('dashboard');
-        }
-        else { er.classList.remove('hidden'); getEl('login-error-msg').textContent = "Credenciales incorrectas o error de red."; }
-        getEl('btn-login-text').classList.remove('hidden'); getEl('btn-login-loader').classList.add('hidden');
-    }, 500);
-}
-
-window.logout = (expired = false) => { APP_STATE.currentUser = null; localStorage.removeItem(SESSION_KEY); getEl('app-view').classList.add('hidden'); getEl('login-view').classList.remove('hidden'); getEl('login-user').value = ''; getEl('login-pass').value = ''; const er = getEl('login-error'); if (expired === true) { er.classList.remove('hidden'); getEl('login-error-msg').textContent = "Sesión expirada por inactividad."; } else { er.classList.add('hidden'); } window.switchTab('dashboard'); }
 
 window.switchTab = id => {
     APP_STATE.activeTab = id; APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {};

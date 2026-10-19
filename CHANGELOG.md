@@ -1,5 +1,16 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-19] - Rediseño Visual de Login (Glassmorphism), Inclusión de Logos y Modularización con login.js
+### Añadido / Modificado
+- **Rediseño Glassmorphism del Login:** Se replicó fielmente la interfaz visual de inicio de sesión con estética de alta gama:
+  - **Fondo y Contenedor:** Fondo degradado azul vibrante (`linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #1d4ed8 100%)`) a pantalla completa con tarjeta central en vidrio esmerilado (`backdrop-filter: blur(16px)`).
+  - **Logos Oficiales Circulares:** Se incorporaron los 3 logos institucionales en círculos blancos (`logo-cusco.jpg`, `logo-diresa.png`, `logo-pvcach.png`) con micro-interacciones hover.
+  - **Título del Sistema:** Se actualizó el título principal a `Sistema de la Vigilancia de la Calidad del Agua para Consumo Humano`, con subtítulo instructivo y pie con versión (`Versión 1.3.0 - PVCACH Cusco`).
+  - **Campos e Iconos:** Inputs estilizados con fondo translúcido, bordes suaves e iconos vectoriales Lucide (`user` y `lock`), con botón sólido blanco e indicador interactivo de verificación (`Verificando...`).
+- **Modularización en `login.js`:**
+  - Se creó el archivo modular [login.js](file:///d:/AGUAS/Page/seguimiento-actividades-pvcach/login.js) para encapsular la autenticación de usuarios (`handleLogin`), el control de inactividad (`setupSessionManagement`), la restauración de sesión (`restoreSession`), y el cierre de sesión (`logout`).
+  - Se redujo la complejidad y tamaño de [script.js](file:///d:/AGUAS/Page/seguimiento-actividades-pvcach/script.js), delegando completamente la gestión de credenciales y LocalStorage sin alterar el control de roles por Red de Salud ni la sincronización con Google Sheets.
+
 ## [2026-10-16] - Actualización Umbral Salud (>= 4 Meses) en FED AI-01.01 y Exportación Excel
 ### Modificado
 - **Columna Cumple >=4 Meses (Salud) en FED AI-01.01:** Se actualizó la columna intermedia de cumplimiento de monitoreo de salud para centros poblados en la pestaña AI-01.01 (formato dinámico semestral post-Junio):
