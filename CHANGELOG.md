@@ -1,5 +1,13 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-20] - Nueva Transición de Colores Aqua-Esmeralda-Océano en Login
+### Modificado
+- **Gradiente Dinámico Aqua / Verde Esmeralda / Azul Océano:** Se actualizó el fondo del Login replicando con fidelidad la transición de colores provista:
+  - **Paleta y Malla de Gradiente:** Combinación de tonos cian neón (`#10fde5`), verde menta y esmeralda primaveral (`#12d674` / `#14f1c6`), aqua eléctrico (`#19fcf1` / `#0fe2e6`) y azul marino oceánico profundo (`#0d66a8`).
+  - **Animación Fluida Sutil (`waterGradientFlow`):** Transición suave y continua de 14 segundos en bucle alternado que simula el movimiento apacible del agua, alineado con la identidad del sistema de calidad del agua.
+  - **Tarjeta Esmerilada Refinada:** Se calibró la opacidad de la tarjeta de cristal (`background: rgba(8, 38, 56, 0.36)` con `blur(24px)`) para garantizar un contraste nítido y legible en textos, inputs e iconos con respecto al nuevo fondo luminoso.
+  - **Armonización de Elementos:** Botón de inicio con tono azul océano (`#0b598d`), focus de inputs con borde cian neón (`#10fde5`) y hover brillante en el pie de versión.
+
 ## [2026-10-19] - Rediseño Visual de Login (Glassmorphism), Inclusión de Logos y Modularización con login.js
 ### Añadido / Modificado
 - **Rediseño Glassmorphism del Login:** Se replicó fielmente la interfaz visual de inicio de sesión con estética de alta gama:
