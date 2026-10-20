@@ -1,12 +1,16 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
-## [2026-10-20] - Nueva Transición de Colores Aqua-Esmeralda-Océano en Login
+## [2026-10-20] - Nueva Transición de Colores Aqua-Esmeralda-Océano en Login y Diseño Global Cohesivo
 ### Modificado
-- **Gradiente Dinámico Aqua / Verde Esmeralda / Azul Océano:** Se actualizó el fondo del Login replicando con fidelidad la transición de colores provista:
-  - **Paleta y Malla de Gradiente:** Combinación de tonos cian neón (`#10fde5`), verde menta y esmeralda primaveral (`#12d674` / `#14f1c6`), aqua eléctrico (`#19fcf1` / `#0fe2e6`) y azul marino oceánico profundo (`#0d66a8`).
+- **Gradiente Dinámico Aqua / Verde Esmeralda / Azul Océano en Login:**
+  - **Paleta y Malla de Gradiente:** Combinación fiel de tonos cian neón (`#10fde5`), verde menta y esmeralda primaveral (`#12d674` / `#14f1c6`), aqua eléctrico (`#19fcf1` / `#0fe2e6`) y azul marino oceánico profundo (`#0d66a8`).
   - **Animación Fluida Sutil (`waterGradientFlow`):** Transición suave y continua de 14 segundos en bucle alternado que simula el movimiento apacible del agua, alineado con la identidad del sistema de calidad del agua.
   - **Tarjeta Esmerilada Refinada:** Se calibró la opacidad de la tarjeta de cristal (`background: rgba(8, 38, 56, 0.36)` con `blur(24px)`) para garantizar un contraste nítido y legible en textos, inputs e iconos con respecto al nuevo fondo luminoso.
-  - **Armonización de Elementos:** Botón de inicio con tono azul océano (`#0b598d`), focus de inputs con borde cian neón (`#10fde5`) y hover brillante en el pie de versión.
+- **Diseño Global Cohesivo en la Aplicación (Menú Lateral y Tablas):**
+  - **Reemplazo de Logotipo en Sidebar:** Se sustituyó el antiguo bloque morado con el texto "SAP" por la insignia circular oficial con `logo-pvcach.png`, con marco blanco, sombra y micro-interacción hover con resplandor cian.
+  - **Menú Lateral Izquierdo (Sidebar):** Se modernizó el fondo del sidebar reemplazando el gris oscuro plano por un degradado profundo petrol-marino (`linear-gradient(180deg, #072331 0%, #093345 50%, #051924 100%)`) con borde luminoso cian. Los ítems activos ahora destacan con una píldora translúcida aqua (`sidebar-item-active`) e icono cian brillante (`#10fde5`).
+  - **Cabeceras de Tablas con Transición Temática:** Todas las barras de encabezado de tablas ("Registro Detallado", "Análisis de Muestras (LMP)", etc.) adoptan la transición de colores del login (`linear-gradient(135deg, #072839 0%, #0a465c 35%, #086b68 75%, #0b5f7e 100%)`) con tipografía en blanco de alto contraste y chips de filtro en vidrio aqua.
+  - **Filas de Totales y Pestañas Activas:** Las filas de totales en tablas (`tr.bg-slate-800`) y las pestañas activas se sincronizaron con la gama petrol-azul-teal, eliminando los tonos negros y morados disonantes.
 
 ## [2026-10-19] - Rediseño Visual de Login (Glassmorphism), Inclusión de Logos y Modularización con login.js
 ### Añadido / Modificado

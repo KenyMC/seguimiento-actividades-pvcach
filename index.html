@@ -92,14 +92,16 @@
   <!-- APP PRINCIPAL CONTENEDOR -->
   <div id="app-view" class="hidden flex h-screen w-full bg-slate-50 font-sans overflow-hidden fade-in">
     <!-- SIDEBAR -->
-    <aside class="w-20 bg-slate-900 border-r border-slate-800 flex flex-col justify-between flex-shrink-0 z-30 shadow-2xl">
+    <aside class="w-20 app-sidebar flex flex-col justify-between flex-shrink-0 z-30 shadow-2xl">
       <div>
-        <div class="h-20 flex items-center justify-center bg-indigo-600 shadow-md">
-          <span class="font-black text-white text-sm tracking-widest bg-white/20 px-2 py-1 rounded">SAP</span>
+        <div class="sidebar-logo-container">
+          <div class="sidebar-logo-badge" title="PVCACH Cusco - Vigilancia de la Calidad del Agua">
+            <img src="./logo-pvcach.png" alt="PVCACH">
+          </div>
         </div>
         <nav class="flex flex-col mt-4 gap-2 px-2 overflow-y-auto scrollbar-hide">
-          <button onclick="window.switchTab('dashboard')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white bg-white/10 shadow-inner" id="nav-dashboard">
-            <i data-lucide="layout-dashboard" class="mb-1.5 transition-transform group-hover:scale-110 text-indigo-300"></i><span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Inicio</span>
+          <button onclick="window.switchTab('dashboard')" class="sidebar-item sidebar-item-active w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white" id="nav-dashboard">
+            <i data-lucide="layout-dashboard" class="mb-1.5 transition-transform group-hover:scale-110 text-cyan-300"></i><span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Inicio</span>
           </button>
           <button onclick="window.switchTab('sap')" class="sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5" id="nav-sap">
             <i data-lucide="bar-chart-3" class="mb-1.5 transition-transform group-hover:scale-110"></i><span class="text-[9px] font-bold uppercase tracking-wider text-center leading-tight">Actividades</span>
@@ -410,10 +412,10 @@
 
         <!-- Accesos Rápidos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-          <div onclick="window.switchTab('sap')" class="relative overflow-hidden bg-slate-900 rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left">
-            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-blue-500/30"></div>
-            <div class="relative z-10 w-full"><h3 class="text-2xl font-black mb-3 flex items-center gap-3">Actividades SAP <i data-lucide="arrow-right" class="w-6 h-6 text-indigo-400 group-hover:translate-x-2 transition-transform"></i></h3><p class="text-slate-300 text-sm max-w-sm">Base de datos de monitoreos, inspecciones, metales pesados y riesgos.</p></div>
-            <div class="relative z-10 bg-white/10 p-5 rounded-2xl backdrop-blur-md mt-6 sm:mt-0 border border-white/10 flex-shrink-0"><i data-lucide="database" class="w-10 h-10 text-indigo-300"></i></div>
+          <div onclick="window.switchTab('sap')" class="relative overflow-hidden rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left border border-teal-500/20" style="background: linear-gradient(135deg, #072331 0%, #0a3a4e 50%, #0c6168 100%);">
+            <div class="absolute inset-0 bg-gradient-to-r from-teal-400/20 to-blue-500/20"></div>
+            <div class="relative z-10 w-full"><h3 class="text-2xl font-black mb-3 flex items-center gap-3">Actividades SAP <i data-lucide="arrow-right" class="w-6 h-6 text-cyan-300 group-hover:translate-x-2 transition-transform"></i></h3><p class="text-teal-100/90 text-sm max-w-sm">Base de datos de monitoreos, inspecciones, metales pesados y riesgos.</p></div>
+            <div class="relative z-10 bg-white/10 p-5 rounded-2xl backdrop-blur-md mt-6 sm:mt-0 border border-white/10 flex-shrink-0"><i data-lucide="database" class="w-10 h-10 text-cyan-300"></i></div>
           </div>
           <div onclick="window.switchTab('fed')" class="relative overflow-hidden bg-amber-600 rounded-3xl p-8 lg:p-10 text-white flex flex-col sm:flex-row justify-between items-center shadow-xl cursor-pointer hover:-translate-y-1 transition-transform group text-center sm:text-left">
             <div class="absolute inset-0 bg-gradient-to-r from-orange-500/30 to-amber-400/30"></div>

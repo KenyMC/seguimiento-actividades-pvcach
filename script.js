@@ -475,8 +475,8 @@ window.switchTab = id => {
     APP_STATE.activeTab = id; APP_STATE.currentTableFilters = {}; APP_STATE.vivFilters = {};
     document.querySelectorAll('.sidebar-item').forEach(el => {
         const i = el.querySelector('.active-indicator');
-        if (el.id === `nav-${id}`) { el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white bg-white/10 shadow-inner"; if (i) i.classList.remove('hidden'); const c = el.querySelector('i'); if (c) { c.classList.remove('text-slate-400'); if (id === 'fed') c.classList.add('text-amber-400'); else c.classList.add('text-indigo-300'); } }
-        else { el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"; if (i) i.classList.add('hidden'); const c = el.querySelector('i'); if (c) { c.classList.add('text-slate-400'); c.classList.remove('text-indigo-300', 'text-amber-400'); } }
+        if (el.id === `nav-${id}`) { el.className = "sidebar-item sidebar-item-active w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-white shadow-inner"; if (i) i.classList.remove('hidden'); const c = el.querySelector('i'); if (c) { c.classList.remove('text-slate-400'); if (id === 'fed') c.classList.add('text-amber-400'); else c.classList.add('text-cyan-300'); } }
+        else { el.className = "sidebar-item w-full flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 group text-slate-400 hover:text-white hover:bg-white/5"; if (i) i.classList.add('hidden'); const c = el.querySelector('i'); if (c) { c.classList.add('text-slate-400'); c.classList.remove('text-indigo-300', 'text-amber-400', 'text-cyan-300'); } }
     });
     document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
     const v = getEl(`view-${id}`); if (v) v.classList.remove('hidden');
