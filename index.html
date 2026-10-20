@@ -476,8 +476,8 @@
             </div>
           </div>
           <div class="flex flex-col gap-6 max-w-full">
-            <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="res-tabs-container"></div>
-            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-1.5 w-full bg-slate-200/60 p-1.5 rounded-2xl border border-slate-200/90 shadow-inner shrink-0" id="res-tabs-container"></div>
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 72vh; min-height: 600px;">
               <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Análisis de Muestras (LMP)</span>
                 <div class="flex items-center gap-2"><span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span><span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span></div>
@@ -533,10 +533,10 @@
               <i data-lucide="loader" class="w-8 h-8 text-indigo-600 animate-spin mb-3"></i><p class="text-indigo-900 font-bold text-sm tracking-wider">PROCESANDO MATRIZ...</p>
             </div>
           </div>
-          <div class="flex flex-col gap-6 max-w-full">
-            <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="sap-tabs-container"></div>
-            <div id="sap-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-1 flex items-start gap-2"></div>
-            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
+          <div class="flex flex-col gap-4 max-w-full">
+            <div class="grid grid-cols-5 md:grid-cols-10 gap-1.5 w-full bg-slate-200/60 p-1.5 rounded-2xl border border-slate-200/90 shadow-inner shrink-0" id="sap-tabs-container"></div>
+            <div id="sap-monitor-desc" class="hidden text-xs text-slate-700 font-medium bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3"></div>
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 72vh; min-height: 600px;">
               <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                 <span class="text-xs font-bold uppercase tracking-widest text-slate-300">Registro Detallado</span>
                 <div class="flex items-center gap-2"><span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span><span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span></div>
@@ -600,12 +600,12 @@
               <i data-lucide="loader" class="w-8 h-8 text-amber-500 animate-spin mb-3"></i><p class="text-amber-900 font-bold text-sm tracking-wider">CALCULANDO INDICADORES...</p>
             </div>
           </div>
-          <div class="flex flex-col gap-6 max-w-full">
+          <div class="flex flex-col gap-4 max-w-full">
             <div class="flex flex-col gap-2 w-full">
-              <div class="flex overflow-x-auto custom-scroll gap-2 pb-2 flex-shrink-0 w-full" id="fed-tabs-container"></div>
-              <div id="fed-monitor-desc" class="hidden text-xs text-slate-600 font-medium bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-start gap-2"></div>
+              <div class="grid grid-cols-3 md:grid-cols-6 gap-1.5 w-full bg-slate-200/60 p-1.5 rounded-2xl border border-slate-200/90 shadow-inner shrink-0" id="fed-tabs-container"></div>
+              <div id="fed-monitor-desc" class="hidden text-xs text-slate-700 font-medium bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3"></div>
             </div>
-            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 60vh; min-height: 400px;">
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col w-full overflow-hidden" style="height: 72vh; min-height: 600px;">
               <div class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center border-b border-slate-700 flex-wrap gap-2">
                 <span class="text-xs font-bold uppercase tracking-widest text-amber-300">Monitoreo por Centro Poblado</span>
                 <div class="flex items-center gap-2"><span class="text-[10px] bg-slate-700/50 px-2 py-1 rounded text-slate-300 font-mono flex items-center gap-1"><i data-lucide="mouse-pointer-click" class="w-3 h-3"></i> Filtro en Cabecera</span><span class="text-[10px] bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">Desliza →</span></div>

@@ -1,5 +1,19 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-20] - Ajustes Puntuales: Menú Segmentado Responsivo, Alineación de Descripciones y Expansión Vertical de Tablas
+### Modificado / Mejorado
+- **Alineación Vertical Centrada en Descripciones de Actividad (Monitoreo 5P y FED):**
+  - Se corrigió el desfase donde el texto de parámetros evaluados aparecía más arriba que su icono: se eliminó el offset `mt-0.5`, se unificó el contenedor de icono en una caja cuadrada fija (`w-7 h-7 flex items-center justify-center`) y el contenedor principal ahora utiliza `flex items-center gap-3 py-2.5 px-3.5`, logrando una perfecta simetría vertical entre el badge del icono y el texto explicativo.
+  - Se encapsuló la actualización de la descripción en `updateSapDesc(id)` y se integró en `renderSapTabs()` para asegurar que se muestre centrada e informativa desde la carga inicial del sistema.
+- **Rediseño Integral de Subpestañas de Actividades (Segmented Control Toolbar):**
+  - Se sustituyeron los antiguos botones flotantes con scroll lateral por una barra de control segmentada integrada y moderna (`grid grid-cols-5 md:grid-cols-10 gap-1.5 w-full bg-slate-200/60 p-1.5 rounded-2xl border border-slate-200/90 shadow-inner`) que ocupa exactamente el 100% del ancho de la ventana sin generar desbordamiento ni scroll horizontal.
+  - Las etiquetas compuestas se estructuraron en 2 líneas (`Monitoreo<br>5P`, `Insp.<br>Sanitaria`, `Físico<br>Químicos`, `Vigilancia<br>(FED)`), asegurando legibilidad uniforme y altura constante (`h-11 md:h-12`) en los 10 botones.
+  - Se crearon las clases `.subtab-btn`, `.subtab-active` y `.subtab-inactive` en `styles.css` con el gradiente temático aqua-océano (`#072839` a `#0b5f7e`) y borde luminoso cian para el botón seleccionado, y acabado blanco pulido con hover esmeralda sutil para los inactivos.
+  - Se replicó este mismo estándar responsivo en las pestañas de *Resultados* (8 columnas) y *FED* (6 columnas con estado activo ámbar `.subtab-active-amber`).
+- **Ampliación Vertical de Tablas Principales (>= 10 Registros Visibles):**
+  - Se aumentó la altura del contenedor principal de tablas de `60vh; min-height: 400px;` a `72vh; min-height: 600px;` en `view-sap`, `view-resultados` y `view-fed`.
+  - Se optimizó el padding vertical de las celdas a `py-2` (manteniendo espacio confortable y tipografía nítida), permitiendo que se visualicen entre 11 y 13 filas de datos completas de forma inmediata en cualquier resolución estándar antes de requerir desplazamiento vertical.
+
 ## [2026-10-20] - Nueva Transición de Colores Aqua-Esmeralda-Océano en Login y Diseño Global Cohesivo
 ### Modificado
 - **Gradiente Dinámico Aqua / Verde Esmeralda / Azul Océano en Login:**

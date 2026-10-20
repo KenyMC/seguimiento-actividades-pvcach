@@ -519,10 +519,106 @@ window.switchTab = id => {
     }
 }
 
-function renderSapTabs() { getEl('sap-tabs-container').innerHTML = [{ id: 'monitor', label: 'Monitoreo 5P' }, { id: 'sanitaria', label: 'Insp. Sanitaria' }, { id: 'caracterizacion', label: 'Caracterización' }, { id: 'metales', label: 'Inorgánicos' }, { id: 'fisico', label: 'Físico Químicos' }, { id: 'bacteriologico', label: 'Bacteriológico' }, { id: 'parasitologico', label: 'Parasitológico' }, { id: 'riesgos', label: 'Riesgos' }, { id: 'vigilancia', label: 'Vigilancia' }, { id: 'vigilancia_fed', label: 'Vigilancia (FED)' }].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.sapActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
-window.changeSapSubTab = id => { if (APP_STATE.sapActiveTab === id) return; APP_STATE.sapActiveTab = id; APP_STATE.currentTableFilters = {}; renderSapTabs(); const d = getEl('sap-monitor-desc'); if (d) { if (['monitor', 'metales', 'fisico', 'bacteriologico', 'parasitologico', 'sanitaria', 'caracterizacion', 'riesgos', 'vigilancia', 'vigilancia_fed'].includes(id)) { if (id === 'monitor') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Parámetros Evaluados:</strong> Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.</span>`; else if (id === 'sanitaria') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="clipboard-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Insp. Sanitaria:</strong> Ejecución de inspecciones.</span>`; else if (id === 'caracterizacion') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="flask-conical" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Caracterización:</strong> Parámetros completos.</span>`; else if (id === 'riesgos') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Requiere Informe y Cargo aprobados.</span>`; else if (id === 'vigilancia') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia Completa:</strong> SAPs que cumplen con todas las actividades principales.</span>`; else if (id === 'vigilancia_fed') d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="shield-check" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Vigilancia FED:</strong> Evaluación estricta en el periodo de las 4 actividades (Insp, Caract, 5P, Riesgos).</span>`; else d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Evaluación:</strong> Presencia de parámetros.</span>`; d.classList.remove('hidden'); } else { d.classList.add('hidden'); } } updateGlobalDateDropdowns(); processActiveData(); }
+function updateSapDesc(id) {
+    const d = getEl('sap-monitor-desc');
+    if (!d) return;
+    const descMap = {
+        monitor: {
+            icon: 'flask-conical',
+            title: 'Parámetros Evaluados:',
+            text: 'Monitoreo de Cloro, Conductividad, pH, Temperatura y Turbiedad.'
+        },
+        sanitaria: {
+            icon: 'clipboard-check',
+            title: 'Insp. Sanitaria:',
+            text: 'Ejecución de inspecciones sanitarias en sistemas de agua.'
+        },
+        caracterizacion: {
+            icon: 'flask-conical',
+            title: 'Caracterización:',
+            text: 'Evaluación y registro de parámetros completos.'
+        },
+        riesgos: {
+            icon: 'alert-triangle',
+            title: 'Evaluación de Riesgos:',
+            text: 'Requiere Informe y Cargo aprobados.'
+        },
+        vigilancia: {
+            icon: 'shield-check',
+            title: 'Vigilancia Completa:',
+            text: 'SAPs que cumplen con todas las actividades principales programadas.'
+        },
+        vigilancia_fed: {
+            icon: 'shield-check',
+            title: 'Vigilancia FED:',
+            text: 'Evaluación estricta en el periodo de las 4 actividades (Insp, Caract, 5P, Riesgos).'
+        },
+        metales: {
+            icon: 'flask-conical',
+            title: 'Inorgánicos:',
+            text: 'Monitoreo de metales pesados y sustancias inorgánicas.'
+        },
+        fisico: {
+            icon: 'flask-conical',
+            title: 'Físico Químicos:',
+            text: 'Control de parámetros físicos y químicos del agua.'
+        },
+        bacteriologico: {
+            icon: 'flask-conical',
+            title: 'Bacteriológico:',
+            text: 'Control de coliformes y parámetros microbiológicos.'
+        },
+        parasitologico: {
+            icon: 'flask-conical',
+            title: 'Parasitológico:',
+            text: 'Control de organismos parasitarios en el agua.'
+        }
+    };
+    const info = descMap[id] || { icon: 'info', title: 'Evaluación:', text: 'Presencia de parámetros y cumplimiento LMP.' };
+    d.innerHTML = `<div class="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 shadow-2xs"><i data-lucide="${info.icon}" class="w-4 h-4 text-teal-700"></i></div><div class="flex-1 leading-snug text-xs text-slate-700 flex items-center flex-wrap gap-1"><strong class="text-teal-900 font-bold">${info.title}</strong><span>${info.text}</span></div>`;
+    d.classList.remove('hidden');
+    d.classList.add('flex');
+    if (window.lucide) window.lucide.createIcons();
+}
 
-function renderResTabs() { getEl('res-tabs-container').innerHTML = [{ id: 'res_cloro', label: 'Cloro' }, { id: 'res_nivel_riesgo', label: 'Nivel Riesgo' }, { id: 'res_riesgo', label: 'Riesgo Sanitario' }, { id: 'res_caracterizacion', label: 'Caracterización' }, { id: 'res_metales', label: 'Inorgánicos' }, { id: 'res_fisico', label: 'Físico Químicos' }, { id: 'res_bacteriologico', label: 'Bacteriológico' }, { id: 'res_parasitologico', label: 'Parasitológico' }].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.resActiveTab === t.id ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200'}">${t.label}</button>`).join(''); }
+function renderSapTabs() {
+    getEl('sap-tabs-container').innerHTML = [
+        { id: 'monitor', label: 'Monitoreo<br>5P' },
+        { id: 'sanitaria', label: 'Insp.<br>Sanitaria' },
+        { id: 'caracterizacion', label: 'Caracterización' },
+        { id: 'metales', label: 'Inorgánicos' },
+        { id: 'fisico', label: 'Físico<br>Químicos' },
+        { id: 'bacteriologico', label: 'Bacteriológico' },
+        { id: 'parasitologico', label: 'Parasitológico' },
+        { id: 'riesgos', label: 'Riesgos' },
+        { id: 'vigilancia', label: 'Vigilancia' },
+        { id: 'vigilancia_fed', label: 'Vigilancia<br>(FED)' }
+    ].map(t => `<button onclick="window.changeSapSubTab('${t.id}')" class="subtab-btn w-full h-11 md:h-12 text-[10px] xl:text-[11px] uppercase tracking-tight p-1 ${APP_STATE.sapActiveTab === t.id ? 'subtab-active' : 'subtab-inactive'}">${t.label}</button>`).join('');
+    updateSapDesc(APP_STATE.sapActiveTab);
+}
+
+window.changeSapSubTab = id => {
+    if (APP_STATE.sapActiveTab === id) return;
+    APP_STATE.sapActiveTab = id;
+    APP_STATE.currentTableFilters = {};
+    renderSapTabs();
+    updateGlobalDateDropdowns();
+    processActiveData();
+};
+
+function renderResTabs() {
+    getEl('res-tabs-container').innerHTML = [
+        { id: 'res_cloro', label: 'Cloro' },
+        { id: 'res_nivel_riesgo', label: 'Nivel<br>Riesgo' },
+        { id: 'res_riesgo', label: 'Riesgo<br>Sanitario' },
+        { id: 'res_caracterizacion', label: 'Caracterización' },
+        { id: 'res_metales', label: 'Inorgánicos' },
+        { id: 'res_fisico', label: 'Físico<br>Químicos' },
+        { id: 'res_bacteriologico', label: 'Bacteriológico' },
+        { id: 'res_parasitologico', label: 'Parasitológico' }
+    ].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="subtab-btn w-full h-11 md:h-12 text-[10px] xl:text-[11px] uppercase tracking-tight p-1 ${APP_STATE.resActiveTab === t.id ? 'subtab-active' : 'subtab-inactive'}">${t.label}</button>`).join('');
+}
+
 window.changeResSubTab = id => {
     if (APP_STATE.resActiveTab === id) return;
     APP_STATE.resActiveTab = id;
@@ -538,35 +634,34 @@ window.changeResSubTab = id => {
     renderResTabs();
     updateGlobalDateDropdowns();
     processActiveData();
-}
+};
 
 function renderFedTabs() {
-    getEl('fed-tabs-container').innerHTML = [{ id: 'ind1', label: 'AI-01.01' }, { id: 'ind2', label: 'AI-02.01' }, { id: 'ind3', label: 'AI-03.01' }, { id: 'ind4', label: 'AI-05.01' }, { id: 'consol', label: 'Consol. Ind.' }, { id: 'primer_tramo', label: 'Primer Tramo' }].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="whitespace-nowrap px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${APP_STATE.fedActiveTab === t.id ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-500 hover:bg-amber-50 hover:text-amber-600 border border-slate-200'}">${t.label}</button>`).join('');
+    getEl('fed-tabs-container').innerHTML = [
+        { id: 'ind1', label: 'AI-01.01' },
+        { id: 'ind2', label: 'AI-02.01' },
+        { id: 'ind3', label: 'AI-03.01' },
+        { id: 'ind4', label: 'AI-05.01' },
+        { id: 'consol', label: 'Consol.<br>Ind.' },
+        { id: 'primer_tramo', label: 'Primer<br>Tramo' }
+    ].map(t => `<button onclick="window.changeFedSubTab('${t.id}')" class="subtab-btn w-full h-11 md:h-12 text-[10px] xl:text-[11px] uppercase tracking-tight p-1 ${APP_STATE.fedActiveTab === t.id ? 'subtab-active-amber' : 'subtab-inactive'}">${t.label}</button>`).join('');
 
-    // Documentación: Actualización dinámica de la descripción del Indicador FED seleccionado.
-    // Esta lógica se insertó aquí para asegurar que desde la primera vez que se carga la vista FED 
-    // se muestre correctamente el panel con el nombre completo y la descripción de cada indicador.
     const d = getEl('fed-monitor-desc');
     if (d) {
         const id = APP_STATE.fedActiveTab;
-        if (id === 'ind1') {
-            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-01.01:</strong> Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas.</span>`;
+        const fedDescs = {
+            ind1: { icon: 'info', title: 'AI-01.01:', text: 'Número de centros poblados rurales con sistemas de agua en estado bueno/regular que presentan cloro residual ≥ 0.5 mg/L y turbiedad ≤ 5 UNT e información de disposición sanitaria de excretas.' },
+            ind2: { icon: 'info', title: 'AI-02.01:', text: 'Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas.' },
+            ind3: { icon: 'info', title: 'AI-03.01:', text: 'Número de centros poblados con sistemas de agua que implementan medidas correctivas a partir de la identificación de riesgos sanitarios en la calidad del agua.' },
+            ind4: { icon: 'info', title: 'AI-05.01:', text: 'Porcentaje de Centros Poblados con diagnóstico oportuno del sistema de agua.' },
+            consol: { icon: 'info', title: 'Resumen Consolidado:', text: 'Vista general del avance de todos los indicadores a nivel regional y distrital.' },
+            primer_tramo: { icon: 'bar-chart-3', title: 'Primer Tramo:', text: 'Dashboard interactivo mensual de cumplimiento por Redes de Salud (Primer Tramo).' }
+        };
+        if (fedDescs[id]) {
+            const item = fedDescs[id];
+            d.innerHTML = `<div class="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0 shadow-2xs"><i data-lucide="${item.icon}" class="w-4 h-4 text-amber-600"></i></div><div class="flex-1 leading-snug text-xs text-slate-700 flex items-center flex-wrap gap-1"><strong class="text-amber-900 font-bold">${item.title}</strong><span>${item.text}</span></div>`;
             d.classList.remove('hidden');
-        } else if (id === 'ind2') {
-            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-02.01:</strong> Número de centros poblados con vigilancia de la calidad del agua y seguimiento a la programación de metas.</span>`;
-            d.classList.remove('hidden');
-        } else if (id === 'ind3') {
-            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-03.01:</strong> Número de centros poblados con sistemas de agua que implementan medidas correctivas a partir de la identificación de riesgos sanitarios en la calidad del agua.</span>`;
-            d.classList.remove('hidden');
-        } else if (id === 'ind4') {
-            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">AI-05.01:</strong> Porcentaje de Centros Poblados con diagnóstico oportuno del sistema de agua.</span>`;
-            d.classList.remove('hidden');
-        } else if (id === 'consol') {
-            d.innerHTML = `<div class="bg-amber-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="info" class="w-4 h-4 text-amber-600"></i></div><span><strong class="text-amber-800">Resumen Consolidado:</strong> Vista general del avance de todos los indicadores a nivel regional y distrital.</span>`;
-            d.classList.remove('hidden');
-        } else if (id === 'primer_tramo') {
-            d.innerHTML = `<div class="bg-indigo-100 p-1.5 rounded-lg shrink-0 mt-0.5"><i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i></div><span><strong class="text-indigo-800">Primer Tramo:</strong> Dashboard interactivo mensual de cumplimiento por Redes de Salud (Primer Tramo).</span>`;
-            d.classList.remove('hidden');
+            d.classList.add('flex');
         } else {
             d.classList.add('hidden');
         }
@@ -3466,7 +3561,7 @@ function renderMainTable(result, prefix) {
             if (h === 'Ubigeo') { stC = `sticky z-10 border-r border-slate-200 ${rB} group-hover:bg-indigo-50/60 sticky-col-shadow truncate`; lS = "left: 0px; min-width: 110px; max-width: 110px;"; }
             else if (h === 'Nombre CCPP') { stC = `sticky z-10 border-r border-slate-200 ${rB} group-hover:bg-indigo-50/60 sticky-col-shadow truncate`; lS = "left: 110px; min-width: 150px; max-width: 150px;"; }
 
-            let tdA = `class="px-4 py-2.5 text-xs ${stC} transition-colors" style="${lS}"`; if (h === 'Nombre CCPP' || h === 'Nombre SAP' || (!stC && typeof c === 'string' && c.length > 10 && !c.startsWith('{') && !c.startsWith('['))) tdA += ` title="${safeEscape(c)}"`; let ctt = c; const v = parseInt(c);
+            let tdA = `class="px-4 py-2 text-xs ${stC} transition-colors" style="${lS}"`; if (h === 'Nombre CCPP' || h === 'Nombre SAP' || (!stC && typeof c === 'string' && c.length > 10 && !c.startsWith('{') && !c.startsWith('['))) tdA += ` title="${safeEscape(c)}"`; let ctt = c; const v = parseInt(c);
             if (h.includes('(Total)')) { tdA = tdA.replace('class="', 'class="bg-indigo-50/60 '); }
 
             if (h === 'Observación') {
@@ -3474,14 +3569,14 @@ function renderMainTable(result, prefix) {
                 if (c && c.trim() !== '') { ctt = `<div class="w-full min-w-[150px] max-w-[250px] whitespace-normal break-words text-xs text-slate-700 bg-amber-50/50 p-2 rounded-lg border border-amber-100 hover:bg-amber-100 transition-colors flex justify-between items-start gap-2 group"><span class="flex-1 cursor-pointer" onclick="event.stopPropagation(); window.openObsModal('${safeEscape(id)}', '${safeEscape(nm)}', '${safeEscape(ubi)}', '${safeEscape(cp)}', '${safeEscape(c)}')">${safeEscape(c)}</span><div class="flex gap-2 flex-shrink-0 mt-0.5 opacity-100 transition-opacity"><button onclick="event.stopPropagation(); window.openObsModal('${safeEscape(id)}', '${safeEscape(nm)}', '${safeEscape(ubi)}', '${safeEscape(cp)}', '${safeEscape(c)}')" title="Editar"><i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-600 hover:text-amber-800 transition-colors"></i></button><button onclick="event.stopPropagation(); window.openDeleteObsModal('${safeEscape(id)}', '${safeEscape(nm)}', '${safeEscape(ubi)}', '${safeEscape(cp)}')" title="Eliminar"><i data-lucide="trash-2" class="w-3.5 h-3.5 text-red-500 hover:text-red-700 transition-colors"></i></button></div></div>`; }
                 else { ctt = `<button onclick="event.stopPropagation(); window.openObsModal('${safeEscape(id)}', '${safeEscape(nm)}', '${safeEscape(ubi)}', '${safeEscape(cp)}', '')" class="text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100 flex items-center justify-center mx-auto whitespace-nowrap"><i data-lucide="plus" class="w-3 h-3 mr-1"></i> Añadir Obs.</button>`; } tdA = `class="px-4 py-2 align-top ${stC}" style="${lS}"`;
             } else if (h === 'Excede LMP') {
-                if (v === 1) { const dt = r[result.headers.indexOf('Detalles')]; ctt = `<button onclick="event.stopPropagation(); window.openLMPModal(decodeURIComponent('${encodeURIComponent(dt)}'))" class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`; } else { ctt = "<span class='text-slate-300'>-</span>"; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`; }
+                if (v === 1) { const dt = r[result.headers.indexOf('Detalles')]; ctt = `<button onclick="event.stopPropagation(); window.openLMPModal(decodeURIComponent('${encodeURIComponent(dt)}'))" class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`; } else { ctt = "<span class='text-slate-300'>-</span>"; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`; }
             } else if (h === 'Ver Detalle') {
-                const metaJson = encodeURIComponent(JSON.stringify(r.slice(0, 9))); const histJson = encodeURIComponent(c); ctt = `<button onclick="event.stopPropagation(); window.openMonitorDetailModal(decodeURIComponent('${metaJson}'), decodeURIComponent('${histJson}'))" class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] hover:bg-indigo-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-indigo-200 transition-colors"><i data-lucide="list" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
+                const metaJson = encodeURIComponent(JSON.stringify(r.slice(0, 9))); const histJson = encodeURIComponent(c); ctt = `<button onclick="event.stopPropagation(); window.openMonitorDetailModal(decodeURIComponent('${metaJson}'), decodeURIComponent('${histJson}'))" class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] hover:bg-indigo-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-indigo-200 transition-colors"><i data-lucide="list" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`;
             } else if (h === 'Cloro LMP') {
                 if (v === 0 || c === '0') ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE (0)</span>";
                 else if (v === 1 || c === '1') ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE (1)</span>";
                 else ctt = "<span class='text-slate-300'>-</span>";
-                tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
+                tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`;
             } else if (['Inspección', 'Bacteriológico', 'Parasitológico', 'Físico Químicos', 'Inorgánicos', 'Monitoreo 5P', 'Riesgos', 'Vigilancia Completa'].includes(h)) {
                 if (v === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE</span>";
                 else if (v === 0) ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE</span>";
@@ -3542,7 +3637,7 @@ function renderMainTable(result, prefix) {
                         ctt = `<div class="mx-auto px-3 py-1 rounded-full ${colorClass} inline-flex items-center justify-center cursor-pointer shadow-inner transition-colors border ${hasIncomplete ? 'border-amber-300' : 'border-emerald-300'}" onclick="event.stopPropagation(); window.openCaractDetailModal(decodeURIComponent('${encodeURIComponent(htmlStr)}'))" title="Clic para ver detalles"><span class="font-black text-[13px] mr-1.5">${count}</span><i data-lucide="${icon}" class="w-3.5 h-3.5"></i></div>`;
                     }
                 }
-                tdA = `class="px-4 py-2.5 text-xs ${stC} text-center" style="${lS}"`;
+                tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`;
             } else if (result.type === 'cloro' && idxO >= CORE_HEADERS.length && h !== 'Consume Agua Clorada') {
                 const from = APP_STATE.globalDateFrom; const to = APP_STATE.globalDateTo; const aF = from <= to ? from : to; const aT = from <= to ? to : from; const reqM = Math.ceil(APP_STATE.availableMonitorMonths.filter(m => m >= aF && m <= aT).length * 5 / 6);
                 const vn = parseFloat(c);
@@ -4095,7 +4190,7 @@ function renderFedTable(result) {
             const h = result.headers[idx]; if (['MEF', 'FED', 'SAP REGULARES', 'MIDIS'].includes(h) || h.startsWith('Cumple Salud') || h.startsWith('Cumple Vivienda') || h.startsWith('Cumple Ambos')) return;
             if (h.startsWith('P2_') || h === 'Cumple paso 2' || h === 'Cumple paso 1 y 2') return;
             let st = ""; let ls = ""; if (h === 'Ubigeo') { st = `sticky z-10 border-r border-slate-200 ${bg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`; ls = "left: 0px; min-width: 110px; max-width: 110px;"; } else if (h === 'Nombre CCPP') { st = `sticky z-10 border-r border-slate-200 ${bg} group-hover:bg-amber-50/60 sticky-col-shadow truncate`; ls = "left: 110px; min-width: 150px; max-width: 150px;"; }
-            let tA = `class="px-4 py-2.5 text-xs ${st} transition-colors" style="${ls}"`; if (h === 'Nombre CCPP' || h === 'Nombre SAP' || (!st && typeof c === 'string' && c.length > 10 && !c.startsWith('{') && !c.startsWith('['))) tA += ` title="${safeEscape(c)}"`;
+            let tA = `class="px-4 py-2 text-xs ${st} transition-colors" style="${ls}"`; if (h === 'Nombre CCPP' || h === 'Nombre SAP' || (!st && typeof c === 'string' && c.length > 10 && !c.startsWith('{') && !c.startsWith('['))) tA += ` title="${safeEscape(c)}"`;
             let ctt = c;
 
             if (h === 'Seguimiento') { if (c === 'Verde') ctt = "<span class='cell-fed-verde px-3 py-1 rounded-full text-[10px]'>" + (APP_STATE.globalDateFrom >= '2026-06' ? 'CUMPLE (>=5)' : 'CUMPLE (>=3)') + "</span>"; else if (c === 'Naranja') ctt = "<span class='cell-fed-naranja px-3 py-1 rounded-full text-[10px]'>CUMPLE PARCIAL</span>"; else if (c === 'Rojo') ctt = "<span class='cell-fed-rojo px-3 py-1 rounded-full text-[10px]'>NO CUMPLE</span>"; else ctt = "<span class='cell-fed-gris px-3 py-1 rounded-full text-[10px]'>SIN MONITOREO</span>"; }

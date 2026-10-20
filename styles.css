@@ -438,4 +438,76 @@ tr.bg-slate-800 {
 .text-indigo-900 {
     color: #07384e !important;
 }
+
+/* 5. Subpestañas Modernas (Segmented Control Toolbar) */
+.subtab-btn {
+    border-radius: 0.75rem;
+    font-weight: 800;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.15;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+}
+
+.subtab-btn.subtab-inactive {
+    background: #ffffff;
+    color: #475569;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.subtab-btn.subtab-inactive:hover {
+    background: #f0fdfa;
+    color: #0f766e;
+    border-color: #5eead4;
+    box-shadow: 0 2px 6px rgba(15, 118, 110, 0.08);
+    transform: translateY(-1px);
+}
+
+.subtab-btn.subtab-active {
+    background: linear-gradient(135deg, #072839 0%, #0a465c 45%, #086b68 85%, #0b5f7e 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(16, 253, 229, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(7, 40, 57, 0.25) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.subtab-btn.subtab-active-amber {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(254, 240, 138, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(180, 83, 9, 0.25) !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 6. Mejoras Visuales en Tablas */
+.filter-dropdown-menu input:focus {
+    border-color: #0d66a8;
+    box-shadow: 0 0 0 2px rgba(13, 102, 168, 0.2);
+}
+
+#sap-main-table-container::-webkit-scrollbar,
+#res-main-table-container::-webkit-scrollbar,
+#fed-main-table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+#sap-main-table-container::-webkit-scrollbar-thumb,
+#res-main-table-container::-webkit-scrollbar-thumb,
+#fed-main-table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 6px;
+}
+#sap-main-table-container::-webkit-scrollbar-thumb:hover,
+#res-main-table-container::-webkit-scrollbar-thumb:hover,
+#fed-main-table-container::-webkit-scrollbar-thumb:hover {
+    background: #0a465c;
+}
+
 
