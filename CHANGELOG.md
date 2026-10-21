@@ -1,5 +1,20 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-21] - Reorganización de Columnas en Caracterización (Cloro LMP Red y Priorización de Red sobre Fuente)
+### Modificado / Mejorado
+- **Renombramiento de Columna:**
+  - Se actualizó el encabezado de la columna `Cloro LMP` a `Cloro LMP Red`, aclarando con precisión técnica que la evaluación de Límites Máximos Permisibles de cloro corresponde a la red de distribución.
+- **Reordenamiento Lógico de Columnas de Monitoreo:**
+  - Se reestructuró la disposición de las columnas semestrales en la tabla detallada de Caracterización para ubicarlas en secuencia lógica inmediata junto a su indicador de cumplimiento:
+    1. `Cloro LMP Red` (Cumple / No Cumple)
+    2. `Red (${Semestre})` (Puntos evaluados en red)
+    3. `Ver Detalle Red (${Semestre})` (Acceso al modal detallado de puntos en red)
+    4. `Fuente (${Semestre})` (Puntos evaluados en fuente/captación)
+    5. `Ver Detalle Fuente (${Semestre})` (Acceso al modal detallado de puntos en fuente)
+- **Consistencia en Filtros, Renderizado y Exportación Excel:**
+  - Se adaptó la lógica de filtros en cabecera (`renderMainTable`), menús desplegables de valores únicos y renderizado de etiquetas tipo badge para reconocer tanto `Cloro LMP Red` como retrocompatibilidad.
+  - En la exportación a Excel (`exportToExcel`), se formateó `Cloro LMP Red` como texto legible (`CUMPLE (0)` o `NO CUMPLE (1)`) en lugar de valores numéricos crudos.
+
 ## [2026-10-21] - Rediseño de Barras de Desplazamiento en Tablas (Alto Contraste y Ergonomía Visual)
 ### Modificado / Mejorado
 - **Visibilidad Inmediata de Barras Horizontal y Vertical en Tablas:**

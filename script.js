@@ -1526,8 +1526,8 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
         const sK = Array.from(sS).sort();
         const formatSem = (k) => { const [y, s] = k.split('-'); return s === 'S1' ? `1er Semestre ${y}` : `2do Semestre ${y}`; };
 
-        fH = [...CORE_HEADERS, 'Cloro LMP'];
-        sK.forEach(k => { fH.push(`Fuente (${formatSem(k)})`); fH.push(`Ver Detalle Fuente (${formatSem(k)})`); fH.push(`Red (${formatSem(k)})`); fH.push(`Ver Detalle Red (${formatSem(k)})`); });
+        fH = [...CORE_HEADERS, 'Cloro LMP Red'];
+        sK.forEach(k => { fH.push(`Red (${formatSem(k)})`); fH.push(`Ver Detalle Red (${formatSem(k)})`); fH.push(`Fuente (${formatSem(k)})`); fH.push(`Ver Detalle Fuente (${formatSem(k)})`); });
 
         const map = {};
         const idxU = findHeaderIndex(h, 'Ubicación Lugar de Muestreo');
@@ -1675,10 +1675,10 @@ function runSapLogic(subTab, dO, redFilter, ambitoFilter = 'Vigilancia') {
                 });
 
                 let obsStr = obsParts.length > 0 ? obsParts.join(' | ') : '-';
-                rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].c) ? JSON.stringify(sap.sem[k].c.pts) : '{}');
-                rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].c) ? JSON.stringify(sap.sem[k].c.pts) : '{}');
                 rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].p) ? JSON.stringify(sap.sem[k].p.pts) : '{}');
                 rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].p) ? JSON.stringify(sap.sem[k].p.pts) : '{}');
+                rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].c) ? JSON.stringify(sap.sem[k].c.pts) : '{}');
+                rData.push((sap && sap.sem && sap.sem[k] && sap.sem[k].c) ? JSON.stringify(sap.sem[k].c.pts) : '{}');
             });
             return aS.get(id).map(mt => [...mt, cloroLMP, ...rData]);
         }); pT = 'caract_points';
@@ -3532,7 +3532,7 @@ function runFedLogic(dO, ind) {
 function renderMainTable(result, prefix) {
     const cont = getEl(`${prefix}-main-table-container`); const fB = getEl(`${prefix}-active-filters`); const dH = result.headers.filter(h => h !== 'Detalles');
     let fD = result.data;
-    if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); let hName = result.headers[i]; if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Observación' && hName !== 'Ver Detalle' && hName !== 'Cloro LMP') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch (e) { return false; } } if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Cloro LMP') { try { const pts = JSON.parse(cV); const keys = Object.keys(pts); if (keys.length === 0) return String(v) === '0'; let hasInc = false; keys.forEach(k => { if (pts[k].status === 2) hasInc = true; }); return (hasInc ? '2' : '1') === String(v); } catch (e) { return false; } } return cV === String(v); }); }); }
+    if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { let cV = String(r[i] ?? '').trim(); let hName = result.headers[i]; if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Observación' && hName !== 'Ver Detalle' && hName !== 'Cloro LMP' && hName !== 'Cloro LMP Red') { try { const d = JSON.parse(cV); return String(d.status) === String(v); } catch (e) { return false; } } if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length && hName !== 'Cloro LMP' && hName !== 'Cloro LMP Red') { try { const pts = JSON.parse(cV); const keys = Object.keys(pts); if (keys.length === 0) return String(v) === '0'; let hasInc = false; keys.forEach(k => { if (pts[k].status === 2) hasInc = true; }); return (hasInc ? '2' : '1') === String(v); } catch (e) { return false; } } return cV === String(v); }); }); }
 
     let headerHtml = '';
     if (Object.keys(APP_STATE.currentTableFilters).length > 0) {
@@ -3543,7 +3543,7 @@ function renderMainTable(result, prefix) {
             else if (result.headers[i] === 'Consume Agua Clorada') dV = val === '1' ? 'SÍ' : 'NO';
             else if (result.headers[i].includes('Muestra')) dV = val === '1' ? 'CAPTACIÓN' : (val === '2' ? 'PILETA' : (val === '3' ? 'AMBOS' : '-'));
             else if (result.type === 'status_json' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Observación' && result.headers[i] !== 'Ver Detalle') { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); }
-            else if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Cloro LMP') { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); }
+            else if (result.type === 'caract_points' && parseInt(i) >= CORE_HEADERS.length && result.headers[i] !== 'Cloro LMP' && result.headers[i] !== 'Cloro LMP Red') { dV = val === '1' ? 'COMPLETO' : (val === '2' ? 'INCOMPLETO' : 'SIN MONITOREO'); }
             headerHtml += `<span class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-md flex items-center gap-1 font-bold cursor-pointer hover:bg-red-500 hover:shadow transition-all flex-shrink-0" onclick="window.removeTableFilter(${i})" title="Quitar filtro">${result.headers[i]}: ${dV} <i data-lucide="x" class="w-3 h-3"></i></span>`;
         });
         headerHtml += `<button onclick="window.clearAllTableFilters()" class="text-[10px] text-red-600 hover:text-red-800 font-bold ml-2 underline whitespace-nowrap flex-shrink-0">Borrar todo</button></div>`; fB.innerHTML = headerHtml; fB.classList.remove('hidden');
@@ -3572,7 +3572,7 @@ function renderMainTable(result, prefix) {
                     if (parseInt(fI) === idx) return true;
                     let cV = String(r[fI] ?? '').trim();
                     if (result.type === 'status_json' && parseInt(fI) >= CORE_HEADERS.length && result.headers[fI] !== 'Observación' && result.headers[fI] !== 'Ver Detalle') { try { const d = JSON.parse(cV); return String(d.status) === String(fV); } catch (e) { return false; } }
-                    if (result.type === 'caract_points' && parseInt(fI) >= CORE_HEADERS.length && result.headers[fI] !== 'Cloro LMP') {
+                    if (result.type === 'caract_points' && parseInt(fI) >= CORE_HEADERS.length && result.headers[fI] !== 'Cloro LMP' && result.headers[fI] !== 'Cloro LMP Red') {
                         try {
                             const pts = JSON.parse(cV); const keys = Object.keys(pts);
                             if (keys.length === 0) return String(fV) === '0';
@@ -3588,7 +3588,7 @@ function renderMainTable(result, prefix) {
         const uVals = [...new Set(dCol.map(r => {
             let v = String(r[idx] ?? '').trim();
             if (result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle') { try { const d = JSON.parse(v); return String(d.status); } catch (e) { return '0'; } }
-            if (result.type === 'caract_points' && idx >= CORE_HEADERS.length && h !== 'Cloro LMP') {
+            if (result.type === 'caract_points' && idx >= CORE_HEADERS.length && h !== 'Cloro LMP' && h !== 'Cloro LMP Red') {
                 try {
                     const pts = JSON.parse(v); const keys = Object.keys(pts);
                     if (keys.length === 0) return '0';
@@ -3599,7 +3599,7 @@ function renderMainTable(result, prefix) {
             return v;
         }))].filter(Boolean).sort();
 
-        const cF = APP_STATE.currentTableFilters[idx] || ""; const isJ = result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle' && h !== 'Cloro LMP'; const isC = result.type === 'caract_points' && idx >= CORE_HEADERS.length && h !== 'Cloro LMP';
+        const cF = APP_STATE.currentTableFilters[idx] || ""; const isJ = result.type === 'status_json' && idx >= CORE_HEADERS.length && h !== 'Observación' && h !== 'Ver Detalle' && h !== 'Cloro LMP' && h !== 'Cloro LMP Red'; const isC = result.type === 'caract_points' && idx >= CORE_HEADERS.length && h !== 'Cloro LMP' && h !== 'Cloro LMP Red';
         let sH = `<div class="relative mt-2 filter-wrapper" onclick="event.stopPropagation()"><button onclick="window.toggleFilterDropdown(event, '${prefix}', ${idx})" class="w-full max-w-[120px] text-[9px] font-bold border border-slate-300 rounded shadow-sm outline-none bg-white cursor-pointer py-1 px-2 flex justify-between items-center ${cF ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : ''}"><span class="truncate">${cF ? safeEscape(fmtV(h, cF, isJ, isC)) : 'Todos'}</span><i data-lucide="filter" class="w-3 h-3 ${cF ? 'text-indigo-500' : 'text-slate-400'}"></i></button><div id="dropdown-${prefix}-${idx}" class="filter-dropdown-menu hidden absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col font-normal text-left"><div class="p-2 border-b border-slate-100 bg-slate-50 rounded-t-lg"><input type="text" placeholder="Buscar..." class="w-full text-[10px] p-1.5 border border-slate-300 rounded outline-none focus:border-indigo-500" onkeyup="window.filterDropdownOptions(event, '${prefix}', ${idx})"></div><div class="max-h-48 overflow-y-auto custom-scroll py-1"><div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${!cF ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '')">[ Todos ]</div>${uVals.map(v => { let dV = fmtV(h, v, isJ, isC); return `<div class="filter-option px-3 py-2 text-[10px] cursor-pointer hover:bg-indigo-50 truncate transition-colors ${cF === v ? 'bg-indigo-100 font-bold text-indigo-700' : 'text-slate-600'}" onclick="window.applyTableFilter('${prefix}', ${idx}, '${safeEscape(v)}')" title="${safeEscape(dV)}">${safeEscape(dV)}</div>`; }).join('')}${uVals.length === 0 ? `<div class="px-3 py-4 text-[10px] text-slate-400 italic text-center">Sin opciones</div>` : ''}</div></div></div>`;
         html += `<th class="px-4 py-3 text-[10px] sm:text-xs font-black text-slate-600 uppercase tracking-widest align-top ${stC}" style="${lS}"><div class="flex flex-col h-full justify-between"><span>${h}</span>${sH}</div></th>`;
     });
@@ -3623,7 +3623,7 @@ function renderMainTable(result, prefix) {
                 if (v === 1) { const dt = r[result.headers.indexOf('Detalles')]; ctt = `<button onclick="event.stopPropagation(); window.openLMPModal(decodeURIComponent('${encodeURIComponent(dt)}'))" class="bg-red-50 text-red-700 px-3 py-1 rounded-lg text-[10px] hover:bg-red-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-red-200 transition-colors"><i data-lucide="eye" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`; } else { ctt = "<span class='text-slate-300'>-</span>"; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`; }
             } else if (h === 'Ver Detalle') {
                 const metaJson = encodeURIComponent(JSON.stringify(r.slice(0, 9))); const histJson = encodeURIComponent(c); ctt = `<button onclick="event.stopPropagation(); window.openMonitorDetailModal(decodeURIComponent('${metaJson}'), decodeURIComponent('${histJson}'))" class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg text-[10px] hover:bg-indigo-100 font-bold tracking-widest uppercase shadow-sm flex items-center justify-center mx-auto gap-1 border border-indigo-200 transition-colors"><i data-lucide="list" class="w-3 h-3"></i> VER</button>`; tdA = `class="px-4 py-2 text-xs ${stC} text-center" style="${lS}"`;
-            } else if (h === 'Cloro LMP') {
+            } else if (h === 'Cloro LMP' || h === 'Cloro LMP Red') {
                 if (v === 0 || c === '0') ctt = "<span class='inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-emerald-500'></div>CUMPLE (0)</span>";
                 else if (v === 1 || c === '1') ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><div class='w-1.5 h-1.5 rounded-full bg-red-500'></div>NO CUMPLE (1)</span>";
                 else ctt = "<span class='text-slate-300'>-</span>";
@@ -3650,7 +3650,7 @@ function renderMainTable(result, prefix) {
                 if (tot === 0) ctt = "<span class='text-slate-300'>-</span>";
                 else if (v === 1) ctt = "<span class='inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full font-bold border border-blue-200 text-[10px] tracking-wide'><i data-lucide='droplets' class='w-3 h-3 text-blue-500'></i> SÍ</span>";
                 else ctt = "<span class='inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-2.5 py-1 rounded-full font-bold border border-red-200 text-[10px] tracking-wide'><i data-lucide='x-circle' class='w-3 h-3 text-red-500'></i> NO</span>"; tdA = tdA.replace('class="', 'class="text-center ');
-            } else if (result.type === 'caract_points' && idxO >= CORE_HEADERS.length && h !== 'Cloro LMP') {
+            } else if (result.type === 'caract_points' && idxO >= CORE_HEADERS.length && h !== 'Cloro LMP' && h !== 'Cloro LMP Red') {
                 let pts = {};
                 try { pts = JSON.parse(c); } catch (e) { }
                 const keys = Object.keys(pts);
@@ -5080,7 +5080,10 @@ window.exportToExcel = (prefix) => {
                     return "SIN MONITOREO";
                 } catch (e) { }
             }
-            if (result.type === 'caract_points' && i >= CORE_HEADERS.length) {
+            if (h === 'Cloro LMP' || h === 'Cloro LMP Red') {
+                return v === 0 || v === '0' ? 'CUMPLE (0)' : (v === 1 || v === '1' ? 'NO CUMPLE (1)' : '-');
+            }
+            if (result.type === 'caract_points' && i >= CORE_HEADERS.length && h !== 'Cloro LMP' && h !== 'Cloro LMP Red') {
                 try {
                     const pts = JSON.parse(v); const k = Object.keys(pts);
                     if (k.length === 0) return "SIN MONITOREO";
