@@ -519,6 +519,17 @@ window.switchTab = id => {
     }
 }
 
+// ============================================================================
+// MÓDULO: SUBPESTAÑAS DE ACTIVIDADES SAP (MONITOREO 5P, INSPECCIÓN, ETC.)
+// - Destinado a extraerse en: src/modules/sap-tabs.js al modularizar.
+// - Controla la barra segmentada responsiva y la descripción de parámetros.
+// ============================================================================
+
+/**
+ * Actualiza el banner descriptivo informativo del tipo de actividad SAP seleccionada.
+ * Alinea verticalmente el icono badge de 28x28px con el texto explicativo.
+ * @param {string} id - Identificador de la subpestaña SAP activa (ej. 'monitor', 'sanitaria', etc.)
+ */
 function updateSapDesc(id) {
     const d = getEl('sap-monitor-desc');
     if (!d) return;
@@ -581,6 +592,10 @@ function updateSapDesc(id) {
     if (window.lucide) window.lucide.createIcons();
 }
 
+/**
+ * Renderiza la barra segmentada (10 subpestañas) de Actividades SAP.
+ * Utiliza cuadrícula de 10 columnas en pantallas md/lg/xl y 5 columnas en móviles.
+ */
 function renderSapTabs() {
     getEl('sap-tabs-container').innerHTML = [
         { id: 'monitor', label: 'Monitoreo<br>5P' },
@@ -597,6 +612,10 @@ function renderSapTabs() {
     updateSapDesc(APP_STATE.sapActiveTab);
 }
 
+/**
+ * Controlador de evento para cambiar de subpestaña en la vista de Actividades SAP.
+ * @param {string} id - Identificador de la actividad seleccionada.
+ */
 window.changeSapSubTab = id => {
     if (APP_STATE.sapActiveTab === id) return;
     APP_STATE.sapActiveTab = id;
@@ -606,6 +625,14 @@ window.changeSapSubTab = id => {
     processActiveData();
 };
 
+// ============================================================================
+// MÓDULO: SUBPESTAÑAS DE RESULTADOS (CLORO, RIESGO, CARACTERIZACIÓN, ETC.)
+// - Destinado a extraerse en: src/modules/res-tabs.js al modularizar.
+// ============================================================================
+
+/**
+ * Renderiza la barra segmentada (8 subpestañas) del módulo Resultados.
+ */
 function renderResTabs() {
     getEl('res-tabs-container').innerHTML = [
         { id: 'res_cloro', label: 'Cloro' },
@@ -619,6 +646,10 @@ function renderResTabs() {
     ].map(t => `<button onclick="window.changeResSubTab('${t.id}')" class="subtab-btn w-full h-11 md:h-12 text-[10px] xl:text-[11px] uppercase tracking-tight p-1 ${APP_STATE.resActiveTab === t.id ? 'subtab-active' : 'subtab-inactive'}">${t.label}</button>`).join('');
 }
 
+/**
+ * Controlador de evento para cambiar de subpestaña en el módulo Resultados.
+ * @param {string} id - Subpestaña de resultados seleccionada.
+ */
 window.changeResSubTab = id => {
     if (APP_STATE.resActiveTab === id) return;
     APP_STATE.resActiveTab = id;
@@ -636,6 +667,14 @@ window.changeResSubTab = id => {
     processActiveData();
 };
 
+// ============================================================================
+// MÓDULO: SUBPESTAÑAS DEL MÓDULO FED (INDICADORES AI Y CONSOLIDADO)
+// - Destinado a extraerse en: src/modules/fed-tabs.js al modularizar.
+// ============================================================================
+
+/**
+ * Renderiza las subpestañas de FED (6 indicadores) y actualiza su panel explicativo.
+ */
 function renderFedTabs() {
     getEl('fed-tabs-container').innerHTML = [
         { id: 'ind1', label: 'AI-01.01' },
@@ -3478,6 +3517,18 @@ function runFedLogic(dO, ind) {
     }
 }
 
+// ============================================================================
+// MÓDULO: RENDERIZADO DE TABLAS PRINCIPALES (SAP Y RESULTADOS)
+// - Destinado a extraerse en: src/modules/table-renderer.js al modularizar.
+// - Administra encabezados adhesivos, filtros por columna, badges y scrollbars.
+// ============================================================================
+
+/**
+ * Renderiza la tabla de datos principal para las vistas 'sap' y 'res'.
+ * Configura celdas adhesivas, filtros por cabecera y formateo de estados.
+ * @param {Object} result - Estructura con { headers: string[], data: any[][], type?: string }
+ * @param {string} prefix - Prefijo del contenedor ('sap' o 'res')
+ */
 function renderMainTable(result, prefix) {
     const cont = getEl(`${prefix}-main-table-container`); const fB = getEl(`${prefix}-active-filters`); const dH = result.headers.filter(h => h !== 'Detalles');
     let fD = result.data;
@@ -4161,6 +4212,17 @@ function renderRiesgoConsolidatedAndChart(result, prefix) {
     renderDoughnutChart([gAny, gTS - gAny], ['Con Riesgo (Fecal o Metales)', 'Sin Riesgo'], ['#ef4444', '#10b981'], 'RIESGO SANITARIO', `${prefix}-chart-container`);
 }
 
+// ============================================================================
+// MÓDULO: RENDERIZADO DE TABLAS FED (INDICADORES DE CUMPLIMIENTO)
+// - Destinado a extraerse en: src/modules/fed-tables.js al modularizar.
+// - Administra las vistas AI-01.01 a AI-05.01, Vivienda y Paso 2.
+// ============================================================================
+
+/**
+ * Renderiza la tabla principal del módulo FED por Centro Poblado.
+ * Aplica estilos temáticos ámbar/esmeralda y filtros en cabecera.
+ * @param {Object} result - Estructura de datos e indicadores evaluados.
+ */
 function renderFedTable(result) {
     const cont = getEl('fed-main-table-container'); let fD = result.data;
     if (Object.keys(APP_STATE.currentTableFilters).length > 0) { fD = result.data.filter(r => { return Object.entries(APP_STATE.currentTableFilters).every(([i, v]) => { return String(r[i] ?? '').trim() === String(v); }); }); }

@@ -2,6 +2,7 @@
 body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+/* --- MODULO: BARRAS DE DESPLAZAMIENTO GENERALES (MODALES, PANELES) --- */
 .custom-scroll {
     scrollbar-width: thin;
     scrollbar-color: #64748b #e2e8f0;
@@ -10,6 +11,7 @@ body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
 .custom-scroll::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 8px; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; border: 2px solid #e2e8f0; }
 .custom-scroll::-webkit-scrollbar-thumb:hover { background: #0a465c; }
+
 
 
 /* --- ANIMACIONES --- */

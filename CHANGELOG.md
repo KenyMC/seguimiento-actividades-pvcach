@@ -10,6 +10,8 @@
   - **Cobertura:** Aplicado con soporte nativo de Firefox (`scrollbar-width: auto; scrollbar-color: #0a465c #e2e8f0`) y WebKit a todas las tablas del sistema: `#sap-main-table-container`, `#res-main-table-container`, `#fed-main-table-container`, tablas secundarias de FED (`#fed-vivienda-table-container`, `#fed-paso2-table-container`), resúmenes consolidados y ranking Primer Tramo (`.table-scroll`).
 - **Mejora en Barras Generales de la Aplicación (`.custom-scroll`):**
   - Se incrementó el contraste del scroll en modales y secciones generales a 10px con thumb `#94a3b8` sobre track `#e2e8f0`, garantizando uniformidad estética en toda la plataforma.
+- **Documentación en Código para Futura Modularización:**
+  - Se estructuraron demarcaciones visuales y bloques JSDoc en [script.js](file:///d:/AGUAS/Page/seguimiento-actividades-pvcach/script.js) y [styles.css](file:///d:/AGUAS/Page/seguimiento-actividades-pvcach/styles.css) para clasificar las funciones por dominios lógicos (`sap-tabs`, `res-tabs`, `fed-tabs`, `table-renderer`), permitiendo una extracción ordenada a módulos ES6 independientes en etapas posteriores.
 
 ## [2026-10-20] - Ajustes Puntuales: Menú Segmentado Responsivo, Alineación de Descripciones y Expansión Vertical de Tablas
 ### Modificado / Mejorado
