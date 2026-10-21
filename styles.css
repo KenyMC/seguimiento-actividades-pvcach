@@ -2,10 +2,15 @@
 body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
-.custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
-.custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #64748b #e2e8f0;
+}
+.custom-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.custom-scroll::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 8px; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; border: 2px solid #e2e8f0; }
+.custom-scroll::-webkit-scrollbar-thumb:hover { background: #0a465c; }
+
 
 /* --- ANIMACIONES --- */
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -492,22 +497,118 @@ tr.bg-slate-800 {
     box-shadow: 0 0 0 2px rgba(13, 102, 168, 0.2);
 }
 
+/* ============================================================
+   BARRAS DE DESPLAZAMIENTO DESTACADAS PARA TABLAS
+   ============================================================ */
+
+/* Soporte nativo para Firefox (auto width y colores de alto contraste) */
+#sap-main-table-container,
+#res-main-table-container,
+#fed-main-table-container,
+#fed-vivienda-table-container,
+#fed-paso2-table-container,
+#sap-consolidated-container,
+#res-consolidated-container,
+#fed-consolidated-container,
+#pt-table-container,
+.table-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: #0a465c #e2e8f0;
+}
+
+/* Dimensiones: Grosor cómodo y ergonómico (13px) tanto horizontal como vertical */
 #sap-main-table-container::-webkit-scrollbar,
 #res-main-table-container::-webkit-scrollbar,
-#fed-main-table-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+#fed-main-table-container::-webkit-scrollbar,
+#fed-vivienda-table-container::-webkit-scrollbar,
+#fed-paso2-table-container::-webkit-scrollbar,
+#sap-consolidated-container::-webkit-scrollbar,
+#res-consolidated-container::-webkit-scrollbar,
+#fed-consolidated-container::-webkit-scrollbar,
+#pt-table-container::-webkit-scrollbar,
+.table-scroll::-webkit-scrollbar {
+    width: 13px;
+    height: 13px;
 }
+
+/* Riel / Pista de desplazamiento: fondo claro con borde sutil de separación */
+#sap-main-table-container::-webkit-scrollbar-track,
+#res-main-table-container::-webkit-scrollbar-track,
+#fed-main-table-container::-webkit-scrollbar-track,
+#fed-vivienda-table-container::-webkit-scrollbar-track,
+#fed-paso2-table-container::-webkit-scrollbar-track,
+#sap-consolidated-container::-webkit-scrollbar-track,
+#res-consolidated-container::-webkit-scrollbar-track,
+#fed-consolidated-container::-webkit-scrollbar-track,
+#pt-table-container::-webkit-scrollbar-track,
+.table-scroll::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 8px;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Tirador deslizante: cápsula en gradiente oceánico profundo con borde y sombra visible a simple vista */
 #sap-main-table-container::-webkit-scrollbar-thumb,
 #res-main-table-container::-webkit-scrollbar-thumb,
-#fed-main-table-container::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 6px;
+#fed-main-table-container::-webkit-scrollbar-thumb,
+#fed-vivienda-table-container::-webkit-scrollbar-thumb,
+#fed-paso2-table-container::-webkit-scrollbar-thumb,
+#sap-consolidated-container::-webkit-scrollbar-thumb,
+#res-consolidated-container::-webkit-scrollbar-thumb,
+#fed-consolidated-container::-webkit-scrollbar-thumb,
+#pt-table-container::-webkit-scrollbar-thumb,
+.table-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #0a465c 0%, #086b68 100%);
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    min-width: 44px;
+    min-height: 44px;
 }
+
+/* Estado Hover: resplandor cian-marino más iluminado */
 #sap-main-table-container::-webkit-scrollbar-thumb:hover,
 #res-main-table-container::-webkit-scrollbar-thumb:hover,
-#fed-main-table-container::-webkit-scrollbar-thumb:hover {
-    background: #0a465c;
+#fed-main-table-container::-webkit-scrollbar-thumb:hover,
+#fed-vivienda-table-container::-webkit-scrollbar-thumb:hover,
+#fed-paso2-table-container::-webkit-scrollbar-thumb:hover,
+#sap-consolidated-container::-webkit-scrollbar-thumb:hover,
+#res-consolidated-container::-webkit-scrollbar-thumb:hover,
+#fed-consolidated-container::-webkit-scrollbar-thumb:hover,
+#pt-table-container::-webkit-scrollbar-thumb:hover,
+.table-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #072839 0%, #0d66a8 100%);
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(10, 70, 92, 0.45);
 }
+
+/* Estado Activo / Clic y Arrastre */
+#sap-main-table-container::-webkit-scrollbar-thumb:active,
+#res-main-table-container::-webkit-scrollbar-thumb:active,
+#fed-main-table-container::-webkit-scrollbar-thumb:active,
+#fed-vivienda-table-container::-webkit-scrollbar-thumb:active,
+#fed-paso2-table-container::-webkit-scrollbar-thumb:active,
+#sap-consolidated-container::-webkit-scrollbar-thumb:active,
+#res-consolidated-container::-webkit-scrollbar-thumb:active,
+#fed-consolidated-container::-webkit-scrollbar-thumb:active,
+#pt-table-container::-webkit-scrollbar-thumb:active,
+.table-scroll::-webkit-scrollbar-thumb:active {
+    background: #072331;
+}
+
+/* Esquina de intersección horizontal/vertical */
+#sap-main-table-container::-webkit-scrollbar-corner,
+#res-main-table-container::-webkit-scrollbar-corner,
+#fed-main-table-container::-webkit-scrollbar-corner,
+#fed-vivienda-table-container::-webkit-scrollbar-corner,
+#fed-paso2-table-container::-webkit-scrollbar-corner,
+#sap-consolidated-container::-webkit-scrollbar-corner,
+#res-consolidated-container::-webkit-scrollbar-corner,
+#fed-consolidated-container::-webkit-scrollbar-corner,
+#pt-table-container::-webkit-scrollbar-corner,
+.table-scroll::-webkit-scrollbar-corner {
+    background: #cbd5e1;
+}
+
 
 

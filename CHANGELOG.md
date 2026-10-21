@@ -1,5 +1,16 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-21] - Rediseño de Barras de Desplazamiento en Tablas (Alto Contraste y Ergonomía Visual)
+### Modificado / Mejorado
+- **Visibilidad Inmediata de Barras Horizontal y Vertical en Tablas:**
+  - Se sustituyeron las antiguas barras de 8px en gris pálido casi invisible (`#cbd5e1`) por un sistema ergonómico de alto contraste de **13px de grosor** tanto en el eje horizontal como en el vertical.
+  - **Riel de Desplazamiento (Track):** Fondo claro delimitado en pizarra suave (`#e2e8f0`) con bordes redondeados y sombra interior sutil, demarcando nítidamente el área completa de desplazamiento disponible.
+  - **Tirador Deslizante (Thumb):** Cápsula con el degradado oceánico temático (`linear-gradient(135deg, #0a465c 0%, #086b68 100%)`), borde de 2px de separación y sombra de relieve, permitiendo identificar al instante la posición y extensión del recorrido.
+  - **Interacciones:** Efecto hover con resplandor cian-marino más iluminado (`#072839` a `#0d66a8`) y estado activo de arrastre con agarre firme.
+  - **Cobertura:** Aplicado con soporte nativo de Firefox (`scrollbar-width: auto; scrollbar-color: #0a465c #e2e8f0`) y WebKit a todas las tablas del sistema: `#sap-main-table-container`, `#res-main-table-container`, `#fed-main-table-container`, tablas secundarias de FED (`#fed-vivienda-table-container`, `#fed-paso2-table-container`), resúmenes consolidados y ranking Primer Tramo (`.table-scroll`).
+- **Mejora en Barras Generales de la Aplicación (`.custom-scroll`):**
+  - Se incrementó el contraste del scroll en modales y secciones generales a 10px con thumb `#94a3b8` sobre track `#e2e8f0`, garantizando uniformidad estética en toda la plataforma.
+
 ## [2026-10-20] - Ajustes Puntuales: Menú Segmentado Responsivo, Alineación de Descripciones y Expansión Vertical de Tablas
 ### Modificado / Mejorado
 - **Alineación Vertical Centrada en Descripciones de Actividad (Monitoreo 5P y FED):**
