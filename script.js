@@ -7479,6 +7479,10 @@ window.renderExecutiveDashboard = () => {
                         selectedRed = filterRedEl ? filterRedEl.value : 'TODAS';
                     }
 
+                    const filterAmbitoEl = getEl('dash-filter-ambito');
+                    const selectedAmbito = filterAmbitoEl ? filterAmbitoEl.value : (APP_STATE.dashFilterAmbito || 'Vigilancia');
+                    APP_STATE.dashFilterAmbito = selectedAmbito;
+
                     const from = APP_STATE.globalDateFrom || '2025-01';
                     const to = APP_STATE.globalDateTo || '2025-12';
                     const aF = from <= to ? from : to;
@@ -7506,11 +7510,31 @@ window.renderExecutiveDashboard = () => {
                     const iMes = findHeaderIndex(headersMain, 'Mes');
                     const iAno = findHeaderIndex(headersMain, 'Año');
 
-                    // Filtrar filas según Red seleccionada y Rango de Fechas (Desde - Hasta)
+                    // Filtrar filas según Red seleccionada, Ámbito y Rango de Fechas (Desde - Hasta)
                     const filteredRows = allRows.filter(r => {
                         if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
                             const redVal = iRed !== -1 ? (r[iRed] || '').trim() : '';
                             if (!isSameRed(redVal, selectedRed)) return false;
+                        }
+                        if (selectedAmbito === 'MEF' && iIdSap !== -1) {
+                            const ubi = iUbi !== -1 && r[iUbi] ? formatUbigeo(r[iUbi]) : '';
+                            const sap = String(r[iIdSap] || '').trim();
+                            if (!sap) return false;
+                            let isValid = false;
+                            if (ubi && APP_STATE.mefUbigeoSapSet && APP_STATE.mefUbigeoSapSet.has(`${ubi}|${sap}`)) {
+                                isValid = true;
+                            } else if (!ubi && APP_STATE.mefSapIds && APP_STATE.mefSapIds.has(sap)) {
+                                isValid = true;
+                            }
+                            if (!isValid) return false;
+                        } else if (selectedAmbito !== 'Vigilancia') {
+                            const ubi = iUbi !== -1 && r[iUbi] ? formatUbigeo(r[iUbi]) : '';
+                            const sap = iIdSap !== -1 && r[iIdSap] ? String(r[iIdSap]).trim() : '';
+                            if (selectedAmbito === 'FED' && ubi && APP_STATE.fedUbigeos && !APP_STATE.fedUbigeos.has(ubi)) return false;
+                            if (selectedAmbito === 'SAP REGULARES' && ubi && APP_STATE.sapRegularesUbigeos && !APP_STATE.sapRegularesUbigeos.has(ubi)) return false;
+                            if (selectedAmbito === 'MIDIS' && ((!APP_STATE.midisUbigeos || !APP_STATE.midisUbigeos.has(ubi)) && (!APP_STATE.midisSapIds || !APP_STATE.midisSapIds.has(sap)))) return false;
+                            if (selectedAmbito === 'Meta 2025' && ((!APP_STATE.meta2025Ubigeos || !APP_STATE.meta2025Ubigeos.has(ubi)) && (!APP_STATE.meta2025SapIds || !APP_STATE.meta2025SapIds.has(sap)))) return false;
+                            if (selectedAmbito === 'APNOP' && ((!APP_STATE.apnopUbigeos || !APP_STATE.apnopUbigeos.has(ubi)) && (!APP_STATE.apnopSapIds || !APP_STATE.apnopSapIds.has(sap)))) return false;
                         }
                         if (iMes !== -1) {
                             const m = r[iMes];
@@ -7568,7 +7592,11 @@ window.renderExecutiveDashboard = () => {
                     const elJass = getEl('dash-kpi-jass'); if (elJass) elJass.textContent = jassSet.size.toLocaleString();
 
                     const pctCloro = cloroTotalCount > 0 ? ((cloroOkCount / cloroTotalCount) * 100).toFixed(1) : '0.0';
-                    const elFed = getEl('dash-kpi-fed'); if (elFed) elFed.textContent = `${pctCloro}%`;
+
+                    // 2.1 Módulo: Seguimiento de Sistemas Incompletos por Actividad
+                    if (typeof window.computeAndRenderDashIncompletos === 'function') {
+                        window.computeAndRenderDashIncompletos(selectedRed, selectedAmbito);
+                    }
 
                     // 3. Módulo 2: Evolución Interanual de Centros Poblados con Agua Clorada (2022 - 2026)
                     const yearsConfig = [
@@ -7961,6 +7989,486 @@ window.renderExecutiveDashboard = () => {
             }, 60);
         });
     });
+};
+
+// ============================================================================
+// MÓDULO DASHBOARD: SEGUIMIENTO DE SISTEMAS INCOMPLETOS POR ACTIVIDAD
+// ============================================================================
+
+const DASH_ACTIVITIES = [
+    { id: 'monitor', label: 'Monitoreo 5P', icon: 'droplet', req: 'Tener al menos 3 muestras en red de distribución y 1 en reservorio con los 5 parámetros completos (Cloro, Conductividad, pH, Temperatura y Turbiedad) cada mes del periodo evaluado.' },
+    { id: 'sanitaria', label: 'Insp. Sanitaria', icon: 'clipboard-check', req: 'Contar con al menos 1 inspección sanitaria registrada por semestre en el sistema de abastecimiento.' },
+    { id: 'caracterizacion', label: 'Caracterización', icon: 'flask-conical', req: 'Muestreo semestral en red y fuente/captación evaluando la totalidad de parámetros normativos de caracterización.' },
+    { id: 'metales', label: 'Inorgánicos', icon: 'shield-alert', req: 'Evaluación periódica completa de metales pesados e inorgánicos (LMPs) sin parámetros omitidos.' },
+    { id: 'fisico', label: 'Físico Químicos', icon: 'thermometer', req: 'Cumplimiento de la batería completa de parámetros físico-químicos en red de distribución y fuente.' },
+    { id: 'bacteriologico', label: 'Bacteriológico', icon: 'microscope', req: 'Monitoreo microbiológico completo (Coliformes Fecales, Coliformes Totales y E. Coli) en red y captación.' },
+    { id: 'parasitologico', label: 'Parasitológico', icon: 'bug', req: 'Evaluación y control de organismos parasitarios en el agua de consumo.' },
+    { id: 'riesgos', label: 'Riesgos', icon: 'file-text', req: 'Emisión de Informe de Riesgo y Cargo de notificación a la autoridad/JASS con estado aprobado en cada mes.' }
+];
+
+window.dashIncompletosData = {};
+window.dashActiveIncompletoTab = 'monitor';
+window.dashIncompletosCurrentRows = [];
+window.dashIncompletosFilteredRows = [];
+
+window.computeAndRenderDashIncompletos = (selectedRed, selectedAmbito) => {
+    if (!APP_STATE.rawData || !APP_STATE.rawData.main) return;
+
+    window.dashIncompletosData = {};
+    const normRed = selectedRed === 'TODAS' ? 'Todos' : selectedRed;
+    const normAmbito = selectedAmbito || 'Vigilancia';
+
+    DASH_ACTIVITIES.forEach(act => {
+        const actId = act.id;
+        let res = null;
+        try {
+            res = runSapLogic(actId, APP_STATE.rawData, normRed, normAmbito);
+        } catch (e) {
+            console.error(`Error procesando actividad ${actId} en dashboard:`, e);
+        }
+
+        if (!res || !res.data) {
+            window.dashIncompletosData[actId] = { total: 0, completas: 0, incompletas: 0, pct: '0.0', list: [] };
+            return;
+        }
+
+        const headers = res.headers || [];
+        const data = res.data || [];
+        const coreCount = CORE_HEADERS.length; // 9
+
+        let totalSaps = 0;
+        let completasCount = 0;
+        const incompletasList = [];
+
+        data.forEach(r => {
+            totalSaps++;
+            const idSap = r[0] || '';
+            const nomSap = r[1] || '';
+            const ubigeo = r[2] || '';
+            const ccpp = r[3] || '';
+            const dist = r[4] || '';
+            const prov = r[5] || '';
+            const red = r[8] || '';
+
+            let isComplete = false;
+            let isParcial = false;
+            const detalles = [];
+            let histJson = '';
+
+            if (actId === 'monitor') {
+                histJson = r[r.length - 1] || '[]';
+                // Las columnas de meses van de coreCount a r.length - 3 (excluye Observación y Ver Detalle)
+                const mCols = headers.slice(coreCount, headers.length - 2);
+                let mComp = 0;
+
+                mCols.forEach((mName, mIdx) => {
+                    const rawCell = r[coreCount + mIdx];
+                    let cell = null;
+                    try { cell = JSON.parse(rawCell); } catch (e) {}
+                    if (cell) {
+                        if (cell.status === 1) {
+                            mComp++;
+                        } else if (cell.status === 2) {
+                            isParcial = true;
+                            const pMsg = cell.params && cell.params.length > 0 ? `faltan ${cell.params.join(', ')}` : 'muestras insuficientes en red/reservorio';
+                            detalles.push(`${mName}: Incompleto (${pMsg})`);
+                        } else {
+                            detalles.push(`${mName}: Sin monitoreo`);
+                        }
+                    } else {
+                        detalles.push(`${mName}: Sin monitoreo`);
+                    }
+                });
+
+                if (mCols.length > 0 && mComp === mCols.length) {
+                    isComplete = true;
+                } else {
+                    isComplete = false;
+                }
+            } else if (actId === 'sanitaria') {
+                const semCols = headers.slice(coreCount);
+                let sComp = 0;
+                semCols.forEach((sName, sIdx) => {
+                    const rawCell = r[coreCount + sIdx];
+                    let cell = null;
+                    try { cell = JSON.parse(rawCell); } catch (e) {}
+                    if (cell && cell.status === 1) {
+                        sComp++;
+                    } else {
+                        detalles.push(`${sName}: Sin inspección registrada`);
+                    }
+                });
+                if (semCols.length > 0 && sComp === semCols.length) isComplete = true;
+                else isComplete = false;
+            } else if (actId === 'caracterizacion') {
+                const semCols = headers.slice(coreCount);
+                let cOk = true;
+                semCols.forEach((hName, hIdx) => {
+                    if (hName.startsWith('Ver Detalle') || hName === 'Cloro LMP Red') return;
+                    const rawCell = r[coreCount + hIdx];
+                    let cell = null;
+                    try { cell = JSON.parse(rawCell); } catch (e) {}
+                    if (cell) {
+                        if (cell.status === 2) {
+                            cOk = false;
+                            isParcial = true;
+                            detalles.push(`${hName}: Incompleto (${cell.params ? cell.params.slice(0, 3).join(', ') : 'faltan parámetros'})`);
+                        } else if (cell.status === 0 || cell.status === 3) {
+                            cOk = false;
+                            detalles.push(`${hName}: Sin muestra evaluada`);
+                        }
+                    } else {
+                        cOk = false;
+                        detalles.push(`${hName}: Sin datos`);
+                    }
+                });
+                isComplete = cOk;
+            } else if (actId === 'riesgos') {
+                const mCols = headers.slice(coreCount);
+                let rComp = 0;
+                mCols.forEach((mName, mIdx) => {
+                    const rawCell = r[coreCount + mIdx];
+                    let cell = null;
+                    try { cell = JSON.parse(rawCell); } catch (e) {}
+                    if (cell && cell.status === 1) {
+                        rComp++;
+                    } else if (cell && cell.status === 2) {
+                        isParcial = true;
+                        detalles.push(`${mName}: Incompleto (${cell.params && cell.params.length ? cell.params.join(', ') : 'Falta Cargo'})`);
+                    } else {
+                        detalles.push(`${mName}: Sin Informe ni Cargo`);
+                    }
+                });
+                if (mCols.length > 0 && rComp === mCols.length) isComplete = true;
+                else isComplete = false;
+            } else {
+                // metales, fisico, bacteriologico, parasitologico
+                const actCols = headers.slice(coreCount);
+                let aComp = 0;
+                let totalEvalCols = 0;
+                actCols.forEach((hName, hIdx) => {
+                    if (actId === 'bacteriologico' && !hName.includes('(Total)')) return;
+                    if (['parasitologico', 'fisico', 'metales'].includes(actId) && !hName.includes('(Total)') && !hName.includes('Semestre') && !hName.includes('Insp')) return;
+                    totalEvalCols++;
+                    const rawCell = r[coreCount + hIdx];
+                    let cell = null;
+                    try { cell = JSON.parse(rawCell); } catch (e) {}
+                    if (cell && cell.status === 1) {
+                        aComp++;
+                    } else if (cell && cell.status === 2) {
+                        isParcial = true;
+                        detalles.push(`${hName}: Incompleto (${cell.params && cell.params.length ? cell.params.slice(0, 3).join(', ') : 'faltan parámetros normativos'})`);
+                    } else {
+                        detalles.push(`${hName}: Sin muestra registrada`);
+                    }
+                });
+                if (totalEvalCols > 0 && aComp === totalEvalCols) isComplete = true;
+                else isComplete = false;
+            }
+
+            if (isComplete) {
+                completasCount++;
+            } else {
+                incompletasList.push({
+                    idSap,
+                    nomSap,
+                    ubigeo,
+                    ccpp,
+                    distrito: dist,
+                    provincia: prov,
+                    red,
+                    isParcial,
+                    detalles,
+                    detalleTexto: detalles.slice(0, 3).join(' • ') + (detalles.length > 3 ? ` (+${detalles.length - 3} más)` : ''),
+                    histJson,
+                    metaRow: r.slice(0, 9)
+                });
+            }
+        });
+
+        const pct = totalSaps > 0 ? ((completasCount / totalSaps) * 100).toFixed(1) : '0.0';
+        window.dashIncompletosData[actId] = {
+            total: totalSaps,
+            completas: completasCount,
+            incompletas: incompletasList.length,
+            pct,
+            list: incompletasList
+        };
+    });
+
+    window.renderActiveDashIncompletoTab(window.dashActiveIncompletoTab || 'monitor');
+};
+
+window.switchDashIncompletosTab = (actId) => {
+    window.dashActiveIncompletoTab = actId;
+    window.renderActiveDashIncompletoTab(actId);
+};
+
+window.renderActiveDashIncompletoTab = (actId) => {
+    const act = DASH_ACTIVITIES.find(a => a.id === actId) || DASH_ACTIVITIES[0];
+    const dataObj = window.dashIncompletosData[act.id] || { total: 0, completas: 0, incompletas: 0, pct: '0.0', list: [] };
+
+    window.dashIncompletosCurrentRows = dataObj.list;
+    window.dashIncompletosFilteredRows = dataObj.list;
+
+    // 1. Renderizar Botones Segmentados de las 8 Actividades
+    const tabsCont = getEl('dash-act-tabs-container');
+    if (tabsCont) {
+        tabsCont.innerHTML = DASH_ACTIVITIES.map(a => {
+            const d = window.dashIncompletosData[a.id] || { incompletas: 0 };
+            const isActive = a.id === act.id;
+            const badgeClass = d.incompletas > 0 
+                ? (isActive ? 'bg-amber-400 text-slate-900 shadow-xs' : 'bg-amber-100 text-amber-800 border border-amber-300')
+                : (isActive ? 'bg-emerald-400 text-slate-900 shadow-xs' : 'bg-emerald-100 text-emerald-800 border border-emerald-300');
+            
+            const btnClass = isActive 
+                ? 'subtab-active shadow-md text-white' 
+                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 shadow-2xs';
+
+            return `
+                <button onclick="window.switchDashIncompletosTab('${a.id}')" class="subtab-btn flex flex-col items-center justify-between p-2 rounded-xl transition-all h-14 w-full cursor-pointer active:scale-95 ${btnClass}">
+                    <div class="flex items-center gap-1.5 text-[11px] font-extrabold tracking-tight truncate w-full justify-center">
+                        <i data-lucide="${a.icon}" class="w-3.5 h-3.5 shrink-0 ${isActive ? 'text-teal-300' : 'text-slate-500'}"></i>
+                        <span class="truncate">${a.label}</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${badgeClass}">
+                        ${d.incompletas > 0 ? `${d.incompletas.toLocaleString()} pendientes` : '0 pendientes'}
+                    </span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    // 2. Renderizar KPIs de la Actividad Activa
+    const kpisCont = getEl('dash-act-kpis');
+    if (kpisCont) {
+        kpisCont.innerHTML = `
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">SAPs Evaluados</p>
+                    <p class="text-2xl font-black text-slate-800">${dataObj.total.toLocaleString()}</p>
+                    <p class="text-[11px] font-bold text-slate-500">Total en el ámbito</p>
+                </div>
+                <div class="p-3 bg-white rounded-xl text-indigo-600 shadow-2xs border border-slate-200/60"><i data-lucide="layers" class="w-5 h-5"></i></div>
+            </div>
+            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Sistemas Completos</p>
+                    <p class="text-2xl font-black text-emerald-800">${dataObj.completas.toLocaleString()}</p>
+                    <p class="text-[11px] font-bold text-emerald-600">${dataObj.pct}% cumplimiento</p>
+                </div>
+                <div class="p-3 bg-white rounded-xl text-emerald-600 shadow-2xs border border-emerald-200"><i data-lucide="check-circle" class="w-5 h-5"></i></div>
+            </div>
+            <div class="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-0.5">Sistemas Incompletos</p>
+                    <p class="text-2xl font-black text-amber-900">${dataObj.incompletas.toLocaleString()}</p>
+                    <p class="text-[11px] font-bold text-amber-700">Requieren completar</p>
+                </div>
+                <div class="p-3 bg-white rounded-xl text-amber-600 shadow-2xs border border-amber-200"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-1">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avance Actividad</p>
+                    <span class="text-xs font-black text-teal-700">${dataObj.pct}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden my-1">
+                    <div class="bg-gradient-to-r from-teal-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, parseFloat(dataObj.pct)))}%"></div>
+                </div>
+                <p class="text-[11px] font-bold text-slate-500 truncate">${dataObj.completas} de ${dataObj.total} SAPs completados</p>
+            </div>
+        `;
+    }
+
+    // 3. Banner Informativo de Requerimiento de la Actividad
+    const reqBanner = getEl('dash-act-req-banner');
+    if (reqBanner) {
+        const amb = getEl('dash-filter-ambito')?.value || APP_STATE.dashFilterAmbito || 'Vigilancia';
+        reqBanner.innerHTML = `
+            <div class="flex items-center gap-3 flex-1">
+                <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shrink-0 shadow-2xs">
+                    <i data-lucide="${act.icon}" class="w-4 h-4 text-indigo-600"></i>
+                </div>
+                <div class="text-xs text-slate-700 leading-snug">
+                    <strong class="text-slate-900 font-extrabold mr-1">Criterio de Cumplimiento (${act.label}):</strong>
+                    <span>${act.req}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-black uppercase tracking-wider border border-indigo-200 shadow-2xs">
+                    Ámbito: ${amb}
+                </span>
+            </div>
+        `;
+    }
+
+    // 4. Limpiar input de búsqueda
+    const searchInput = getEl('dash-incompletos-search');
+    if (searchInput) searchInput.value = '';
+
+    // 5. Renderizar cuerpo de la tabla
+    window.renderDashIncompletosTableRows(dataObj.list, act.id);
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.renderDashIncompletosTableRows = (rows, actId) => {
+    const tbody = getEl('dash-incompletos-tbody');
+    if (!tbody) return;
+
+    if (!rows || rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="px-6 py-12 text-center text-emerald-600 font-bold text-sm">
+                    <div class="flex flex-col items-center justify-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-10 h-10 text-emerald-500"></i>
+                        <span>¡Excelente! Todos los sistemas cumplen o no se encontraron registros incompletos para esta actividad.</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+        return;
+    }
+
+    tbody.innerHTML = rows.map((item, idx) => {
+        const estadoBadge = item.isParcial
+            ? `<span class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-black text-[10px] inline-flex items-center gap-1 shadow-2xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Incompleto</span>`
+            : `<span class="px-2.5 py-1 bg-red-50 text-red-700 border border-red-200 rounded-full font-black text-[10px] inline-flex items-center gap-1 shadow-2xs whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Pendiente</span>`;
+
+        let actionBtns = '';
+        if (actId === 'monitor') {
+            actionBtns = `
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="window.openDashMonitorModal(${idx})" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shadow-2xs border border-indigo-200 active:scale-95 cursor-pointer whitespace-nowrap" title="Ver detalle de monitoreos de este sistema">
+                        <i data-lucide="eye" class="w-3 h-3"></i> Muestreos
+                    </button>
+                    <button onclick="window.goToSapActivity('${actId}', '${item.idSap}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shadow-2xs border border-slate-200 active:scale-95 cursor-pointer whitespace-nowrap" title="Ir a la ficha de esta actividad">
+                        <i data-lucide="external-link" class="w-3 h-3"></i> Ficha
+                    </button>
+                </div>
+            `;
+        } else {
+            actionBtns = `
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="window.openDashDetalleModal(${idx})" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shadow-2xs border border-indigo-200 active:scale-95 cursor-pointer whitespace-nowrap" title="Ver qué parámetros faltan">
+                        <i data-lucide="info" class="w-3 h-3"></i> Detalle
+                    </button>
+                    <button onclick="window.goToSapActivity('${actId}', '${item.idSap}')" class="px-2 py-1 bg-slate-100 hover:bg-teal-600 text-slate-700 hover:text-white rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shadow-2xs border border-slate-200 active:scale-95 cursor-pointer whitespace-nowrap" title="Ir a la ficha de esta actividad">
+                        <i data-lucide="external-link" class="w-3 h-3"></i> Ficha
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <tr class="hover:bg-indigo-50/40 transition-colors">
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-xs">${item.idSap || '-'}</span>
+                </td>
+                <td class="px-4 py-3 font-bold text-slate-800 text-xs max-w-[200px] truncate" title="${safeEscape(item.nomSap)}">
+                    ${item.nomSap || '-'}
+                </td>
+                <td class="px-4 py-3 text-slate-600 text-xs max-w-[180px] truncate" title="${safeEscape(item.ccpp)}">
+                    ${item.ccpp || '-'}
+                </td>
+                <td class="px-4 py-3 text-slate-500 font-medium text-xs whitespace-nowrap">
+                    ${item.prov || '-'}${item.distrito ? ' / ' + item.distrito : ''}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                    <span class="font-bold text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full text-[11px] border border-teal-200">${item.red || '-'}</span>
+                </td>
+                <td class="px-4 py-3 text-center whitespace-nowrap">
+                    ${estadoBadge}
+                </td>
+                <td class="px-4 py-3 text-xs text-slate-700 max-w-[320px] truncate font-medium" title="${safeEscape(item.detalles.join(' • '))}">
+                    ${safeEscape(item.detalleTexto)}
+                </td>
+                <td class="px-4 py-3 text-center whitespace-nowrap">
+                    ${actionBtns}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.filterDashIncompletosTable = () => {
+    const q = (getEl('dash-incompletos-search')?.value || '').trim().toLowerCase();
+    const rows = window.dashIncompletosCurrentRows || [];
+    if (!q) {
+        window.dashIncompletosFilteredRows = rows;
+    } else {
+        window.dashIncompletosFilteredRows = rows.filter(r => 
+            (r.idSap && String(r.idSap).toLowerCase().includes(q)) ||
+            (r.nomSap && String(r.nomSap).toLowerCase().includes(q)) ||
+            (r.ccpp && String(r.ccpp).toLowerCase().includes(q)) ||
+            (r.provincia && String(r.provincia).toLowerCase().includes(q)) ||
+            (r.distrito && String(r.distrito).toLowerCase().includes(q)) ||
+            (r.red && String(r.red).toLowerCase().includes(q)) ||
+            (r.detalleTexto && String(r.detalleTexto).toLowerCase().includes(q))
+        );
+    }
+    window.renderDashIncompletosTableRows(window.dashIncompletosFilteredRows, window.dashActiveIncompletoTab || 'monitor');
+};
+
+window.openDashMonitorModal = (idx) => {
+    const item = window.dashIncompletosFilteredRows ? window.dashIncompletosFilteredRows[idx] : null;
+    if (!item) return;
+    window.openMonitorDetailModal(JSON.stringify(item.metaRow), item.histJson || '[]');
+};
+
+window.openDashDetalleModal = (idx) => {
+    const item = window.dashIncompletosFilteredRows ? window.dashIncompletosFilteredRows[idx] : null;
+    if (!item) return;
+    const txt = item.detalles && item.detalles.length > 0 ? item.detalles.join(', ') : 'Sin detalles adicionales.';
+    window.openParamsModal(txt, `Sistema ${item.nomSap} (${item.idSap}) - Pendientes / Incompletos:`);
+};
+
+window.goToSapActivity = (actId, idSap) => {
+    window.switchTab('sap');
+    window.changeSapSubTab(actId);
+    if (idSap) {
+        setTimeout(() => {
+            APP_STATE.currentTableFilters = { 0: idSap };
+            processActiveData();
+        }, 150);
+    }
+};
+
+window.exportDashIncompletosExcel = () => {
+    if (typeof XLSX === 'undefined') {
+        alert('Librería XLSX no disponible para exportación.');
+        return;
+    }
+    const actId = window.dashActiveIncompletoTab || 'monitor';
+    const act = DASH_ACTIVITIES.find(a => a.id === actId) || DASH_ACTIVITIES[0];
+    const rows = window.dashIncompletosFilteredRows || [];
+
+    if (rows.length === 0) {
+        alert('No hay registros incompletos para exportar con los filtros actuales.');
+        return;
+    }
+
+    const headers = ['Id. SAP', 'Nombre SAP', 'Centro Poblado', 'Ubigeo', 'Distrito', 'Provincia', 'Red de Salud', 'Estado', '¿Qué le falta completar?'];
+    const dataRows = rows.map(r => [
+        r.idSap || '',
+        r.nomSap || '',
+        r.ccpp || '',
+        r.ubigeo || '',
+        r.distrito || '',
+        r.provincia || '',
+        r.red || '',
+        r.isParcial ? 'Incompleto' : 'Pendiente',
+        r.detalles.join('; ')
+    ]);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    XLSX.utils.book_append_sheet(wb, ws, "Sistemas_Incompletos");
+    const amb = getEl('dash-filter-ambito')?.value || 'Vigilancia';
+    const red = getEl('dash-filter-red')?.value || 'TODAS';
+    XLSX.writeFile(wb, `Incompletos_${act.label.replace(/\s+/g, '_')}_${red.replace(/\s+/g, '_')}_${amb}.xlsx`);
 };
 
 // Inicializar la aplicación de manera segura

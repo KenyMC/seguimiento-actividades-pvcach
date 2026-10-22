@@ -1,5 +1,34 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-22] - Módulo de Sistemas Incompletos por Actividad, Filtro Ámbito y Limpieza de KPIs en Inicio
+### Añadido / Modificado
+- **Nuevo Filtro Ámbito en el Centro de Mando (Inicio):**
+  - Se incorporó el selector `#dash-filter-ambito` en la cabecera ejecutiva con las opciones normativas del sistema: *Vigilancia*, *MEF*, *FED*, *SAP REGULARES*, *MIDIS*, *Meta 2025* y *APNOP*.
+  - El filtro se sincroniza dinámicamente con `APP_STATE.dashFilterAmbito` y filtra instantáneamente todos los cálculos: total de sistemas vigilados, centros poblados, establecimientos IPRESS, prestadores JASS, evolución de cloración y la nueva matriz de sistemas incompletos.
+- **Limpieza de Tarjetas KPI Ejecutivas:**
+  - Se retiró la quinta tarjeta ("Avance Cloración 83.8%"), redistribuyendo equitativamente los 4 totales clave (*Sistemas Vigilados*, *Centros Poblados*, *E.S. Vigilancia*, *Prestadores (JASS)*) en una cuadrícula armónica de 4 columnas (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`).
+- **Nueva Sección: Seguimiento de Sistemas Incompletos y Pendientes por Actividad:**
+  - Ubicada estratégicamente debajo de las 4 tarjetas KPI, identifica con precisión técnica qué sistemas de abastecimiento (SAPs) están incompletos o pendientes para cada una de las 8 actividades de vigilancia:
+    1. *Monitoreo 5P* (Cloro, Conductividad, pH, Temperatura y Turbiedad)
+    2. *Insp. Sanitaria* (Inspecciones semestrales)
+    3. *Caracterización* (Evaluación semestral de red y fuente/captación)
+    4. *Inorgánicos (Metales Pesados)* (Cumplimiento de LMPs de metales)
+    5. *Físico Químicos* (Batería físico-química completa)
+    6. *Bacteriológico* (Coliformes Fecales, Totales y E. Coli)
+    7. *Parasitológico* (Control de parásitos en agua)
+    8. *Riesgos* (Emisión de informe y cargo aprobado por mes)
+  - **Barra Segmentada con Contadores en Vivo:** 8 subpestañas ergonómicas con badges que reflejan en tiempo real el número de SAPs incompletos/pendientes según los filtros de fechas, Red y Ámbito.
+  - **Métricas de la Actividad Activa:** Resumen con SAPs evaluados, sistemas completos, pendientes y barra de porcentaje de avance.
+  - **Tabla Interactiva de Incompletos:**
+    - Columnas detalladas: `Id. SAP`, `Nombre SAP`, `Centro Poblado`, `Provincia / Distrito`, `Red de Salud`, `Estado` (Incompleto vs. Pendiente), y `¿Qué le falta completar?` (desglose textual exacto de meses, muestras o parámetros ausentes).
+    - **Acciones Directas:**
+      - Botón `Muestreos`: Abre el modal oficial *Detalle de Monitoreos* con el historial completo de muestras del sistema.
+      - Botón `Ficha`: Navega de inmediato a la actividad correspondiente en la pestaña *Actividades SAP* con el filtro del SAP activado.
+      - Botón `Detalle`: Despliega el modal de parámetros faltantes.
+  - **Búsqueda en Tiempo Real y Exportación a Excel:**
+    - Buscador reactivo para filtrar por Id. SAP, Nombre, CCPP, Red o razón de falta.
+    - Exportación XLSX con toda la data formateada para gestión operativa.
+
 ## [2026-10-22] - Adaptación de Red de Salud y Sincronización en Tablero Ejecutivo (Inicio)
 ### Modificado / Mejorado
 - **Adaptación Dinámica por Red de Salud Asignada:**
