@@ -1,5 +1,17 @@
 # Changelog del Proyecto - Seguimiento de Actividades SAP
 
+## [2026-10-22] - Adaptación de Red de Salud y Sincronización en Tablero Ejecutivo (Inicio)
+### Modificado / Mejorado
+- **Adaptación Dinámica por Red de Salud Asignada:**
+  - Se vinculó el selector `dash-filter-red` con el perfil del usuario autenticado (`APP_STATE.currentUser.red`).
+  - Para usuarios asignados a una Red de Salud específica (ej. *Cusco Norte*, *Canas Canchis Espinar*, etc.), el selector se bloquea automáticamente en su Red, filtrando todos los indicadores ejecutivos (CCPP con agua clorada, ranking de riesgo provincial, prevalencia de superación de LMPs, alertas de reincidencia y semáforos de compromisos) exclusivamente a su ámbito geográfico.
+  - Para usuarios administradores o GERESA / Regionales, el selector permanece habilitado permitiendo alternar dinámicamente entre "Todas las Redes" o cualquier Red individual.
+- **Sincronización Inmediata y Comparación Segura de Redes:**
+  - Se implementó la función auxiliar `isSameRed()` en los filtros del dashboard ejecutivo para normalizar acentos, espacios y mayúsculas, garantizando coincidencias exactas con los datos del dataset.
+  - Se adaptó la etiqueta de evolución interanual (`dash-evolucion-subtitle`) y los semáforos institucionales (MEF, FED, MIDIS, Vivienda) para reflejar dinámicamente el nombre de la Red activa.
+- **Carga de Históricos en Dashboard:**
+  - Se optimizó el flujo de descarga de periodos anteriores (`loadHist`) en el Centro de Mando, conectando el indicador visual de procesamiento con `#dash-processing`.
+
 ## [2026-10-21] - Reorganización de Columnas en Caracterización (Cloro LMP Red y Priorización de Red sobre Fuente)
 ### Modificado / Mejorado
 - **Renombramiento de Columna:**

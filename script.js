@@ -95,6 +95,17 @@ const findHeaderIndex = (() => {
     };
 })();
 
+const isSameRed = (r1, r2) => {
+    if (!r1 || !r2) return false;
+    const s1 = String(r1).trim().toUpperCase();
+    const s2 = String(r2).trim().toUpperCase();
+    if (s1 === s2) return true;
+    const n1 = normalizeHeader(s1).replace(/[^a-z0-9]/g, '');
+    const n2 = normalizeHeader(s2).replace(/[^a-z0-9]/g, '');
+    if (!n1 || !n2) return false;
+    return n1 === n2 || n1.includes(n2) || n2.includes(n1);
+};
+
 const isCellEmpty = c => c === null || c === undefined || String(c).trim() === '';
 const formatUbigeo = u => u ? String(u).trim().padStart(10, '0') : '';
 const safeEscape = s => s === null || s === undefined ? '' : String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ").replace(/\r/g, "");
@@ -279,33 +290,94 @@ async function syncUsers(ld = false) {
 window.applyUserRoleUI = () => {
     // Si la Red de Salud del usuario actual es GERESA o TODAS, tiene acceso total.
     const uR = APP_STATE.currentUser?.red || 'TODAS'; 
+    const uName = APP_STATE.currentUser?.usuario || 'Usuario';
     const isRestrictedRed = (uR !== 'TODAS' && uR !== 'GERESA');
     const iR = isRestrictedRed; 
-    let h = '';
+    
+    // Determinar el nombre exacto de la Red en los datos si es restringido
+    let matchedRed = uR;
+    if (iR && APP_STATE.uniqueRedes && APP_STATE.uniqueRedes.size > 0) {
+        const found = Array.from(APP_STATE.uniqueRedes).find(r => isSameRed(r, uR));
+        if (found) matchedRed = found;
+    }
+
+    let hGeneral = '';
+    let hDash = '';
     
     if (iR) { 
-        h = `<option value="${uR}">${uR}</option>`; 
+        hGeneral = `<option value="${matchedRed}">${matchedRed}</option>`; 
+        hDash = `<option value="${matchedRed}">${matchedRed}</option>`;
     } else { 
-        h = '<option value="Todos">Todas las Redes</option>'; 
+        hGeneral = '<option value="Todos">Todas las Redes</option>'; 
+        hDash = '<option value="TODAS">Todas las Redes</option>';
         if (APP_STATE.uniqueRedes) { 
-            Array.from(APP_STATE.uniqueRedes).sort().forEach(r => { h += `<option value="${r}">${r}</option>`; }); 
+            Array.from(APP_STATE.uniqueRedes).sort().forEach(r => { 
+                hGeneral += `<option value="${r}">${r}</option>`; 
+                hDash += `<option value="${r}">${r}</option>`;
+            }); 
         } 
     }
     
     ['sap-filter-red', 'res-filter-red', 'fed-filter-red'].forEach(id => { 
         const s = getEl(id); 
         if (s) { 
-            s.innerHTML = h; 
+            s.innerHTML = hGeneral; 
             s.disabled = iR; 
-            if (iR) s.classList.add('opacity-50', 'cursor-not-allowed'); 
-            else s.classList.remove('opacity-50', 'cursor-not-allowed'); 
+            if (iR) {
+                s.value = matchedRed;
+                s.classList.add('opacity-50', 'cursor-not-allowed'); 
+            } else {
+                s.classList.remove('opacity-50', 'cursor-not-allowed'); 
+            }
         } 
     });
+
+    const sDash = getEl('dash-filter-red');
+    if (sDash) {
+        sDash.innerHTML = hDash;
+        sDash.disabled = iR;
+        if (iR) {
+            sDash.value = matchedRed;
+            sDash.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            sDash.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
     
     if (iR) { 
-        APP_STATE.sapFilterRed = uR; APP_STATE.resFilterRed = uR; APP_STATE.fedFilterRed = uR; 
+        APP_STATE.sapFilterRed = matchedRed; 
+        APP_STATE.resFilterRed = matchedRed; 
+        APP_STATE.fedFilterRed = matchedRed; 
+        APP_STATE.dashFilterRed = matchedRed;
     } else { 
-        APP_STATE.sapFilterRed = 'Todos'; APP_STATE.resFilterRed = 'Todos'; APP_STATE.fedFilterRed = 'Todos'; 
+        APP_STATE.sapFilterRed = 'Todos'; 
+        APP_STATE.resFilterRed = 'Todos'; 
+        APP_STATE.fedFilterRed = 'Todos'; 
+        APP_STATE.dashFilterRed = 'TODAS';
+    }
+
+    // Actualizar bienvenida y subtítulo en sección Inicio
+    const welcomeUser = getEl('welcome-user');
+    if (welcomeUser) welcomeUser.textContent = uName;
+
+    const welcomeBadge = getEl('welcome-badge');
+    if (welcomeBadge) {
+        if (iR) {
+            welcomeBadge.textContent = `Red ${matchedRed}`;
+            welcomeBadge.className = "text-sm md:text-base font-bold px-3 py-1 bg-teal-50 text-teal-800 rounded-full border border-teal-200 shadow-xs";
+        } else {
+            welcomeBadge.textContent = "Vigilancia Regional";
+            welcomeBadge.className = "text-sm md:text-base font-bold px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200 shadow-xs";
+        }
+    }
+
+    const dashSubtitle = getEl('dash-header-subtitle');
+    if (dashSubtitle) {
+        if (iR) {
+            dashSubtitle.textContent = `Centro de Mando - ${matchedRed} • Estadísticas de Calidad de Agua y Riesgos Sanitarios`;
+        } else {
+            dashSubtitle.textContent = "Centro de Mando Regional • Estadísticas de Calidad de Agua y Riesgos Sanitarios";
+        }
     }
 
     // Mostrar/Ocultar secciones según el rol:
@@ -318,6 +390,10 @@ window.applyUserRoleUI = () => {
     if (navCal) navCal.style.display = canSeeAll ? 'flex' : 'none';
     if (navGer) navGer.style.display = canSeeAll ? 'flex' : 'none';
     if (navUsr) navUsr.style.display = canSeeAll ? 'flex' : 'none';
+
+    if (APP_STATE.activeTab === 'dashboard' && APP_STATE.sapDataLoaded && typeof window.renderExecutiveDashboard === 'function') {
+        window.renderExecutiveDashboard();
+    }
 };
 
 async function preloadSAPData() {
@@ -764,7 +840,7 @@ window.updateGlobalDateFilter = async (isRes = false, isFed = false, isDash = fa
     APP_STATE.globalDateFrom = nf; APP_STATE.globalDateTo = nt;
 
     const loadHist = async (url, year, k, lk) => {
-        const l = getEl(isDash ? 'btn-dash-hist' : (isRes ? 'res-processing' : (isFed ? 'fed-processing' : 'sap-processing')));
+        const l = getEl(isDash ? 'dash-processing' : (isRes ? 'res-processing' : (isFed ? 'fed-processing' : 'sap-processing')));
         if (l) { l.classList.remove('hidden'); const p = l.querySelector('p'); if (p) p.textContent = `DESCARGANDO HISTÓRICO ${year}...`; }
         try { const txt = await fetch(url + '&t=' + Date.now()).then(r => r.text()); const rM = parseCSVFast(txt); const th = APP_STATE.rawData.main[0] || []; APP_STATE.rawData[k] = [th, ...window.alignRows(rM, th, String(year))]; APP_STATE[lk] = true; } catch (e) { console.error(e); }
         if (l) { const p = l.querySelector('p'); if (p) p.textContent = "PROCESANDO MATRIZ..."; }
@@ -790,6 +866,10 @@ window.updateGlobalDateFilter = async (isRes = false, isFed = false, isDash = fa
  */
 function processActiveData() {
     if (!APP_STATE.sapDataLoaded) return;
+    if (APP_STATE.activeTab === 'dashboard') {
+        if (typeof window.renderExecutiveDashboard === 'function') window.renderExecutiveDashboard();
+        return;
+    }
     APP_STATE.processSeq = (APP_STATE.processSeq || 0) + 1;
     const currentSeq = APP_STATE.processSeq;
     const iR = APP_STATE.activeTab === 'resultados'; const iF = APP_STATE.activeTab === 'fed';
@@ -7366,15 +7446,38 @@ window.renderExecutiveDashboard = () => {
             setTimeout(() => {
                 try {
                     // 1. Población, Red de Salud y Rango de Fechas
+                    const uR = APP_STATE.currentUser?.red || 'TODAS';
+                    const isRestrictedRed = (uR !== 'TODAS' && uR !== 'GERESA');
                     const filterRedEl = getEl('dash-filter-red');
-                    if (filterRedEl && filterRedEl.options.length <= 1 && APP_STATE.uniqueRedes && APP_STATE.uniqueRedes.length > 0) {
-                        let opts = `<option value="TODAS">Todas las Redes</option>`;
-                        APP_STATE.uniqueRedes.forEach(red => {
-                            opts += `<option value="${red}">${red}</option>`;
-                        });
-                        filterRedEl.innerHTML = opts;
+
+                    let selectedRed = 'TODAS';
+                    if (isRestrictedRed) {
+                        let matched = uR;
+                        if (APP_STATE.uniqueRedes && APP_STATE.uniqueRedes.size > 0) {
+                            const found = Array.from(APP_STATE.uniqueRedes).find(r => isSameRed(r, uR));
+                            if (found) matched = found;
+                        }
+                        selectedRed = matched;
+                        if (filterRedEl) {
+                            filterRedEl.innerHTML = `<option value="${matched}">${matched}</option>`;
+                            filterRedEl.value = matched;
+                            filterRedEl.disabled = true;
+                            filterRedEl.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    } else {
+                        if (filterRedEl && (filterRedEl.options.length <= 1 || filterRedEl.disabled) && APP_STATE.uniqueRedes && APP_STATE.uniqueRedes.size > 0) {
+                            let opts = `<option value="TODAS">Todas las Redes</option>`;
+                            Array.from(APP_STATE.uniqueRedes).sort().forEach(red => {
+                                opts += `<option value="${red}">${red}</option>`;
+                            });
+                            const curVal = filterRedEl.value;
+                            filterRedEl.innerHTML = opts;
+                            filterRedEl.disabled = false;
+                            filterRedEl.classList.remove('opacity-50', 'cursor-not-allowed');
+                            if (curVal && curVal !== 'TODAS') filterRedEl.value = curVal;
+                        }
+                        selectedRed = filterRedEl ? filterRedEl.value : 'TODAS';
                     }
-                    const selectedRed = filterRedEl ? filterRedEl.value : 'TODAS';
 
                     const from = APP_STATE.globalDateFrom || '2025-01';
                     const to = APP_STATE.globalDateTo || '2025-12';
@@ -7405,9 +7508,9 @@ window.renderExecutiveDashboard = () => {
 
                     // Filtrar filas según Red seleccionada y Rango de Fechas (Desde - Hasta)
                     const filteredRows = allRows.filter(r => {
-                        if (selectedRed !== 'TODAS' && selectedRed) {
+                        if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
                             const redVal = iRed !== -1 ? (r[iRed] || '').trim() : '';
-                            if (redVal.toUpperCase() !== selectedRed.toUpperCase()) return false;
+                            if (!isSameRed(redVal, selectedRed)) return false;
                         }
                         if (iMes !== -1) {
                             const m = r[iMes];
@@ -7494,9 +7597,9 @@ window.renderExecutiveDashboard = () => {
 
                             const mapYearCcpp = {};
                             rowsYear.forEach(r => {
-                                if (selectedRed !== 'TODAS' && selectedRed) {
+                                if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
                                     const redVal = idxR !== -1 ? (r[idxR] || '').trim() : '';
-                                    if (redVal.toUpperCase() !== selectedRed.toUpperCase()) return;
+                                    if (!isSameRed(redVal, selectedRed)) return;
                                 }
                                 const u = idxU !== -1 ? formatUbigeo(r[idxU]) : '';
                                 const c = idxC !== -1 ? String(r[idxC]).trim() : '';
@@ -7572,6 +7675,15 @@ window.renderExecutiveDashboard = () => {
                         });
                     }
 
+                    const evoSub = getEl('dash-evolucion-subtitle');
+                    if (evoSub) {
+                        if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
+                            evoSub.textContent = `Porcentaje y número de CCPP con cloro residual en rango óptimo (≥ 0.5 mg/L) en ${selectedRed}`;
+                        } else {
+                            evoSub.textContent = 'Porcentaje y número de CCPP con cloro residual en rango óptimo (≥ 0.5 mg/L) en la región';
+                        }
+                    }
+
                     const statsEl = getEl('dash-evolucion-stats');
                     if (statsEl) {
                         const totMuestras = latestRojo + latestVerde + latestNaranja;
@@ -7632,8 +7744,13 @@ window.renderExecutiveDashboard = () => {
         const iSanFecal = findHeaderIndex(hSan, 'Tiene al menos una muestra con contaminación fecal');
         const iSanOrg = findHeaderIndex(hSan, 'Tiene al menos un parametro organolepticos que excede el LMP');
         const iSanMet = findHeaderIndex(hSan, 'Tiene al menos un parametro inorganicos (metales pesados) que excede el LMP');
+        const iSanRed = findHeaderIndex(hSan, 'Red de Salud');
 
         rawSanitaria.slice(1).forEach(r => {
+            if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
+                const redVal = iSanRed !== -1 ? (r[iSanRed] || '').trim() : '';
+                if (!isSameRed(redVal, selectedRed)) return;
+            }
             if (iSanFecal !== -1 && String(r[iSanFecal]).toUpperCase() === 'SI') fecalCount++;
             if (iSanOrg !== -1 && String(r[iSanOrg]).toUpperCase() === 'SI') organoCount++;
             if (iSanMet !== -1 && String(r[iSanMet]).toUpperCase() === 'SI') inorganoCount++;
@@ -7720,8 +7837,13 @@ window.renderExecutiveDashboard = () => {
         const rDistIdx = findHeaderIndex(hRies, 'Distrito');
         const rCcppIdx = findHeaderIndex(hRies, 'Nombre CCPP');
         const rSapIdx = findHeaderIndex(hRies, 'Nombre SAP');
+        const rRedIdx = findHeaderIndex(hRies, 'Red de Salud');
 
         rawRiesgos.slice(1).forEach((r, idx) => {
+            if (selectedRed !== 'TODAS' && selectedRed !== 'Todos' && selectedRed) {
+                const redVal = rRedIdx !== -1 ? (r[rRedIdx] || '').trim() : '';
+                if (!isSameRed(redVal, selectedRed)) return;
+            }
             const nomCcpp = rCcppIdx !== -1 ? (r[rCcppIdx] || '').trim() : '';
             const nomSap = rSapIdx !== -1 ? (r[rSapIdx] || '').trim() : '';
             const prov = rProvIdx !== -1 ? (r[rProvIdx] || '').trim() : '';
@@ -7817,17 +7939,18 @@ window.renderExecutiveDashboard = () => {
         if (elBar) elBar.style.width = `${Math.min(100, Math.max(0, valPct))}%`;
     };
 
+    const isFiltered = (selectedRed !== 'TODAS' && selectedRed !== 'Todos');
     // MEF
-    updateGauge('mef', Number(pctCloro), 'Meta Regional MEF');
+    updateGauge('mef', Number(pctCloro), isFiltered ? `Meta Red ${selectedRed}` : 'Meta Regional MEF');
     // FED
     const valFed = Number((Number(pctCloro) * 0.92).toFixed(1));
-    updateGauge('fed', valFed, 'Logro interanual FED');
+    updateGauge('fed', valFed, isFiltered ? `Logro Red ${selectedRed}` : 'Logro interanual FED');
     // MIDIS
     const valMidis = Number((Number(pctCloro) * 1.05 > 100 ? 100 : Number(pctCloro) * 1.05).toFixed(1));
-    updateGauge('midis', valMidis, 'Vigilancia SAP Regulares');
+    updateGauge('midis', valMidis, isFiltered ? `Vigilancia Red ${selectedRed}` : 'Vigilancia SAP Regulares');
     // EMPAREJAMIENTO SALUD - VIVIENDA
     const valAmbos = Number((Number(pctCloro) * 0.85).toFixed(1));
-    updateGauge('ambos', valAmbos, 'Amb. Bueno (Salud & Vivienda)');
+    updateGauge('ambos', valAmbos, isFiltered ? `Amb. Bueno Red ${selectedRed}` : 'Amb. Bueno (Salud & Vivienda)');
 
     if (window.lucide) window.lucide.createIcons();
                 } catch (e) {
